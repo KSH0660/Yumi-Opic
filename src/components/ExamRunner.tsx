@@ -109,6 +109,8 @@ export default function ExamRunner({
   const [phase, setPhase] = useState<Phase>("ready");
   const [progress, setProgress] = useState(0);
   const [replayLeftSec, setReplayLeftSec] = useState(0);
+  /** 낭독 파일의 실제 길이(ms). mp3 를 틀 때만 채워지고, 없으면 어림값을 쓴다. */
+  const [speechMs, setSpeechMs] = useState(0);
 
   const [listening, setListening] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
@@ -128,6 +130,8 @@ export default function ExamRunner({
   const audioRef = useRef<AudioSession | null>(null);
   const audioTokenRef = useRef(0);
   const recordingsRef = useRef<Record<number, AnswerRecording>>({});
+  /** 낭독을 시작한 시각. 길이가 뒤늦게 와도 진행 막대의 기준점은 여기로 고정한다. */
+  const playStartedAtRef = useRef(0);
 
   const item = exam.items[index];
   const slot = item.slot;
@@ -306,11 +310,13 @@ export default function ExamRunner({
     void beginAudioCapture(targetSlot);
   }, [beginAudioCapture, stopAnswerCapture]);
 
-  const playQuestion = useCallback((targetSlot: number, text: string, isReplay: boolean) => {
+  const playQuestion = useCallback((targetSlot: number, questionId: string, text: string, isReplay: boolean) => {
     // 다시 듣기를 누르면 직전 몇 초의 답변 녹음은 버리고, 재청취가 끝난 뒤 새로 시작한다.
     stopAnswerCapture(isReplay ? "discard" : "save");
     setReplayLeftSec(0);
     setProgress(0);
+    setSpeechMs(0);
+    playStartedAtRef.current = Date.now();
     setPhase("playing");
     if (isReplay) {
       setReplays((prev) => ({ ...prev, [targetSlot]: (prev[targetSlot] ?? 0) + 1 }));
@@ -325,7 +331,10 @@ export default function ExamRunner({
     };
 
     speak(text, {
+      // 문항 id 로 미리 만들어 둔 mp3 를 먼저 찾는다. 없으면 브라우저가 읽는다.
+      audioId: questionId,
       rate: SPEECH_RATE,
+      onDuration: setSpeechMs,
       onEnd: startAnswering,
       onError: startAnswering,
     });
@@ -336,6 +345,7 @@ export default function ExamRunner({
     stopSpeaking();
     setPhase("ready");
     setProgress(0);
+    setSpeechMs(0);
     setReplayLeftSec(0);
     setReveal(null);
     setMicError(null);
@@ -352,13 +362,15 @@ export default function ExamRunner({
 
   useEffect(() => {
     if (phase !== "playing") return;
-    const total = estimateSpeechMs(item.question.en, SPEECH_RATE);
-    const startedAt = Date.now();
+    // mp3 를 틀면 실제 길이를 알 수 있다. 브라우저 낭독일 때만 어림값으로 그린다.
+    const total = speechMs > 0 ? speechMs : estimateSpeechMs(item.question.en, SPEECH_RATE);
+    // 길이가 뒤늦게 오더라도 기준 시각은 재생을 시작한 그 시점 그대로 둔다.
+    const startedAt = playStartedAtRef.current || Date.now();
     const id = window.setInterval(() => {
       setProgress(Math.min(0.97, (Date.now() - startedAt) / total));
     }, 100);
     return () => window.clearInterval(id);
-  }, [phase, item.question.en]);
+  }, [phase, item.question.en, speechMs]);
 
   useEffect(() => {
     if (replayLeftSec <= 0) return;
@@ -468,7 +480,7 @@ export default function ExamRunner({
               <div className="flex items-stretch border-x border-b border-exam-line">
                 <button
                   type="button"
-                  onClick={() => playQuestion(slot, item.question.en, phase !== "ready")}
+                  onClick={() => playQuestion(slot, item.question.id, item.question.en, phase !== "ready")}
                   disabled={phase === "playing" || (phase === "answering" && !canReplay)}
                   aria-label={playLabel}
                   className="grid w-11 place-items-center bg-exam-accent text-exam-accent-fg transition-colors enabled:hover:bg-exam-accent-hover disabled:bg-exam-accent-soft"

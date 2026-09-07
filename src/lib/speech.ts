@@ -1,15 +1,19 @@
 "use client";
 
 /**
- * 브라우저 내장 음성 기능 래퍼.
- * Web Speech API 는 브라우저에 기본 탑재돼 있어 별도 비용이 들지 않는다.
- *  - speechSynthesis  : 문제를 영어로 읽어준다 (거의 모든 브라우저 지원)
- *  - SpeechRecognition : 마이크로 말한 답변을 받아쓴다 (Chrome/Edge 계열)
+ * 음성 입출력 래퍼.
  *
- * 받아쓰기 쪽은 기기별 버그가 많아 `./transcript` 의 접기 로직과 짝을 이룬다.
- * 어떤 버그를 막고 있는지는 그 파일 주석에 정리해 두었다.
+ * 문제 낭독은 두 단을 둔다.
+ *  1. `npm run tts` 로 미리 만들어 둔 mp3 (`./questionAudio`). 사람 목소리에
+ *     가깝고 기기가 달라도 같게 들려서 기본으로 쓴다.
+ *  2. 그 파일이 없거나 재생이 막히면 브라우저 내장 speechSynthesis 로 읽는다.
+ *
+ * 받아쓰기는 SpeechRecognition (Chrome/Edge 계열) 하나뿐이다. 기기별 버그가 많아
+ * `./transcript` 의 접기 로직과 짝을 이룬다. 어떤 버그를 막고 있는지는 그 파일
+ * 주석에 정리해 두었다.
  */
 
+import { questionAudioUrl } from "./questionAudio";
 import {
   collectTranscript,
   mergeTranscript,
@@ -70,6 +74,22 @@ export function isSpeechRecognitionSupported(): boolean {
 let cachedVoice: SpeechSynthesisVoice | null = null;
 let voiceListenerAttached = false;
 
+/**
+ * 브라우저 낭독은 mp3 가 없을 때만 쓰는 대비책이다. 그래도 기기에 깔려 있는
+ * 가장 사람다운 목소리를 골라 준다.
+ *
+ * `localService === false` 는 서버에서 만들어 오는 신경망 목소리라 기기 안에서
+ * 합성하는 목소리보다 훨씬 낫다. 이름으로 거르는 건 그다음이다.
+ *  - Windows: Microsoft Aria/Jenny/Emma Online (Natural)
+ *  - macOS/iOS: Ava (Premium), Samantha (Enhanced), Zoe
+ *  - Chrome: Google US English
+ */
+const PREFERRED_VOICE_PATTERNS = [
+  /natural|premium|enhanced/i,
+  /\b(ava|zoe|jenny|aria|emma|samantha)\b/i,
+  /google/i,
+];
+
 function pickEnglishVoice(): SpeechSynthesisVoice | null {
   if (!isSpeechSynthesisSupported()) return null;
   if (!voiceListenerAttached) {
@@ -82,10 +102,18 @@ function pickEnglishVoice(): SpeechSynthesisVoice | null {
   if (cachedVoice) return cachedVoice;
   const voices = window.speechSynthesis.getVoices();
   if (voices.length === 0) return null;
+
+  const us = voices.filter((v) => /en[-_]US/i.test(v.lang));
+  const english = voices.filter((v) => /^en/i.test(v.lang));
+  const online = (list: SpeechSynthesisVoice[]) => list.filter((v) => v.localService === false);
+
   cachedVoice =
-    voices.find((v) => /en[-_]US/i.test(v.lang) && /natural|google|samantha/i.test(v.name)) ??
-    voices.find((v) => /en[-_]US/i.test(v.lang)) ??
-    voices.find((v) => /^en/i.test(v.lang)) ??
+    online(us).find((v) => PREFERRED_VOICE_PATTERNS.some((p) => p.test(v.name))) ??
+    online(us)[0] ??
+    us.find((v) => PREFERRED_VOICE_PATTERNS.some((p) => p.test(v.name))) ??
+    online(english)[0] ??
+    us[0] ??
+    english[0] ??
     null;
   return cachedVoice;
 }
@@ -93,6 +121,8 @@ function pickEnglishVoice(): SpeechSynthesisVoice | null {
 /**
  * 낭독에 걸릴 시간을 어림한다. 진행 막대를 그리고, onend 가 오지 않는 기기에서
  * 낭독이 끝난 것으로 볼 시점을 잡는 데 쓴다.
+ *
+ * mp3 를 재생할 때는 어림하지 않고 파일의 실제 길이를 `onDuration` 으로 알린다.
  */
 export function estimateSpeechMs(text: string, rate = 1): number {
   const perChar = 62; // 보통 속도로 읽을 때 한 글자에 걸리는 밀리초
@@ -100,10 +130,18 @@ export function estimateSpeechMs(text: string, rate = 1): number {
 }
 
 export interface SpeakHandlers {
+  /** 브라우저 낭독 속도. 미리 만들어 둔 mp3 는 만들 때 이미 속도가 정해져 있다. */
   rate?: number;
   /** 0~1. 실제 시험 화면의 볼륨 슬라이더와 이어져 있다. */
   volume?: number;
+  /**
+   * 문항 id. 이 id 로 만들어 둔 mp3 가 있으면 그쪽을 먼저 튼다.
+   * 없으면 브라우저 낭독으로 돌아간다.
+   */
+  audioId?: string;
   onStart?: () => void;
+  /** 실제 낭독 길이(ms). mp3 를 틀 때만 온다. 진행 막대를 정확히 그리는 데 쓴다. */
+  onDuration?: (ms: number) => void;
   onEnd?: () => void;
   onError?: () => void;
 }
@@ -114,6 +152,7 @@ const START_TIMEOUT_MS = 2500;
 /** 지금 살아 있는 낭독을 가리키는 표. 늦게 도착한 콜백을 걸러낸다. */
 let speakToken = 0;
 let speakFallbackTimer = 0;
+let currentRecording: HTMLAudioElement | null = null;
 
 function clearSpeakFallback(): void {
   if (speakFallbackTimer) {
@@ -122,17 +161,90 @@ function clearSpeakFallback(): void {
   }
 }
 
-/** 문제 지문을 영어로 읽어준다. rate 0.9 정도가 실전 속도에 가깝다. */
-export function speak(text: string, handlers: SpeakHandlers = {}): void {
+/** 틀고 있던 mp3 를 놓아 준다. 콜백을 먼저 떼야 늦은 error 가 되돌아오지 않는다. */
+function releaseRecording(): void {
+  const audio = currentRecording;
+  if (!audio) return;
+  currentRecording = null;
+  audio.onloadedmetadata = null;
+  audio.onplaying = null;
+  audio.onended = null;
+  audio.onerror = null;
+  try {
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load(); // 남은 내려받기를 여기서 끊는다
+  } catch {
+    /* 이미 정리된 경우 */
+  }
+}
+
+function clampVolume(volume: number): number {
+  return Math.min(1, Math.max(0, volume));
+}
+
+/**
+ * 미리 만들어 둔 mp3 를 튼다. 파일이 없거나 자동재생이 막히면 `fallback` 으로
+ * 넘겨 브라우저 낭독이 대신 읽게 한다.
+ */
+function playRecording(
+  src: string,
+  token: number,
+  handlers: SpeakHandlers,
+  fallback: () => void,
+): void {
+  const { volume = 1, onStart, onDuration, onEnd } = handlers;
+  let started = false;
+  let done = false;
+
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  audio.volume = clampVolume(volume);
+  currentRecording = audio;
+
+  const finish = () => {
+    if (done || token !== speakToken) return;
+    done = true;
+    releaseRecording();
+    onEnd?.();
+  };
+
+  // 파일이 없거나 재생이 거절됐다. 아직 한 글자도 안 나왔으면 브라우저 낭독으로
+  // 돌아가고, 이미 읽고 있었다면 앞부분을 두 번 듣게 되므로 그대로 끝낸다.
+  const giveUp = () => {
+    if (done || token !== speakToken) return;
+    done = true;
+    releaseRecording();
+    if (started) onEnd?.();
+    else fallback();
+  };
+
+  audio.onloadedmetadata = () => {
+    if (token !== speakToken) return;
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+      onDuration?.(audio.duration * 1000);
+    }
+  };
+  audio.onplaying = () => {
+    if (token !== speakToken || started) return;
+    started = true;
+    onStart?.();
+  };
+  audio.onended = finish;
+  audio.onerror = giveUp;
+
+  // 자동재생을 막는 브라우저에서는 이 약속이 거절된다. play() 가 아무것도
+  // 돌려주지 않는 구형 브라우저도 있어 Promise 로 감싼다.
+  Promise.resolve(audio.play()).catch(giveUp);
+}
+
+/** 브라우저 내장 합성으로 읽는다. mp3 가 없을 때 쓰는 대비책이다. */
+function speakWithSynthesis(text: string, token: number, handlers: SpeakHandlers): void {
   const { rate = 0.92, volume = 1, onStart, onEnd, onError } = handlers;
   if (!isSpeechSynthesisSupported()) {
-    onError?.();
+    if (token === speakToken) onError?.();
     return;
   }
-
-  const token = ++speakToken;
-  clearSpeakFallback();
-  window.speechSynthesis.cancel();
 
   let done = false;
   const finish = (failed: boolean) => {
@@ -151,7 +263,7 @@ export function speak(text: string, handlers: SpeakHandlers = {}): void {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "en-US";
   utterance.rate = rate;
-  utterance.volume = Math.min(1, Math.max(0, volume));
+  utterance.volume = clampVolume(volume);
   const voice = pickEnglishVoice();
   if (voice) utterance.voice = voice;
   utterance.onstart = () => {
@@ -171,10 +283,31 @@ export function speak(text: string, handlers: SpeakHandlers = {}): void {
   window.speechSynthesis.speak(utterance);
 }
 
+/**
+ * 문제 지문을 영어로 읽어준다.
+ *
+ * `audioId` 로 미리 만들어 둔 mp3 를 먼저 찾고, 없을 때만 브라우저 낭독으로
+ * 읽는다. 어느 쪽이든 끝나면 `onEnd` 가 한 번 온다.
+ */
+export function speak(text: string, handlers: SpeakHandlers = {}): void {
+  const token = ++speakToken;
+  clearSpeakFallback();
+  releaseRecording();
+  if (isSpeechSynthesisSupported()) window.speechSynthesis.cancel();
+
+  const src = questionAudioUrl(handlers.audioId);
+  if (src) {
+    playRecording(src, token, handlers, () => speakWithSynthesis(text, token, handlers));
+    return;
+  }
+  speakWithSynthesis(text, token, handlers);
+}
+
 export function stopSpeaking(): void {
-  if (!isSpeechSynthesisSupported()) return;
   speakToken += 1; // 남아 있는 콜백을 모두 무효로 만든다
   clearSpeakFallback();
+  releaseRecording();
+  if (!isSpeechSynthesisSupported()) return;
   window.speechSynthesis.cancel();
 }
 
