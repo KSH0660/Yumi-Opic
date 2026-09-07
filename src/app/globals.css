@@ -1,47 +1,168 @@
 @import "tailwindcss";
 
-@theme {
+/*
+ * 테마 토큰
+ *
+ * 컴포넌트는 원시 색상(ink-900, accent-500)이 아니라 의미 토큰(surface, fg,
+ * primary…)만 사용한다. 덕분에 팔레트 두 벌을 :root 한 곳에서 갈아끼우면
+ * 라이트/다크가 모두 따라온다.
+ *
+ * 라이트가 기본값이다. 다크는 사용자가 직접 고른 경우에만 적용한다
+ * (html[data-theme="dark"]). 대비는 WCAG 2.1 기준으로 본문 4.5:1,
+ * 컨트롤 경계 3:1 이상을 만족하도록 고른 값이다.
+ */
+:root {
+  color-scheme: light;
+
+  --canvas: #f4f6fe;
+  --canvas-glow: #dfe5ff;
+  --surface: #ffffff;
+  --surface-2: #eef1fb;
+  --surface-3: #e5e9f7;
+
+  --fg: #1e1b4b; /* 14.8:1 on canvas */
+  --fg-muted: #475569; /* 7.0:1 on canvas */
+  --fg-subtle: #5f6c82; /* 4.9:1 on canvas */
+
+  --line: #dde3f7; /* 장식용 경계 */
+  --line-strong: #7e8aa0; /* 입력·컨트롤 경계, 3.4:1 on surface */
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-fg: #ffffff; /* 6.3:1 on primary */
+  --primary-tint: #eef2ff;
+  --primary-tint-strong: #e0e7ff;
+  --primary-ink: #4338ca; /* 7.1:1 on primary-tint */
+
+  --success: #15803d;
+  --success-hover: #166534;
+  --success-fg: #ffffff; /* 5.0:1 on success */
+  --success-tint: #ecfdf5;
+  --success-ink: #166534; /* 6.8:1 on success-tint */
+
+  --warn-tint: #fffbeb;
+  --warn-ink: #92400e; /* 6.8:1 on warn-tint */
+
+  --danger-tint: #fff1f2;
+  --danger-ink: #be123c; /* 5.7:1 on danger-tint */
+
+  --shadow-card: 0 1px 2px rgb(30 27 75 / 0.05), 0 8px 24px -12px rgb(30 27 75 / 0.12);
+  --shadow-raised: 0 1px 2px rgb(30 27 75 / 0.06), 0 12px 32px -14px rgb(30 27 75 / 0.2);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #0a0a0f;
+  --canvas-glow: #241d47;
+  --surface: #12121a;
+  --surface-2: #171722;
+  --surface-3: #1e1e2c;
+
+  --fg: #eaeaf2; /* 15.6:1 on surface */
+  --fg-muted: #b4b4c8; /* 9.1:1 on surface */
+  --fg-subtle: #8a8aa3; /* 5.5:1 on surface */
+
+  --line: #2a2a3c;
+  --line-strong: #3a3a52;
+
+  --primary: #7c3aed;
+  --primary-hover: #8b5cf6;
+  --primary-fg: #ffffff; /* 5.7:1 on primary */
+  --primary-tint: #1c1733;
+  --primary-tint-strong: #241d47;
+  --primary-ink: #a78bfa; /* 6.9:1 on surface */
+
+  --success: #34d399;
+  --success-hover: #6ee7b7;
+  --success-fg: #0a0a0f;
+  --success-tint: #10231d;
+  --success-ink: #6ee7b7;
+
+  --warn-tint: #241c0d;
+  --warn-ink: #fcd34d;
+
+  --danger-tint: #2a1119;
+  --danger-ink: #fda4af;
+
+  --shadow-card: none;
+  --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic",
     sans-serif;
 
-  --color-ink-950: #0a0a0f;
-  --color-ink-900: #12121a;
-  --color-ink-850: #171722;
-  --color-ink-800: #1e1e2c;
-  --color-ink-700: #2a2a3c;
-  --color-ink-600: #3a3a52;
-  --color-ink-400: #8a8aa3;
-  --color-ink-300: #b4b4c8;
-  --color-ink-100: #eaeaf2;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
 
-  --color-accent-400: #a78bfa;
-  --color-accent-500: #8b5cf6;
-  --color-accent-600: #7c3aed;
-}
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
 
-html {
-  color-scheme: dark;
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-tint: var(--primary-tint);
+  --color-primary-tint-strong: var(--primary-tint-strong);
+  --color-primary-ink: var(--primary-ink);
+
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-fg: var(--success-fg);
+  --color-success-tint: var(--success-tint);
+  --color-success-ink: var(--success-ink);
+
+  --color-warn-tint: var(--warn-tint);
+  --color-warn-ink: var(--warn-ink);
+
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-ink: var(--danger-ink);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
 }
 
 body {
   background:
-    radial-gradient(ellipse 90% 55% at 50% -10%, #241d47 0%, transparent 62%),
-    var(--color-ink-950);
-  color: var(--color-ink-100);
+    radial-gradient(ellipse 90% 55% at 50% -10%, var(--canvas-glow) 0%, transparent 62%),
+    var(--canvas);
+  color: var(--fg);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--color-accent-600);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-fg);
 }
 
-/* 스크롤바를 어두운 배경에 맞춘다 */
 * {
-  scrollbar-color: var(--color-ink-600) transparent;
+  scrollbar-color: var(--line-strong) transparent;
   scrollbar-width: thin;
+}
+
+/* 클릭 가능한 요소는 항상 포인터 커서를 갖는다 */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* 키보드 사용자에게 항상 보이는 포커스 링 (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @keyframes fade-up {
@@ -62,5 +183,11 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up {
     animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
   }
 }

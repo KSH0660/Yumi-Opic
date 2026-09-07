@@ -5,7 +5,7 @@ export default function Page() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-ink-400">
+        <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-fg-muted">
           시험지를 준비하는 중…
         </main>
       }
