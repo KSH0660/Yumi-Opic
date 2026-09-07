@@ -146,15 +146,15 @@ export default function ExamRunner({
       onError: (code) => {
         setMicError(
           code === "not-allowed"
-            ? "마이크 권한이 거부됐습니다. 브라우저 주소창의 자물쇠 아이콘에서 허용해 주세요."
-            : `음성 인식 오류: ${code}`,
+            ? "마이크 권한이 꺼져 있습니다. 주소창의 자물쇠 아이콘을 눌러 마이크를 허용해 주세요."
+            : "음성 인식에 문제가 생겼습니다. 잠시 후 다시 시도하거나 직접 입력해 주세요.",
         );
         stopDictation();
       },
       onEnd: () => setListening(false),
     });
     if (!handle) {
-      setMicError("이 브라우저는 음성 인식을 지원하지 않습니다. Chrome이나 Edge에서 사용해 주세요.");
+      setMicError("이 브라우저에서는 음성 입력을 쓸 수 없습니다. Chrome이나 Edge에서 열어 주세요.");
       return;
     }
     dictationRef.current = handle;
@@ -203,7 +203,7 @@ export default function ExamRunner({
             {index + 1} / {exam.items.length}
           </span>
           <span className="text-fg-subtle">·</span>
-          <span className="tabular-nums">{answeredCount}문항 작성됨</span>
+          <span className="tabular-nums">{answeredCount}문항 작성</span>
         </div>
       </div>
 
@@ -224,14 +224,14 @@ export default function ExamRunner({
           <SourceBadge source={item.question.source} />
           <span className="ml-auto flex items-center gap-2 text-xs tabular-nums">
             <span className="text-fg-muted">
-              경과 {formatTime(elapsed)}
+              답변 시간 {formatTime(elapsed)}
             </span>
             <button
               type="button"
               onClick={() => setTimerOn((v) => !v)}
               className="rounded-md border border-line px-2 py-0.5 text-fg-muted transition hover:text-fg"
             >
-              {timerOn ? "일시정지" : "재개"}
+              {timerOn ? "일시정지" : "이어서"}
             </button>
           </span>
         </div>
@@ -247,7 +247,7 @@ export default function ExamRunner({
               onClick={() => speak(item.question.en)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-xs text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
             >
-              <SpeakerIcon /> 읽어주기
+              <SpeakerIcon /> 질문 듣기
             </button>
           )}
           <button
@@ -255,7 +255,7 @@ export default function ExamRunner({
             onClick={() => setShowKorean((v) => !v)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-xs text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
           >
-            {showKorean ? "한국어 숨기기" : "한국어 보기"}
+            {showKorean ? "해석 숨기기" : "해석 보기"}
           </button>
           {item.question.hints && item.question.hints.length > 0 && (
             <button
@@ -263,7 +263,7 @@ export default function ExamRunner({
               onClick={() => setShowHints((v) => !v)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-xs text-fg-muted transition-colors hover:border-line-strong hover:text-fg"
             >
-              <BulbIcon /> {showHints ? "힌트 숨기기" : "표현 힌트"}
+              <BulbIcon /> {showHints ? "힌트 숨기기" : "힌트 보기"}
             </button>
           )}
           {speechAvailable && (
@@ -277,7 +277,7 @@ export default function ExamRunner({
                 }}
                 className="h-3.5 w-3.5 accent-[var(--primary)]"
               />
-              문제 자동 낭독
+              문제 자동으로 듣기
             </label>
           )}
         </div>
@@ -309,11 +309,11 @@ export default function ExamRunner({
             htmlFor="answer"
             className="text-xs font-semibold uppercase tracking-widest text-fg-muted"
           >
-            내 답변 (영어)
+            내 답변
           </label>
           <div className="flex items-center gap-3 text-xs">
             <span className="tabular-nums text-fg-muted">
-              영어 {words}단어
+              {words}단어
             </span>
             {micAvailable && (
               <button
@@ -325,7 +325,7 @@ export default function ExamRunner({
                     : "border-line bg-surface-2 text-fg-muted hover:border-line-strong hover:text-fg"
                 }`}
               >
-                {listening ? <><StopIcon /> 받아쓰기 중지</> : <><MicIcon /> 마이크로 말하기</>}
+                {listening ? <><StopIcon /> 음성 입력 중지</> : <><MicIcon /> 음성으로 답변</>}
               </button>
             )}
           </div>
@@ -346,14 +346,14 @@ export default function ExamRunner({
 
         {listening && (
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-danger-ink">
-            <MicIcon /> 듣는 중… {interim && <span className="text-fg-muted">{interim}</span>}
+            <MicIcon /> 듣고 있어요… {interim && <span className="text-fg-muted">{interim}</span>}
           </p>
         )}
         {micError && <p className="mt-2 text-xs text-warn-ink">{micError}</p>}
         {micAvailable === false && (
           <p className="mt-2 text-xs text-fg-subtle">
-            이 브라우저는 마이크 받아쓰기를 지원하지 않습니다. 답변을 직접
-            입력해 연습할 수 있습니다.
+            이 브라우저에서는 음성 입력을 쓸 수 없습니다. 답변을 직접 입력해
+            연습해 주세요.
           </p>
         )}
       </div>
@@ -367,7 +367,7 @@ export default function ExamRunner({
             onClick={() => setIndex((i) => Math.max(0, i - 1))}
             className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted transition enabled:hover:border-line-strong enabled:hover:text-fg disabled:opacity-30"
           >
-            이전
+            이전 문항
           </button>
           <span className="min-w-0 flex-1 truncate text-center text-xs text-fg-subtle">
             {title}
@@ -386,7 +386,7 @@ export default function ExamRunner({
               onClick={submit}
               className="rounded-xl bg-success px-5 py-2.5 text-sm font-medium text-success-fg transition-colors hover:bg-success-hover"
             >
-              답변 돌아보기
+              답변 확인하기
             </button>
           )}
         </div>

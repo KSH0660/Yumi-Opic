@@ -22,14 +22,14 @@ export function ProgressBar({ value, max }: { value: number; max: number }) {
 
 export function SourceBadge({ source = "adapted", sourceRef }: { source?: QuestionSource; sourceRef?: SourceReference }) {
   const labels: Record<QuestionSource, string> = {
-    textbook: "이전 교재 데이터",
-    verified: "공개 복원 기반",
-    adapted: "출제형식 기반",
+    textbook: "교재 데이터",
+    verified: "기출 복원 기반",
+    adapted: "출제 유형 기반",
   };
   const descriptions: Record<QuestionSource, string> = {
-    textbook: "이전 버전의 교재 데이터 표시용 값입니다. 현재 활성 서베이 은행에서는 사용하지 않습니다.",
-    verified: "공개된 수험자 복원·기출 정리 자료에서 반복 확인되는 질문 문형을 연습하기 쉽게 다듬었습니다. 공식 원문 인증을 뜻하지 않습니다.",
-    adapted: "해당 토픽에서 직접 확인되는 복원이 부족해 실제 OPIc의 비교·이슈·경험 형식에 맞춰 만든 연습 문항입니다.",
+    textbook: "예전 교재 데이터를 표시하던 값으로, 지금 문제은행에서는 쓰지 않습니다.",
+    verified: "공개된 수험자 복원·기출 정리 자료에 반복해서 등장하는 질문을 연습하기 좋게 다듬은 문항입니다. 공식 원문 그대로는 아닙니다.",
+    adapted: "이 주제에서 확인되는 복원 문항이 없어, 실제 시험의 출제 유형에 맞춰 새로 만든 연습 문항입니다.",
   };
   return <span title={descriptions[source]} className={`inline-flex cursor-help items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${source === "verified" ? "bg-success-tint text-success-ink ring-success-ink/30" : "bg-surface-3 text-fg-muted ring-line-strong/40"}`}>
     {labels[source]}{sourceRef ? ` · p.${sourceRef.page} ${sourceRef.label}` : ""}
