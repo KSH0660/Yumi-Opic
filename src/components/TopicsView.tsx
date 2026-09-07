@@ -10,6 +10,7 @@ import {
   surveyTopics,
 } from "@/data";
 import { TYPE_LABELS } from "@/lib/exam";
+import Footer from "./Footer";
 import { Badge, Card } from "./ui";
 
 const GROUPS: { category: TopicCategory; label: string; desc: string; topics: Topic[] }[] = [
@@ -122,6 +123,8 @@ export default function TopicsView() {
           </section>
         ))}
       </div>
+
+      <Footer />
     </main>
   );
 }

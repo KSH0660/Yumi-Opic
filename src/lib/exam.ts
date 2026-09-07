@@ -56,6 +56,7 @@ export function pickRandom<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+
 export function shuffle<T>(items: T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -77,13 +78,27 @@ function topicsSupporting(topics: Topic[], types: QuestionType[]): Topic[] {
 function buildCombo(
   topic: Topic,
   specs: SlotSpec[],
+  /** 주제에 해당 유형이 아예 없을 때 문항을 빌려올 같은 분류의 주제들 */
+  siblings: Topic[],
 ): ExamItem[] {
   /** 같은 주제 안에서 같은 문제가 두 번 나오지 않게 막는다 */
   const used = new Set<string>();
   return specs.map((spec) => {
-    const pool = questionsOfType(topic, spec.type).filter((q) => !used.has(q.id));
-    const fallback = questionsOfType(topic, spec.type);
-    const question = pickRandom(pool.length > 0 ? pool : fallback);
+    const ofType = questionsOfType(topic, spec.type);
+    const unused = ofType.filter((q) => !used.has(q.id));
+    // 1) 이 주제에서 아직 안 쓴 문항 → 2) 이 주제의 같은 유형(중복 허용)
+    // → 3) 같은 분류의 다른 주제에서 빌려온 문항 → 4) 최후로 이 주제의 아무 문항.
+    // 유형이 빠진 주제가 은행에 추가되더라도 빈 슬롯이 생기지 않게 한다.
+    const borrowed = siblings.flatMap((t) => questionsOfType(t, spec.type));
+    const candidates =
+      unused.length > 0
+        ? unused
+        : ofType.length > 0
+          ? ofType
+          : borrowed.length > 0
+            ? borrowed
+            : topic.questions;
+    const question = pickRandom(candidates);
     used.add(question.id);
     return {
       slot: spec.slot,
@@ -138,11 +153,11 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   const topicE = pickRandom(eCandidates.length > 0 ? eCandidates : advancedTopics);
 
   const items: ExamItem[] = [
-    ...buildCombo(topicA, comboASpecs),
-    ...buildCombo(topicB, comboBSpecs),
-    ...buildCombo(topicC, comboCSpecs),
-    ...buildCombo(topicD, comboDSpecs),
-    ...buildCombo(topicE, comboESpecs),
+    ...buildCombo(topicA, comboASpecs, surveyTopics),
+    ...buildCombo(topicB, comboBSpecs, surveyTopics),
+    ...buildCombo(topicC, comboCSpecs, surpriseTopics),
+    ...buildCombo(topicD, comboDSpecs, roleplayTopics),
+    ...buildCombo(topicE, comboESpecs, advancedTopics),
   ];
 
   if (includeIntro) {
