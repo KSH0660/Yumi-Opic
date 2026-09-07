@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { hasAnswerText, summarizeAnswers } = require('../.test-build/lib/answers');
+const { hasAnswerText, summarizeAnswers, defaultResultFilter, filterItemsByAnswer } = require('../.test-build/lib/answers');
 
 test('답변 유무는 텍스트의 공백을 제거한 뒤 판단한다', () => {
   for (const text of [undefined, '', ' \n\t ', '\u00a0']) assert.equal(hasAnswerText(text), false);
@@ -30,4 +30,19 @@ test('아무 답변도 없으면 평균은 없고 모든 답변 통계는 0이�
     totalTime: 0, totalHints: 0, totalReplays: 0,
   });
   assert.equal(summarizeAnswers([], {}).averageWords, null);
+});
+
+test('결과 화면 기본 보기는 답변과 미답변이 섞였을 때만 답변한 문항만 보여 준다', () => {
+  assert.equal(defaultResultFilter(3, 15), 'answered');
+  assert.equal(defaultResultFilter(15, 15), 'all');
+  assert.equal(defaultResultFilter(0, 15), 'all');
+  assert.equal(defaultResultFilter(0, 0), 'all');
+});
+
+test('답변한 문항만 보기는 빈 답변을 걸러 내고 전체 보기는 순서를 그대로 둔다', () => {
+  const items = [{ slot: 1 }, { slot: 2 }, { slot: 3 }, { slot: 4 }];
+  const answers = { 1: 'I love music.', 2: ' \n\t ', 4: 'Walking helps me relax.' };
+  assert.deepEqual(filterItemsByAnswer(items, answers, 'answered'), [{ slot: 1 }, { slot: 4 }]);
+  assert.deepEqual(filterItemsByAnswer(items, answers, 'all'), items);
+  assert.deepEqual(filterItemsByAnswer(items, {}, 'answered'), []);
 });

@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Exam, ExamItem } from "@/lib/types";
-import { isOpicFeedback, type FeedbackCategory, type OpicFeedback } from "@/lib/feedback";
+import { isOpicFeedback, requiresFrontLoadedOpening, type FeedbackCategory, type OpicFeedback } from "@/lib/feedback";
 import {
   countEnglishSentences,
   countEnglishWords,
   countUniqueEnglishWords,
+  defaultResultFilter,
+  filterItemsByAnswer,
   hasAnswerText,
   summarizeAnswers,
+  type ResultFilter,
 } from "@/lib/answers";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
@@ -113,6 +116,9 @@ export default function ExamResult({
   }
 
   const recordingCount = answeredSlots.filter((slot) => recordings[slot]).length;
+  // 미답변 문항이 목록을 채우면 실제로 말한 답변을 다시 보기 어렵다. 기본은 답변한 문항만 보여 준다.
+  const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
+  const visibleItems = filterItemsByAnswer(exam.items, answers, filter);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8 sm:px-8">
@@ -146,7 +152,7 @@ export default function ExamResult({
           전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-fg-muted">
-          AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
+          AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 1~2문장에서 질문에 바로 답하는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
         </p>
 
         {(onRetry || onRegenerate) && <div className="mt-6 flex flex-wrap gap-3">
@@ -157,9 +163,20 @@ export default function ExamResult({
         </div>}
       </Card>
 
-      <h2 className="mt-10 text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
+        {skippedCount > 0 && (
+          <div role="group" aria-label="문항 보기 범위" className="inline-flex gap-1 rounded-xl border border-line bg-surface p-1">
+            <FilterButton active={filter === "answered"} onClick={() => setFilter("answered")}>답변한 문항 {answeredCount}</FilterButton>
+            <FilterButton active={filter === "all"} onClick={() => setFilter("all")}>전체 {exam.items.length}</FilterButton>
+          </div>
+        )}
+      </div>
+      {filter === "answered" && skippedCount > 0 && (
+        <p className="mt-2 text-xs leading-relaxed text-fg-subtle">답변 없는 {skippedCount}문항은 숨겼습니다. <strong className="font-medium text-fg-muted">전체</strong>를 누르면 다시 볼 수 있습니다.</p>
+      )}
       <div className="mt-4 space-y-4">
-        {exam.items.map((item) => (
+        {visibleItems.map((item) => (
           <ItemResult
             key={item.slot}
             item={item}
@@ -172,6 +189,11 @@ export default function ExamResult({
             onFeedback={(feedback) => saveFeedback(item.slot, feedback)}
           />
         ))}
+        {visibleItems.length === 0 && (
+          <Card className="px-5 py-6">
+            <p className="text-sm text-fg-muted">답변한 문항이 없습니다. <strong className="font-medium text-fg">전체</strong>를 누르면 이번에 받은 질문을 볼 수 있습니다.</p>
+          </Card>
+        )}
       </div>
       <Footer />
     </main>
@@ -202,6 +224,8 @@ function ItemResult({
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const hasAnswer = hasAnswerText(answer);
   const extension = recording?.mimeType.includes("ogg") ? "ogg" : "webm";
+  // 롤플레이는 전화 대화에 가까워 두괄식을 요구하지 않는다. 칩 라벨도 기준에 맞춰 바뀐다.
+  const frontLoaded = requiresFrontLoadedOpening(item.question.type);
 
   // 버튼 한 번이 관리자 지갑에서 나가는 돈이라 누르기 전에 대략적인 금액을 알린다.
   const cost = estimateFeedbackCost({
@@ -226,6 +250,7 @@ function ItemResult({
       body.append("question", item.question.en);
       body.append("topic", `${item.topicKo} / ${item.topicEn}`);
       body.append("type", item.typeLabel);
+      body.append("questionType", item.question.type);
       body.append("transcript", answer);
       body.append("elapsedSec", String(elapsed));
 
@@ -322,7 +347,7 @@ function ItemResult({
                 {feedback && (
                   <div className="mt-4 border-t border-line pt-4">
                     <div className="flex flex-wrap gap-2">
-                      <FlowChip label="핵심 주제" good={feedback.structure.topic === "good"} />
+                      <FlowChip label={frontLoaded ? "두괄식 도입" : "요청·문제 전달"} good={feedback.structure.topic === "good"} />
                       <FlowChip label="활동·디테일" good={feedback.structure.detail === "good"} />
                       <FlowChip label="감정·의미" good={feedback.structure.feeling === "good"} />
                     </div>
@@ -376,6 +401,19 @@ function ItemResult({
         </div>
       )}
     </Card>
+  );
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium tabular-nums transition ${active ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg"}`}
+    >
+      {children}
+    </button>
   );
 }
 
