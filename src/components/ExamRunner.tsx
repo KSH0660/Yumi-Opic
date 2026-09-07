@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Exam } from "@/lib/types";
-import { countEnglishWords } from "@/lib/answers";
+import { countEnglishWords, hasAnswerText } from "@/lib/answers";
 import {
   estimateSpeechMs,
   isSpeechRecognitionSupported,
@@ -97,6 +97,7 @@ export default function ExamRunner({
   title: string;
   onRegenerate?: () => void;
 }) {
+  const isPractice = exam.mode === "practice";
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [times, setTimes] = useState<Record<number, number>>({});
@@ -378,11 +379,15 @@ export default function ExamRunner({
     if (el) el.scrollTop = el.scrollHeight;
   }, [answer, interim]);
 
-  function nextQuestion() {
-    if (index >= exam.items.length - 1) return;
+  function goToQuestion(targetIndex: number) {
+    if (targetIndex < 0 || targetIndex >= exam.items.length || targetIndex === index) return;
     stopAnswerCapture("save");
     stopSpeaking();
-    setIndex((current) => current + 1);
+    setIndex(targetIndex);
+  }
+
+  function nextQuestion() {
+    goToQuestion(index + 1);
   }
 
   function submit() {
@@ -495,22 +500,30 @@ export default function ExamRunner({
             </div>
 
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-exam-ink-muted">문항 진행:</p>
-              <div className="mt-2 flex flex-wrap gap-1">
+              <p className="text-xs font-semibold text-exam-ink-muted">{isPractice ? "문항 선택:" : "문항 진행:"}</p>
+              <div className={`mt-2 flex flex-wrap ${isPractice ? "gap-2" : "gap-1"}`}>
                 {exam.items.map((it, i) => {
-                  const state = i < index ? "done" : i === index ? "active" : "todo";
+                  const answered = hasAnswerText(answers[it.slot]);
+                  const state = i === index ? "active" : (isPractice ? answered : i < index) ? "done" : "todo";
+                  const className = `grid place-items-center border text-xs font-semibold tabular-nums ${isPractice ? "min-h-11 min-w-11 transition-colors hover:border-exam-accent" : "h-7 w-8 cursor-default"} ${
+                    state === "active" ? "border-exam-slot-active bg-exam-slot-active text-exam-slot-active-fg"
+                      : state === "done" ? "exam-slot-done border-exam-line text-exam-ink-muted"
+                        : "border-exam-line bg-exam-slot text-exam-slot-fg"
+                  }`;
+                  if (isPractice) return (
+                    <button key={it.slot} type="button" onClick={() => goToQuestion(i)}
+                      aria-current={state === "active" ? "step" : undefined}
+                      aria-label={`${it.slot}번 문항 · ${answered ? "답변함" : "미답변"}`}
+                      title={`${it.typeLabel} · ${answered ? "답변함" : "미답변"}`} className={className}>
+                      {it.slot}
+                    </button>
+                  );
                   return (
                     <span
                       key={it.slot}
                       aria-current={state === "active" ? "step" : undefined}
                       title={state === "done" ? "이미 지나간 문항입니다" : state === "active" ? "현재 문항" : "아직 진행하지 않은 문항입니다"}
-                      className={`grid h-7 w-8 cursor-default place-items-center border text-xs font-semibold tabular-nums ${
-                        state === "active"
-                          ? "border-exam-slot-active bg-exam-slot-active text-exam-slot-active-fg"
-                          : state === "done"
-                            ? "exam-slot-done border-exam-line text-exam-ink-muted"
-                            : "border-exam-line bg-exam-slot text-exam-slot-fg"
-                      }`}
+                      className={className}
                     >
                       {it.slot}
                     </span>
@@ -518,7 +531,16 @@ export default function ExamRunner({
                 })}
               </div>
 
-              {index === 0 && (
+              {isPractice && (
+                <div className="mt-4 space-y-3 rounded border border-exam-line bg-exam-frame-2 p-4">
+                  <p className="text-xs leading-relaxed text-exam-ink-muted">유형별로 한 문항씩, 총 {exam.items.length}문항입니다. 원하는 문제만 답변하세요. 이전·다음이나 번호로 이동하고, 언제든 결과를 볼 수 있습니다.</p>
+                  <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold">{item.typeLabel}</span><SourceBadge source={item.question.source} /></div>
+                  <p className="text-sm leading-relaxed">{item.question.en}</p>
+                  <p className="text-xs leading-relaxed text-exam-ink-muted">{item.question.ko}</p>
+                </div>
+              )}
+
+              {!isPractice && index === 0 && (
                 <div className="mt-4 bg-exam-note px-4 py-3 text-sm leading-relaxed text-exam-note-fg">
                   <p><strong className="font-bold">Play</strong> 아이콘(▶)을 눌러 질문을 청취하십시오.</p>
                   <p className="mt-3"><strong className="font-bold">중요!</strong> 5초 이내에 REPLAY 아이콘을 누르면 질문 다시듣기가 가능하며, 재청취는 한번만 가능합니다.</p>
@@ -540,7 +562,7 @@ export default function ExamRunner({
                 </div>
 
                 {typing ? (
-                  <textarea value={answer} onChange={(e) => editAnswer(slot, e.target.value)} rows={7} spellCheck placeholder="Well, let me tell you about..." className="w-full resize-y bg-exam-frame px-3 py-3 text-sm leading-relaxed text-exam-ink outline-none placeholder:text-exam-ink-muted/70" />
+                  <textarea aria-label="내 답변" value={answer} onChange={(e) => editAnswer(slot, e.target.value)} rows={7} spellCheck placeholder="Well, let me tell you about..." className="w-full resize-y bg-exam-frame px-3 py-3 text-sm leading-relaxed text-exam-ink outline-none placeholder:text-exam-ink-muted/70" />
                 ) : (
                   <div ref={transcriptRef} className="max-h-56 min-h-[7rem] overflow-y-auto px-3 py-3 text-sm leading-relaxed">
                     {answer || interim ? (
@@ -601,9 +623,15 @@ export default function ExamRunner({
             </div>
           )}
 
-          <div className="mt-6 flex items-center gap-3 border-t border-exam-line pt-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-exam-line pt-4">
             <button type="button" aria-expanded={tools} onClick={() => setTools((value) => !value)} className="text-xs text-exam-ink-muted transition hover:text-exam-ink">연습 도구 {tools ? "▴" : "▾"}</button>
-            {index < exam.items.length - 1 ? (
+            {isPractice ? (
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => goToQuestion(index - 1)} disabled={index === 0} className="min-h-11 rounded border border-exam-line px-4 text-sm text-exam-ink-muted disabled:cursor-not-allowed disabled:opacity-40">‹ 이전</button>
+                <button type="button" onClick={nextQuestion} disabled={index === exam.items.length - 1} className="min-h-11 rounded border border-exam-line px-4 text-sm text-exam-ink-muted disabled:cursor-not-allowed disabled:opacity-40">다음 ›</button>
+                <button type="button" onClick={submit} className="min-h-11 rounded bg-exam-accent px-4 text-sm font-bold text-exam-accent-fg transition-colors hover:bg-exam-accent-hover">연습 마치고 결과 보기</button>
+              </div>
+            ) : index < exam.items.length - 1 ? (
               <button type="button" onClick={nextQuestion} className="ml-auto rounded bg-exam-accent px-7 py-2.5 text-sm font-bold text-exam-accent-fg transition-colors hover:bg-exam-accent-hover">Next ›</button>
             ) : (
               <button type="button" onClick={submit} className="ml-auto rounded bg-exam-accent px-7 py-2.5 text-sm font-bold text-exam-accent-fg transition-colors hover:bg-exam-accent-hover">답변 확인하기</button>

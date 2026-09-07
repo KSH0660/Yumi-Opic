@@ -51,14 +51,14 @@ export default function HomeView() {
       </div>
       <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">실제로 나온 질문부터<br /><span className="text-primary-ink">반복해서 연습하기</span></h1>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-fg-muted">
-        배경 설문 주제 11개에서 기출 복원으로 확인된 {verifiedQuestionCount}문항을 중심으로 연습합니다. 같은 유형에 복원 문항이 있으면 새로 만든 문항은 출제하지 않습니다.
+        배경 설문 주제 11개에서 기출 복원으로 확인된 {verifiedQuestionCount}문항과 출제 유형 기반 문항을 연습합니다. 주제별 연습에서는 각 유형에서 한 문항씩 골라 연습합니다.
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-fg-muted">실전 모의고사만 예외입니다. 필요한 유형에 복원 문항이 없을 때는 출제 유형 기반 문항으로 채워 15문항 구성을 유지합니다.</p>
+      <p className="mt-3 text-xs leading-relaxed text-fg-muted">실전 모의고사는 기출 복원 문항을 우선하고, 필요한 유형에 복원 문항이 없을 때 출제 유형 기반 문항으로 채웁니다. 1문제 연습은 기출 복원 문항에서 고릅니다.</p>
     </header>
 
     <section className="mt-9 grid gap-4 sm:grid-cols-3">
       <ModeCard href="/exam?mode=full" title="실전 모의고사" desc="자기소개부터 15번까지 실제 시험 순서 그대로 이어서 풀어 봅니다." primary />
-      <ModeCard href="/topics" title="주제별 연습" desc="주제를 하나 골라 그 주제의 복원 문항만 유형별로 반복합니다." />
+      <ModeCard href="/topics" title="주제별 연습" desc="한 주제에서 유형별로 한 문항씩 고릅니다. 원하는 문항만 답변하고 나머지는 건너뜁니다." />
       <ModeCard href="/exam?mode=single" title="1문제 연습" desc="복원 문항 중 하나를 무작위로 뽑아 짧게 연습합니다." />
     </section>
 

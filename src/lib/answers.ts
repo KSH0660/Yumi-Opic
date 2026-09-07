@@ -26,3 +26,33 @@ export function countEnglishSentences(text: string): number {
     .filter(Boolean);
   return Math.max(1, parts.length);
 }
+
+/** 공백만 있거나 받아쓰기/직접 입력이 없는 문항은 미답변으로 처리한다. */
+export function hasAnswerText(text: string | undefined): boolean {
+  return !!text?.trim();
+}
+
+/** 통계와 평균의 분모는 실제로 답변 텍스트가 있는 문항만 포함한다. */
+export function summarizeAnswers(
+  items: readonly { slot: number }[],
+  answers: Record<number, string>,
+  times: Record<number, number> = {},
+  hintUse: Record<number, number> = {},
+  replays: Record<number, number> = {},
+) {
+  const answeredSlots = items.filter((item) => hasAnswerText(answers[item.slot])).map((item) => item.slot);
+  const texts = answeredSlots.map((slot) => answers[slot]);
+  const totalWords = texts.reduce((sum, text) => sum + countEnglishWords(text), 0);
+  return {
+    answeredSlots,
+    answeredCount: answeredSlots.length,
+    skippedCount: items.length - answeredSlots.length,
+    totalWords,
+    averageWords: answeredSlots.length ? totalWords / answeredSlots.length : null,
+    uniqueWords: new Set(texts.flatMap((text) => englishWords(text).map((word) => word.toLowerCase()))).size,
+    totalSentences: texts.reduce((sum, text) => sum + countEnglishSentences(text), 0),
+    totalTime: answeredSlots.reduce((sum, slot) => sum + (times[slot] ?? 0), 0),
+    totalHints: answeredSlots.reduce((sum, slot) => sum + (hintUse[slot] ?? 0), 0),
+    totalReplays: answeredSlots.reduce((sum, slot) => sum + (replays[slot] ?? 0), 0),
+  };
+}

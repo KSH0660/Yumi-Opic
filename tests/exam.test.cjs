@@ -22,14 +22,37 @@ test('survey bank contains the 11 selected topics', () => {
   }
 });
 
-test('topic practice returns only publicly reconstructed questions', () => {
+test('topic practice includes one question per type, including coherent roleplay and adapted-only types', () => {
+  const types = ['description', 'routine', 'experience', 'memorable',
+    'roleplay_ask', 'roleplay_problem', 'roleplay_experience', 'comparison', 'issue'];
   for (const topic of bank.surveyTopics) {
-    const exam = engine.buildPracticeExam(topic, 6, seeded(7));
-    assert.ok(exam.items.length > 0);
-    assert.ok(exam.items.length <= 6);
-    assert.ok(exam.items.every((i) => i.topicId === topic.id));
-    assert.ok(exam.items.every((i) => i.question.source === 'verified'));
+    for (let seed = 0; seed < 100; seed++) {
+      const exam = engine.buildPracticeExam(topic, seeded(seed));
+      assert.deepEqual(exam.items.map((item) => item.question.type), types);
+      assert.equal(new Set(ids(exam.items)).size, types.length);
+      assert.deepEqual(exam.items.map((item) => item.slot), [1,2,3,4,5,6,7,8,9]);
+      assert.ok(exam.items.every((i) => i.topicId === topic.id));
+      assert.equal(exam.focusTopicId, topic.id);
+      for (const [index, item] of exam.items.entries()) {
+        if (topic.questions.some((q) => q.type === item.question.type && q.source === 'verified')) {
+          assert.equal(item.question.source, 'verified');
+        }
+        for (const dependency of item.question.dependsOn ?? []) {
+          assert.ok(ids(exam.items.slice(0, index)).includes(dependency));
+        }
+      }
+    }
+    const first = engine.buildPracticeExam(topic, () => 0);
+    const last = engine.buildPracticeExam(topic, () => 0.999);
+    assert.notEqual(first.items[0].question.id, last.items[0].question.id);
   }
+});
+
+test('topic practice handles missing types and rejects empty topics', () => {
+  const topic = bank.surveyTopics[0];
+  const questions = topic.questions.filter((q) => q.type === 'description');
+  assert.equal(engine.buildPracticeExam({ ...topic, questions }).items.length, 1);
+  assert.throws(() => engine.buildPracticeExam({ ...topic, questions: [] }), /연습할 문항/);
 });
 
 test('survey drill includes a coherent roleplay set in slots 11-13', () => {

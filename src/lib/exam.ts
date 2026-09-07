@@ -50,10 +50,6 @@ function verifiedQuestions(topic: Topic): Question[] {
   return topic.questions.filter((q) => q.source === "verified");
 }
 
-function verifiedQuestionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
-  return pickRandom(verifiedQuestions(topic).filter((q) => q.type === type), rng);
-}
-
 function questionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
   const typed = topic.questions.filter((q) => q.type === type);
   const verified = typed.filter((q) => q.source === "verified");
@@ -138,12 +134,23 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   };
 }
 
-const PRACTICE_TYPES: QuestionType[] = ["description", "routine", "experience", "memorable", "comparison", "issue"];
+const PRACTICE_TYPES: QuestionType[] = [
+  "description", "routine", "experience", "memorable",
+  "roleplay_ask", "roleplay_problem", "roleplay_experience", "comparison", "issue",
+];
 
-export function buildPracticeExam(topic: Topic, _count = 6, rng: RandomSource = Math.random): Exam {
-  const availableTypes = PRACTICE_TYPES.filter((type) => verifiedQuestions(topic).some((q) => q.type === type));
-  const items = availableTypes.map((type, index) => item(index + 1, topic, verifiedQuestionOfType(topic, type, rng), "주제별 연습"));
-  return { ...base("practice"), focusTopicId: topic.id, items, notices: ["주제별 연습에서는 기출 복원으로 확인된 유형만 출제합니다."] };
+/** 같은 유형은 한 문항만 뽑고, 복원 문항이 없는 유형도 빠뜨리지 않는다. */
+export function selectPracticeQuestions(topic: Topic, rng: RandomSource = Math.random): Question[] {
+  return PRACTICE_TYPES.filter((type) => topic.questions.some((q) => q.type === type))
+    .map((type) => questionOfType(topic, type, rng));
+}
+
+export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random): Exam {
+  const questions = selectPracticeQuestions(topic, rng);
+  if (!questions.length) throw new Error("이 주제에는 아직 연습할 문항이 없습니다.");
+  const items = questions.map((question, index) => item(index + 1, topic, question, "주제별 연습"));
+  return { ...base("practice"), focusTopicId: topic.id, items,
+    notices: ["각 유형에서 한 문항씩 연습합니다. 원하는 문항만 답변하고 나머지는 건너뛸 수 있습니다."] };
 }
 
 export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {

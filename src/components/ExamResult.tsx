@@ -8,7 +8,8 @@ import {
   countEnglishSentences,
   countEnglishWords,
   countUniqueEnglishWords,
-  englishWords,
+  hasAnswerText,
+  summarizeAnswers,
 } from "@/lib/answers";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { Badge, Card, SourceBadge } from "./ui";
@@ -58,12 +59,8 @@ export default function ExamResult({
   onRetry?: () => void;
   onRegenerate?: () => void;
 }) {
-  const answeredCount = exam.items.filter((it) => (answers[it.slot] ?? "").trim().length > 0).length;
-  const totalWords = exam.items.reduce((sum, it) => sum + countEnglishWords(answers[it.slot] ?? ""), 0);
-  const totalSentences = exam.items.reduce((sum, it) => sum + countEnglishSentences(answers[it.slot] ?? ""), 0);
-  const uniqueWords = new Set(
-    exam.items.flatMap((it) => englishWords(answers[it.slot] ?? "").map((word) => word.toLowerCase())),
-  ).size;
+  const { answeredSlots, answeredCount, skippedCount, totalWords, averageWords, totalSentences,
+    uniqueWords, totalTime, totalHints, totalReplays } = summarizeAnswers(exam.items, answers, times, hintUse, replays);
   const [attempt] = useState(() => ({
     id: historyEntry?.id ?? crypto.randomUUID(),
     finishedAt: historyEntry?.finishedAt ?? Date.now(),
@@ -114,10 +111,7 @@ export default function ExamResult({
     }
   }
 
-  const totalTime = exam.items.reduce((sum, it) => sum + (times[it.slot] ?? 0), 0);
-  const totalHints = exam.items.reduce((sum, it) => sum + (hintUse[it.slot] ?? 0), 0);
-  const totalReplays = exam.items.reduce((sum, it) => sum + (replays[it.slot] ?? 0), 0);
-  const recordingCount = exam.items.filter((it) => recordings[it.slot]).length;
+  const recordingCount = answeredSlots.filter((slot) => recordings[slot]).length;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8 sm:px-8">
@@ -133,9 +127,10 @@ export default function ExamResult({
           <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 홈의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
         )}
 
-        <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 text-center sm:grid-cols-4">
+        <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 text-center sm:grid-cols-3">
           <div><dt className="text-xs text-fg-muted">답변한 문항</dt><dd className="mt-1 text-lg font-medium tabular-nums">{answeredCount}/{exam.items.length}</dd></div>
           <div><dt className="text-xs text-fg-muted">전체 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalWords}</dd></div>
+          <div><dt className="text-xs text-fg-muted">답변당 평균 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{averageWords === null ? "—" : Number(averageWords.toFixed(1))}</dd></div>
           <div><dt className="text-xs text-fg-muted">고유 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{uniqueWords}</dd></div>
           <div><dt className="text-xs text-fg-muted">문장 수</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalSentences}</dd></div>
           <div><dt className="text-xs text-fg-muted">말한 시간</dt><dd className="mt-1 text-lg font-medium tabular-nums">{formatTime(totalTime)}</dd></div>
@@ -143,6 +138,8 @@ export default function ExamResult({
           <div><dt className="text-xs text-fg-muted">힌트 사용</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalHints}회</dd></div>
           <div><dt className="text-xs text-fg-muted">녹음본</dt><dd className="mt-1 text-lg font-medium tabular-nums">{recordingCount}개</dd></div>
         </dl>
+
+        <p className="mt-4 text-xs leading-relaxed text-fg-muted">미답변 {skippedCount}문항은 평균 단어 수를 포함한 모든 답변 통계와 AI 분석에서 제외합니다. 녹음본이 있어도 답변 텍스트가 비어 있으면 미답변으로 처리합니다.</p>
 
         <p className="mt-4 text-xs leading-relaxed text-fg-muted">
           전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.
@@ -202,7 +199,7 @@ function ItemResult({
   const [open, setOpen] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
-  const hasAnswer = answer.trim().length > 0;
+  const hasAnswer = hasAnswerText(answer);
   const extension = recording?.mimeType.includes("ogg") ? "ogg" : "webm";
 
   async function requestFeedback() {
@@ -356,7 +353,10 @@ function ItemResult({
               </div>
             </>
           ) : (
-            <p className="mt-4 text-sm text-fg-subtle">아직 답변하지 않았습니다.</p>
+            <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4">
+              <p className="text-sm text-fg-muted">답변 텍스트가 없어 통계와 AI 분석에서 제외한 문항입니다.</p>
+              <button type="button" disabled className="mt-3 min-h-11 cursor-not-allowed rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg opacity-50">AI 피드백 받기</button>
+            </div>
           )}
         </div>
       )}
