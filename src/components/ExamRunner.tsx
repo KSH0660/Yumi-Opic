@@ -102,6 +102,12 @@ export default function ExamRunner({
   const [typing, setTyping] = useState(false);
 
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  /**
+   * 연습 도구(답변 기록·지문 힌트)를 펼쳤는지.
+   * 기본은 접힌 상태다. 아무것도 없는 실제 응시 화면과 같게 두고, 필요할 때만
+   * 눌러서 꺼내 쓰라는 뜻이다. 시험을 새로 시작하면 다시 접힌 상태로 돌아간다.
+   */
+  const [tools, setTools] = useState(false);
   const [volume, setVolume] = useState(1);
 
   const dictationRef = useRef<DictationHandle | null>(null);
@@ -359,7 +365,7 @@ export default function ExamRunner({
       </div>
 
       {/* ── 응시 화면 ────────────────────────────────────────────── */}
-      <div className="animate-fade-up overflow-hidden rounded-xl border border-exam-line bg-exam-frame text-exam-ink shadow-raised">
+      <div className="animate-fade-up overflow-hidden rounded-lg border border-exam-line bg-exam-frame text-exam-ink shadow-raised">
         <div className="px-4 py-5 sm:px-7 sm:py-6">
           <h1 className="text-base font-bold">
             Question {index + 1} of {exam.items.length}
@@ -402,7 +408,7 @@ export default function ExamRunner({
 
               {!speechAvailable && (
                 <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">
-                  이 브라우저는 문제 읽어주기를 지원하지 않습니다. 아래 지문 보기를 눌러 확인해 주세요.
+                  이 브라우저는 문제 읽어주기를 지원하지 않습니다. 아래 연습 도구에서 지문을 확인해 주세요.
                 </p>
               )}
             </div>
@@ -425,7 +431,7 @@ export default function ExamRunner({
                     setVolume(next);
                     saveSettings({ ...loadSettings(), volume: next });
                   }}
-                  className="absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 accent-[var(--exam-accent)] lg:w-40 lg:-rotate-90"
+                  className="exam-volume absolute left-1/2 top-1/2 w-full -translate-x-1/2 -translate-y-1/2 lg:w-40 lg:-rotate-90"
                 />
               </div>
               <span
@@ -449,7 +455,7 @@ export default function ExamRunner({
                       onClick={() => goTo(i)}
                       aria-current={state === "active" ? "step" : undefined}
                       title={`${it.slot}번으로 이동`}
-                      className={`h-8 w-8 border text-xs font-semibold tabular-nums transition ${
+                      className={`h-7 w-8 border text-xs font-semibold tabular-nums transition ${
                         state === "active"
                           ? "border-exam-slot-active bg-exam-slot-active text-exam-slot-active-fg"
                           : state === "done"
@@ -463,16 +469,27 @@ export default function ExamRunner({
                 })}
               </div>
 
-              <div className="mt-4 bg-exam-note px-4 py-3 text-sm leading-relaxed text-exam-note-fg">
-                <p>
-                  <strong className="font-bold">Play</strong> 아이콘(▶)을 눌러 질문을 청취하십시오.
-                </p>
-                <p className="mt-3">
-                  <strong className="font-bold">중요!</strong> 5초 이내에 버튼을 누르면 질문
-                  다시듣기가 가능하며, 재청취는 한번만 가능합니다.
-                </p>
-              </div>
+              {/* 실제 시험도 이 안내는 1번 문항에서만 보여 준다 */}
+              {index === 0 && (
+                <div className="mt-4 bg-exam-note px-4 py-3 text-sm leading-relaxed text-exam-note-fg">
+                  <p>
+                    <strong className="font-bold">Play</strong> 아이콘(▶)을 눌러 질문을
+                    청취하십시오.
+                  </p>
+                  <p className="mt-3">
+                    <strong className="font-bold">중요!</strong> 5초 이내에 버튼을 누르면 질문
+                    다시듣기가 가능하며, 재청취는 한번만 가능합니다.
+                  </p>
+                </div>
+              )}
 
+            </div>
+          </div>
+
+          {/* ── 연습 도구 ─────────────────────────────────────────
+              실제 시험 화면에는 없는 것들이다. 기본은 접어 두고 눌러야 펼쳐진다. */}
+          {tools && (
+            <div className="mt-6 space-y-4 border-t border-dashed border-exam-line pt-4">
               {/* 답변 기록 */}
               <div className="mt-4 border border-exam-line">
                 <div className="flex items-center justify-between gap-2 border-b border-exam-line bg-exam-frame-2 px-3 py-2 text-xs">
@@ -575,67 +592,66 @@ export default function ExamRunner({
                   Chrome이나 Edge에서 열면 마이크로 답할 수 있습니다.
                 </p>
               )}
-            </div>
-          </div>
 
-          {/* ── 연습용 힌트 ─────────────────────────────────────────
-              실제 시험에는 없다. 눌러서 잡고 있는 동안에만 보인다. */}
-          <div className="mt-6 border-t border-dashed border-exam-line pt-4">
-            <div className="h-24 overflow-y-auto rounded border border-exam-line bg-exam-frame-2 px-3 py-2.5 text-sm leading-relaxed">
-              {reveal === "script" && (
-                <div>
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-exam-ink-muted">
-                    <span className="font-semibold">{item.typeLabel}</span>
-                    <span>
-                      {item.emoji} {item.topicKo}
-                    </span>
-                    <SourceBadge source={item.question.source} />
+              <div className="h-24 overflow-y-auto rounded border border-exam-line bg-exam-frame-2 px-3 py-2.5 text-sm leading-relaxed">
+                {reveal === "script" && (
+                  <div>
+                    <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-exam-ink-muted">
+                      <span className="font-semibold">{item.typeLabel}</span>
+                      <span>
+                        {item.emoji} {item.topicKo}
+                      </span>
+                      <SourceBadge source={item.question.source} />
+                    </div>
+                    <p>{item.question.en}</p>
                   </div>
-                  <p>{item.question.en}</p>
-                </div>
-              )}
-              {reveal === "korean" && <p>{item.question.ko}</p>}
-              {reveal === "keywords" && (
-                <ul className="flex flex-wrap gap-1.5">
-                  {hints.map((hint) => (
-                    <li
-                      key={hint}
-                      className="rounded border border-exam-line bg-exam-frame px-2 py-0.5 text-xs"
-                    >
-                      {hint}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {reveal === null && (
-                <p className="text-xs text-exam-ink-muted">
-                  실전처럼 듣기만으로 풀어 보세요. 막히면 아래 버튼을 꾹 누르고 있는 동안에만
-                  지문이 보입니다.
-                </p>
-              )}
-            </div>
+                )}
+                {reveal === "korean" && <p>{item.question.ko}</p>}
+                {reveal === "keywords" && (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {hints.map((hint) => (
+                      <li
+                        key={hint}
+                        className="rounded border border-exam-line bg-exam-frame px-2 py-0.5 text-xs"
+                      >
+                        {hint}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {reveal === null && (
+                  <p className="text-xs text-exam-ink-muted">
+                    실전처럼 듣기만으로 풀어 보세요. 막히면 아래 버튼을 꾹 누르고 있는 동안에만
+                    지문이 보입니다.
+                  </p>
+                )}
+              </div>
 
-            <div className="mt-2 flex flex-wrap gap-2">
-              <HoldButton label="지문 보기" active={reveal === "script"} onPress={() => holdReveal("script")} onRelease={() => releaseReveal("script")} />
-              <HoldButton label="해석 보기" active={reveal === "korean"} onPress={() => holdReveal("korean")} onRelease={() => releaseReveal("korean")} />
-              {hints.length > 0 && (
-                <HoldButton label="키워드 보기" active={reveal === "keywords"} onPress={() => holdReveal("keywords")} onRelease={() => releaseReveal("keywords")} />
-              )}
-              <span className="ml-auto self-center text-[11px] tabular-nums text-exam-ink-muted">
-                이 문항 힌트 {hintUse[slot] ?? 0}회 · 다시 듣기 {replays[slot] ?? 0}/{MAX_REPLAYS}회
-              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <HoldButton label="지문 보기" active={reveal === "script"} onPress={() => holdReveal("script")} onRelease={() => releaseReveal("script")} />
+                <HoldButton label="해석 보기" active={reveal === "korean"} onPress={() => holdReveal("korean")} onRelease={() => releaseReveal("korean")} />
+                {hints.length > 0 && (
+                  <HoldButton label="키워드 보기" active={reveal === "keywords"} onPress={() => holdReveal("keywords")} onRelease={() => releaseReveal("keywords")} />
+                )}
+                <span className="ml-auto self-center text-[11px] tabular-nums text-exam-ink-muted">
+                  이 문항 힌트 {hintUse[slot] ?? 0}회 · 다시 듣기 {replays[slot] ?? 0}/{MAX_REPLAYS}회
+                </span>
+              </div>
+
             </div>
-          </div>
+          )}
 
           {/* ── 이동 ────────────────────────────────────────────── */}
           <div className="mt-6 flex items-center gap-3 border-t border-exam-line pt-4">
+            {/* 앞 문항으로 돌아갈 때는 위 번호판을 누른다. 실제 화면에 없는
+                버튼을 늘리지 않으려고 따로 두지 않았다. */}
             <button
               type="button"
-              disabled={index === 0}
-              onClick={() => goTo(index - 1)}
-              className="text-sm text-exam-ink-muted transition enabled:hover:text-exam-ink disabled:opacity-40"
+              aria-expanded={tools}
+              onClick={() => setTools((v) => !v)}
+              className="text-xs text-exam-ink-muted transition hover:text-exam-ink"
             >
-              ← 이전
+              연습 도구 {tools ? "▴" : "▾"}
             </button>
             {index < exam.items.length - 1 ? (
               <button

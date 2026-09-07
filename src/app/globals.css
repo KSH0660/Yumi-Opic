@@ -321,3 +321,45 @@ button:disabled {
     animation: none;
   }
 }
+
+/*
+ * 음량 슬라이더.
+ * 실제 응시 화면의 슬라이더는 연한 회색 트랙에 작고 둥근 손잡이다. 브라우저
+ * 기본 모양(파란 채움)을 그대로 두면 그 화면과 달라 보여 직접 그린다.
+ */
+.exam-volume {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.exam-volume::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--exam-slot);
+  border: 1px solid var(--exam-line);
+}
+
+.exam-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--exam-ink-muted);
+}
+
+.exam-volume::-moz-range-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--exam-slot);
+  border: 1px solid var(--exam-line);
+}
+
+.exam-volume::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--exam-ink-muted);
+}
