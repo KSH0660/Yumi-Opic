@@ -1,3 +1,21 @@
+import type { QuestionType } from "./types";
+
+/**
+ * 두괄식(핵심 먼저) 도입을 요구하지 않는 유형.
+ * 롤플레이는 전화 대화에 가까워 인사·상황부터 꺼내는 편이 자연스럽고,
+ * 요청이나 문제 자체가 곧 핵심이라 서술형과 기준이 다르다.
+ */
+const FREE_OPENING_TYPES: ReadonlySet<QuestionType> = new Set([
+  "roleplay_ask",
+  "roleplay_problem",
+  "roleplay_experience",
+]);
+
+/** 이 문항의 답변을 두괄식 기준으로 볼지. 알 수 없는 유형은 일반 서술형으로 본다. */
+export function requiresFrontLoadedOpening(type: string | undefined): boolean {
+  return !FREE_OPENING_TYPES.has(type as QuestionType);
+}
+
 export type FeedbackCategory =
   | "storytelling"
   | "detail"

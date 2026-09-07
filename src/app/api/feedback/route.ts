@@ -1,4 +1,4 @@
-import type { OpicFeedback } from "@/lib/feedback";
+import { requiresFrontLoadedOpening, type OpicFeedback } from "@/lib/feedback";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -104,18 +104,36 @@ function buildPrompt(input: {
   question: string;
   topic: string;
   type: string;
+  /** 두괄식 판정 기준이 갈리므로 라벨이 아니라 유형 id 로 받는다. */
+  questionType: string;
   browserTranscript: string;
   audioTranscript: string;
   elapsedSec: number;
 }): string {
   const words = input.browserTranscript.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)?.length ?? 0;
   const wpm = input.elapsedSec > 8 ? Math.round((words / input.elapsedSec) * 60) : null;
+  const frontLoaded = requiresFrontLoadedOpening(input.questionType);
+
+  // 서술형은 첫 1~2문장에서 질문에 바로 답하는 두괄식을 요구하고,
+  // 롤플레이는 전화 대화에 가까워 도입을 강제하지 않는다.
+  const structureRules = frontLoaded
+    ? [
+      "The preferred answer flow is: 핵심 명사/주제 → 활동·예시·구체적 디테일 → 감정·느낌·의미.",
+      "Front-loading (두괄식) is required for this question type: the first 1-2 sentences must answer the question head-on and name the core topic. A long wind-up, background, or hedging before the point is a structural problem, not a style choice.",
+      "So mark structure.topic as good ONLY when the main point lands within the first 1-2 sentences. If it arrives later, mark it needs_work, say in structure.note roughly where the point actually appeared, and give one storytelling item whose example is a short English opening line the learner can say first next time.",
+      "Short filler openers (okay, so, well, you know) are normal speech and fine on their own; they simply do not count as the main point. Mention them only when the wind-up is long enough to delay the answer.",
+    ]
+    : [
+      "The preferred answer flow is: 요청·문제의 핵심 → 상황·조건의 구체적 디테일 → 마무리 요청·감정.",
+      "This is a roleplay turn, so do NOT require a 두괄식 essay-style opening. Starting with a greeting or a line of context is natural here.",
+      "Mark structure.topic as good when the listener can tell early on what is being asked or what the problem is, in a way that sounds natural on a phone call.",
+    ];
 
   return [
     "You are coaching a Korean learner for OPIc speaking practice.",
     "The learner's main goal is storytelling and communicative delivery, NOT grammatical perfection.",
-    "The preferred answer flow is: 핵심 명사/주제 → 활동·예시·구체적 디테일 → 감정·느낌·의미.",
-    "Evaluate whether the answer naturally moves through those three stages. Do not force the pattern mechanically when the response is already natural.",
+    ...structureRules,
+    "Evaluate the remaining stages as flow, not as a checklist. Do not force the pattern mechanically when the response is already natural.",
     "Give at most 5 feedback items total. Prefer the highest-impact issues only.",
     "Priority order: storytelling/organization first, concrete activity-example-detail second, emotion/personal reaction third, delivery fourth, pronunciation fifth, grammar last.",
     "Grammar rule: do NOT nitpick articles, prepositions, small tense slips, or awkward but understandable phrasing. Mention grammar only when an error seriously hurts meaning or repeats enough to disrupt communication.",
@@ -125,7 +143,7 @@ function buildPrompt(input: {
     "If the answer is already strong, return fewer than 5 items rather than manufacturing problems.",
     "For pronunciationBasis return audio_compare only when an audio transcript is present; browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
     "",
-    `[Question type] ${input.type || "unknown"}`,
+    `[Question type] ${input.type || "unknown"} (id: ${input.questionType || "unknown"})`,
     `[Topic] ${input.topic || "unknown"}`,
     `[Question] ${input.question}`,
     `[Browser speech-recognition transcript] ${input.browserTranscript || "(none)"}`,
@@ -154,6 +172,7 @@ export async function POST(request: Request) {
   const question = asText(form.get("question"), 3_000);
   const topic = asText(form.get("topic"), 300);
   const type = asText(form.get("type"), 300);
+  const questionType = asText(form.get("questionType"), 40);
   const browserTranscript = asText(form.get("transcript"), MAX_TRANSCRIPT_CHARS);
   const elapsedRaw = asText(form.get("elapsedSec"), 16);
   const elapsedSec = Math.max(0, Math.min(1_800, Number(elapsedRaw) || 0));
@@ -190,6 +209,7 @@ export async function POST(request: Request) {
         question,
         topic,
         type,
+        questionType,
         browserTranscript,
         audioTranscript,
         elapsedSec,

@@ -24,8 +24,8 @@ export const RATES: CostRates = {
   krwPerUsd: 1400,
 };
 
-/** route.ts 가 매번 함께 보내는 고정 지시문 분량. */
-const PROMPT_OVERHEAD_TOKENS = 500;
+/** route.ts 가 매번 함께 보내는 고정 지시문 분량. 두괄식 규칙이 붙어 500 → 700 으로 늘렸다. */
+const PROMPT_OVERHEAD_TOKENS = 700;
 /** route.ts 의 max_output_tokens. 추론 토큰까지 여기서 잘린다. */
 const MAX_OUTPUT_TOKENS = 1_200;
 /** 영어 기준 대략 4글자에 1토큰. */
