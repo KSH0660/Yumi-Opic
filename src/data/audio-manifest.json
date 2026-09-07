@@ -1,0 +1,7 @@
+{
+  "model": "gpt-4o-mini-tts",
+  "voice": "shimmer",
+  "speed": 1,
+  "instructions": "Speak as a friendly but professional English speaking-test examiner. Read the question clearly and a little slowly, with natural sentence rhythm and a short pause between sentences. Keep the tone warm and steady, never rushed or dramatic.",
+  "questions": {}
+}
