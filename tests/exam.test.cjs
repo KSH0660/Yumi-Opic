@@ -13,23 +13,26 @@ function seeded(seed) {
 
 const ids = (items) => items.map((x) => x.question.id);
 
-test('survey bank contains only the 11 selected topics and 88 questions', () => {
+test('survey bank contains 11 selected topics and 121 questions including roleplay', () => {
   assert.equal(bank.surveyTopics.length, 11);
-  assert.equal(bank.surveyQuestionCount, 88);
+  assert.equal(bank.surveyQuestionCount, 121);
   assert.deepEqual(bank.DEFAULT_SURVEY_IDS, ['home','music','beach','park','concert','shopping','jogging','walking','gym','staycation','overseas']);
   for (const topic of bank.surveyTopics) {
     assert.equal(topic.category, 'survey');
-    assert.equal(topic.questions.length, 8);
+    assert.equal(topic.questions.length, 11);
     assert.equal(topic.questions.filter((q) => q.type === 'description').length, 2);
     assert.equal(topic.questions.filter((q) => q.type === 'routine').length, 1);
     assert.equal(topic.questions.filter((q) => q.type === 'experience').length, 2);
     assert.equal(topic.questions.filter((q) => q.type === 'memorable').length, 1);
     assert.equal(topic.questions.filter((q) => q.type === 'comparison').length, 1);
     assert.equal(topic.questions.filter((q) => q.type === 'issue').length, 1);
+    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_ask').length, 1);
+    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_problem').length, 1);
+    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_experience').length, 1);
   }
 });
 
-test('topic practice always returns one question from each of the six training types', () => {
+test('topic practice still returns one question from each of the six core training types', () => {
   for (const topic of bank.surveyTopics) {
     const exam = engine.buildPracticeExam(topic, 6, seeded(7));
     assert.equal(exam.items.length, 6);
@@ -38,16 +41,22 @@ test('topic practice always returns one question from each of the six training t
   }
 });
 
-test('survey drill uses three selected topics and omits roleplay slots 11-13', () => {
+test('survey drill includes a coherent roleplay set in slots 11-13', () => {
   for (let seed = 0; seed < 1000; seed++) {
     const exam = engine.buildFullExam({ enabledSurveyIds: bank.DEFAULT_SURVEY_IDS, rng: seeded(seed) });
-    assert.deepEqual(exam.items.map((i) => i.slot), [1,2,3,4,5,6,7,8,9,10,14,15]);
+    assert.deepEqual(exam.items.map((i) => i.slot), [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
     assert.equal(new Set(ids(exam.items)).size, exam.items.length);
-    assert.equal(exam.items.some((i) => [11,12,13].includes(i.slot)), false);
     assert.deepEqual(exam.items.filter((i) => [2,5,8].includes(i.slot)).map((i) => i.question.type), ['description','description','description']);
     assert.equal(exam.items.find((i) => i.slot === 3).question.type, 'routine');
     assert.deepEqual(exam.items.filter((i) => [4,6,9].includes(i.slot)).map((i) => i.question.type), ['experience','experience','experience']);
     assert.deepEqual(exam.items.filter((i) => [7,10].includes(i.slot)).map((i) => i.question.type), ['memorable','memorable']);
+
+    const roleplay = exam.items.filter((i) => [11,12,13].includes(i.slot));
+    assert.deepEqual(roleplay.map((i) => i.question.type), ['roleplay_ask','roleplay_problem','roleplay_experience']);
+    assert.equal(new Set(roleplay.map((i) => i.topicId)).size, 1);
+    assert.deepEqual(roleplay[1].question.dependsOn, [roleplay[0].question.id]);
+    assert.deepEqual(roleplay[2].question.dependsOn, [roleplay[1].question.id]);
+
     assert.equal(exam.items.find((i) => i.slot === 14).question.type, 'comparison');
     assert.equal(exam.items.find((i) => i.slot === 15).question.type, 'issue');
   }
@@ -58,7 +67,7 @@ test('survey drill never substitutes unselected topics and requires at least thr
   assert.throws(() => engine.buildFullExam({ enabledSurveyIds: ['home','music'] }));
   for (let seed = 0; seed < 100; seed++) {
     const exam = engine.buildFullExam({ enabledSurveyIds: ['home','music','park'], includeIntro: false, rng: seeded(seed) });
-    assert.deepEqual(exam.items.map((i) => i.slot), [2,3,4,5,6,7,8,9,10,14,15]);
+    assert.deepEqual(exam.items.map((i) => i.slot), [2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
     assert.ok(exam.items.every((i) => ['home','music','park'].includes(i.topicId)));
   }
 });
