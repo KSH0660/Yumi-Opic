@@ -46,8 +46,18 @@ export function shuffle<T>(items: readonly T[], rng: RandomSource = Math.random)
   return result;
 }
 
+function verifiedQuestions(topic: Topic): Question[] {
+  return topic.questions.filter((q) => q.source === "verified");
+}
+
+function verifiedQuestionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
+  return pickRandom(verifiedQuestions(topic).filter((q) => q.type === type), rng);
+}
+
 function questionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
-  return pickRandom(topic.questions.filter((q) => q.type === type), rng);
+  const typed = topic.questions.filter((q) => q.type === type);
+  const verified = typed.filter((q) => q.source === "verified");
+  return pickRandom(verified.length ? verified : typed, rng);
 }
 
 function item(slot: number, topic: Topic, question: Question, comboLabel: string): ExamItem {
@@ -124,19 +134,20 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   return {
     ...base("full"),
     items,
-    notices: ["Q11~13은 같은 서베이 토픽의 문의하기 → 문제 해결 → 과거 문제·특이 경험 세트로 연속 출제됩니다."],
+    notices: ["기본적으로 공개 복원 기반 문항을 우선 출제하며, 선택한 토픽에 해당 유형의 복원 문항이 없을 때만 출제형식 기반 문항을 보조적으로 사용합니다.", "Q11~13은 같은 서베이 토픽의 문의하기 → 문제 해결 → 과거 문제·특이 경험 세트로 연속 출제됩니다."],
   };
 }
 
 const PRACTICE_TYPES: QuestionType[] = ["description", "routine", "experience", "memorable", "comparison", "issue"];
 
 export function buildPracticeExam(topic: Topic, _count = 6, rng: RandomSource = Math.random): Exam {
-  const items = PRACTICE_TYPES.map((type, index) => item(index + 1, topic, questionOfType(topic, type, rng), "주제별 6유형"));
-  return { ...base("practice"), focusTopicId: topic.id, items };
+  const availableTypes = PRACTICE_TYPES.filter((type) => verifiedQuestions(topic).some((q) => q.type === type));
+  const items = availableTypes.map((type, index) => item(index + 1, topic, verifiedQuestionOfType(topic, type, rng), "공개 복원 유형"));
+  return { ...base("practice"), focusTopicId: topic.id, items, notices: ["주제별 연습에서는 공개 복원 기반으로 확인된 유형만 보여줍니다."] };
 }
 
 export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {
-  const candidates = topics.flatMap((topic) => topic.questions.map((question) => ({ topic, question })));
+  const candidates = topics.flatMap((topic) => verifiedQuestions(topic).map((question) => ({ topic, question })));
   const { topic, question } = pickRandom(candidates, rng);
-  return { ...base("single"), items: [item(1, topic, question, "서베이 랜덤 1문제")] };
+  return { ...base("single"), items: [item(1, topic, question, "공개 복원 랜덤 1문제")] };
 }
