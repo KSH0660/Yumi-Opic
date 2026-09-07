@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Exam, ExamItem } from "@/lib/types";
 import { isOpicFeedback, type FeedbackCategory, type OpicFeedback } from "@/lib/feedback";
 import {
   countEnglishSentences,
   countEnglishWords,
   countUniqueEnglishWords,
+  defaultResultFilter,
+  filterItemsByAnswer,
   hasAnswerText,
   summarizeAnswers,
+  type ResultFilter,
 } from "@/lib/answers";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
@@ -113,6 +116,9 @@ export default function ExamResult({
   }
 
   const recordingCount = answeredSlots.filter((slot) => recordings[slot]).length;
+  // 미답변 문항이 목록을 채우면 실제로 말한 답변을 다시 보기 어렵다. 기본은 답변한 문항만 보여 준다.
+  const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
+  const visibleItems = filterItemsByAnswer(exam.items, answers, filter);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8 sm:px-8">
@@ -157,9 +163,20 @@ export default function ExamResult({
         </div>}
       </Card>
 
-      <h2 className="mt-10 text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
+        {skippedCount > 0 && (
+          <div role="group" aria-label="문항 보기 범위" className="inline-flex gap-1 rounded-xl border border-line bg-surface p-1">
+            <FilterButton active={filter === "answered"} onClick={() => setFilter("answered")}>답변한 문항 {answeredCount}</FilterButton>
+            <FilterButton active={filter === "all"} onClick={() => setFilter("all")}>전체 {exam.items.length}</FilterButton>
+          </div>
+        )}
+      </div>
+      {filter === "answered" && skippedCount > 0 && (
+        <p className="mt-2 text-xs leading-relaxed text-fg-subtle">답변 없는 {skippedCount}문항은 숨겼습니다. <strong className="font-medium text-fg-muted">전체</strong>를 누르면 다시 볼 수 있습니다.</p>
+      )}
       <div className="mt-4 space-y-4">
-        {exam.items.map((item) => (
+        {visibleItems.map((item) => (
           <ItemResult
             key={item.slot}
             item={item}
@@ -172,6 +189,11 @@ export default function ExamResult({
             onFeedback={(feedback) => saveFeedback(item.slot, feedback)}
           />
         ))}
+        {visibleItems.length === 0 && (
+          <Card className="px-5 py-6">
+            <p className="text-sm text-fg-muted">답변한 문항이 없습니다. <strong className="font-medium text-fg">전체</strong>를 누르면 이번에 받은 질문을 볼 수 있습니다.</p>
+          </Card>
+        )}
       </div>
       <Footer />
     </main>
@@ -376,6 +398,19 @@ function ItemResult({
         </div>
       )}
     </Card>
+  );
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium tabular-nums transition ${active ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg"}`}
+    >
+      {children}
+    </button>
   );
 }
 

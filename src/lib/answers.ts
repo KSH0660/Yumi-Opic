@@ -56,3 +56,25 @@ export function summarizeAnswers(
     totalReplays: answeredSlots.reduce((sum, slot) => sum + (replays[slot] ?? 0), 0),
   };
 }
+
+/** 결과 화면에서 문항 목록을 보여 주는 범위. */
+export type ResultFilter = "answered" | "all";
+
+/**
+ * 결과 화면을 열 때의 기본 보기.
+ * 답변한 문항이 있으면서 미답변이 섞여 있을 때만 답변한 문항부터 보여 준다.
+ * 하나도 답변하지 않았다면 빈 목록이 되지 않도록 전체를 보여 준다.
+ */
+export function defaultResultFilter(answeredCount: number, totalCount: number): ResultFilter {
+  return answeredCount > 0 && answeredCount < totalCount ? "answered" : "all";
+}
+
+/** 결과 화면에 보여 줄 문항. "answered"는 답변 텍스트가 있는 문항만 남긴다. */
+export function filterItemsByAnswer<T extends { slot: number }>(
+  items: readonly T[],
+  answers: Record<number, string>,
+  filter: ResultFilter,
+): T[] {
+  if (filter === "all") return [...items];
+  return items.filter((item) => hasAnswerText(answers[item.slot]));
+}
