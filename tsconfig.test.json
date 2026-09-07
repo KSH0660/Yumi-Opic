@@ -5,5 +5,5 @@
     "skipLibCheck": true, "outDir": ".test-build", "rootDir": "src",
     "types": [], "lib": ["ES2020", "DOM"]
   },
-  "include": ["src/lib/types.ts", "src/lib/textbook-exam.ts", "src/lib/exam.ts", "src/data/textbook/**/*", "src/data/index.ts"]
+  "include": ["src/lib/types.ts", "src/lib/exam.ts", "src/data/survey-bank.ts", "src/data/index.ts"]
 }
