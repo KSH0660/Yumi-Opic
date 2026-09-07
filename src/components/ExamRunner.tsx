@@ -532,15 +532,10 @@ export default function ExamRunner({
               </div>
 
               {isPractice && (
-                <div className="mt-4 space-y-3 rounded border border-exam-line bg-exam-frame-2 p-4">
-                  <p className="text-xs leading-relaxed text-exam-ink-muted">유형별로 한 문항씩, 총 {exam.items.length}문항입니다. 원하는 문제만 답변하세요. 이전·다음이나 번호로 이동하고, 언제든 결과를 볼 수 있습니다.</p>
-                  <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-semibold">{item.typeLabel}</span><SourceBadge source={item.question.source} /></div>
-                  <p className="text-sm leading-relaxed">{item.question.en}</p>
-                  <p className="text-xs leading-relaxed text-exam-ink-muted">{item.question.ko}</p>
-                </div>
+                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">1번은 자기소개, 2~15번은 선택한 주제의 문제입니다. 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
               )}
 
-              {!isPractice && index === 0 && (
+              {index === 0 && (
                 <div className="mt-4 bg-exam-note px-4 py-3 text-sm leading-relaxed text-exam-note-fg">
                   <p><strong className="font-bold">Play</strong> 아이콘(▶)을 눌러 질문을 청취하십시오.</p>
                   <p className="mt-3"><strong className="font-bold">중요!</strong> 5초 이내에 REPLAY 아이콘을 누르면 질문 다시듣기가 가능하며, 재청취는 한번만 가능합니다.</p>

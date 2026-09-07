@@ -76,7 +76,7 @@ function NewExamPageClient() {
   if (error) return <main className="mx-auto max-w-3xl px-5 pt-16"><p role="alert" className="text-sm text-warn-ink">{error}</p><Link href="/" className="mt-4 inline-block text-sm text-primary-ink">← 주제 설정</Link><Link href="/topics" className="ml-6 text-sm text-primary-ink">주제별 연습 →</Link></main>;
   if (!exam) return <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-fg-muted">문제를 준비하는 중…</main>;
 
-  const title = mode === "practice" ? `주제별 연습 · ${exam.items[0]?.topicKo ?? ""}` : mode === "single" ? "1문제 연습" : "실전 모의고사";
+  const title = mode === "practice" ? `주제별 연습 · ${topicById.get(exam.focusTopicId ?? "")?.ko ?? ""}` : mode === "single" ? "1문제 연습" : "실전 모의고사";
 
   if (!started) return <main className="mx-auto w-full max-w-2xl px-5 pb-24 pt-12 sm:px-8">
     <Link href="/" className="text-sm text-fg-muted">← 홈</Link>

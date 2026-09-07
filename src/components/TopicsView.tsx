@@ -15,9 +15,9 @@ export default function TopicsView() {
       <ThemeToggle />
     </div>
     <header className="mt-5">
-      <Badge tone="accent">유형별로 한 문항씩</Badge>
+      <Badge tone="accent">실제 시험 번호로 연습</Badge>
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">주제별 연습</h1>
-      <p className="mt-3 text-sm leading-relaxed text-fg-muted">주제를 고르면 묘사·습관·경험·롤플레이 등 각 유형에서 한 문항씩 고릅니다. 기출 복원 문항을 우선하고, 없는 유형은 출제 유형 기반 문항으로 채웁니다. 원하는 문제만 답변하고, 나머지는 다음 버튼으로 건너뛰세요.</p>
+      <p className="mt-3 text-sm leading-relaxed text-fg-muted">1번 자기소개와 선택한 주제의 문제를 2~15번에 실제 시험 유형대로 배정합니다. 같은 유형의 문제는 무작위로 고르며 중복될 수 있습니다. 기출 복원 문항을 우선하고, 없는 유형은 출제 유형 기반 문항으로 채웁니다. 원하는 문제만 답변하고, 나머지는 다음 버튼으로 건너뛰세요.</p>
     </header>
 
     <div className="mt-9 grid gap-3 sm:grid-cols-2">{surveyTopics.map((topic) => {
@@ -27,7 +27,7 @@ export default function TopicsView() {
         <div className="flex items-center gap-3 p-5">
           <button type="button" aria-expanded={open} onClick={() => setOpenId(open ? null : topic.id)} className="min-w-0 flex-1 text-left">
             <span className="block text-sm font-medium">{topic.emoji} {topic.ko}</span>
-            <span className="mt-1 block text-xs text-fg-subtle">{topic.en} · {questions.length}유형 · 유형당 1문항 · {open ? "접기" : "유형별 예시 보기"}</span>
+            <span className="mt-1 block text-xs text-fg-subtle">{topic.en} · 자기소개 포함 15문항 · {open ? "접기" : "유형별 예시 보기"}</span>
           </button>
           <Link className="rounded-lg bg-primary-tint px-3 py-2 text-xs font-medium text-primary-ink" href={`/exam?mode=practice&topic=${encodeURIComponent(topic.id)}`}>연습하기 →</Link>
         </div>

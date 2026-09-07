@@ -69,6 +69,19 @@ function item(slot: number, topic: Topic, question: Question, comboLabel: string
   };
 }
 
+function introItem(): ExamItem {
+  return {
+    slot: 1,
+    topicId: "intro",
+    topicKo: "자기소개",
+    topicEn: "Self-introduction",
+    emoji: "👋",
+    comboLabel: "자기소개",
+    typeLabel: TYPE_LABELS.intro,
+    question: introQuestion,
+  };
+}
+
 let serial = 0;
 function base(mode: Exam["mode"]): Pick<Exam, "id" | "createdAt" | "mode" | "bankVersion"> {
   return {
@@ -114,18 +127,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   items.push(item(14, comparisonTopic, questionOfType(comparisonTopic, "comparison", rng), "어드밴스"));
   items.push(item(15, issueTopic, questionOfType(issueTopic, "issue", rng), "어드밴스"));
 
-  if (includeIntro) {
-    items.unshift({
-      slot: 1,
-      topicId: "intro",
-      topicKo: "자기소개",
-      topicEn: "Self-introduction",
-      emoji: "👋",
-      comboLabel: "자기소개",
-      typeLabel: TYPE_LABELS.intro,
-      question: introQuestion,
-    });
-  }
+  if (includeIntro) items.unshift(introItem());
 
   return {
     ...base("full"),
@@ -139,18 +141,26 @@ const PRACTICE_TYPES: QuestionType[] = [
   "roleplay_ask", "roleplay_problem", "roleplay_experience", "comparison", "issue",
 ];
 
-/** 같은 유형은 한 문항만 뽑고, 복원 문항이 없는 유형도 빠뜨리지 않는다. */
+/** 주제 목록을 펼쳤을 때 보여 줄 유형별 예시 문항. 실제 연습은 15문항이다. */
 export function selectPracticeQuestions(topic: Topic, rng: RandomSource = Math.random): Question[] {
   return PRACTICE_TYPES.filter((type) => topic.questions.some((q) => q.type === type))
     .map((type) => questionOfType(topic, type, rng));
 }
 
 export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random): Exam {
-  const questions = selectPracticeQuestions(topic, rng);
-  if (!questions.length) throw new Error("이 주제에는 아직 연습할 문항이 없습니다.");
-  const items = questions.map((question, index) => item(index + 1, topic, question, "주제별 연습"));
+  // 실제 번호에 맞는 유형에서 각각 뽑는다. 같은 질문의 중복 출제도 허용한다.
+  const slotTypes: QuestionType[] = [
+    "description", "routine", "experience", "description", "experience", "memorable",
+    "description", "experience", "memorable", "roleplay_ask", "roleplay_problem",
+    "roleplay_experience", "comparison", "issue",
+  ];
+  if (slotTypes.some((type) => !topic.questions.some((q) => q.type === type))) {
+    throw new Error("이 주제에는 1~15번 연습에 필요한 유형의 문항이 부족합니다.");
+  }
+  const items = [introItem(), ...slotTypes.map((type, index) =>
+    item(index + 2, topic, questionOfType(topic, type, rng), "주제별 연습"))];
   return { ...base("practice"), focusTopicId: topic.id, items,
-    notices: ["각 유형에서 한 문항씩 연습합니다. 원하는 문항만 답변하고 나머지는 건너뛸 수 있습니다."] };
+    notices: ["자기소개와 선택한 주제의 문제를 실제 시험 번호인 1~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
 }
 
 export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {
