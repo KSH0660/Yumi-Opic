@@ -1,0 +1,138 @@
+[
+  {"id": "gatherings", "ko": "모임", "en": "Gathering", "category": "surprise", "unit": 8, "section": "general",
+    "questions": [
+      [111, "Q1", "description", "Tell me about some of the gatherings or celebrations that happen at where you live.", "본인이 사는 지역에서 진행되는 모임들 묘사"],
+      [111, "variant-2", "description", "Where do people usually have celebrations or parties in the area where you live or work? Is it at someone’s home, or a park, or somewhere else? Tell me everything about that place in as much detail as you can.", "본인 지역 사람들이 주로 가는 파티 장소 묘사"],
+      [111, "Q2", "experience", "Tell me about a gathering or a celebration that was held in the area in which you live. Describe where the gathering was held, who was there, what the purpose of the gathering was, and what happened from beginning to end.", "본인이 참석했던 모임에서 있었던 일들 자세히 묘사"],
+      [112, "Q3", "memorable", "Sometimes when people get together for celebrations or gatherings, unexpected things can happen. Tell me all about something unexpected that happened at a celebration or a gathering in the area where you live. Tell me what happened from beginning to end.", "본인이 참석했던 모임에서 기억나는 경험 묘사"],
+      [112, "variant-5", "experience", "Tell me about the last holiday party or celebration that you attended. Give me lots of details about what happened, who was there, and what you did from beginning to end.", "최근 본인이 갔던 휴일 파티에서 했던 일 묘사"],
+      [112, "Q4", "experience", "Tell me about a time when you helped prepare a party or a celebration. Perhaps, you helped invite people, or you helped decorate, or get the food or drinks. Tell me about this experience from the beginning to the end in detail.", "본인이 파티 준비를 도와 준 경험 묘사"],
+      [112, "Q5", "comparison", "How have celebrations and gatherings in your country changed since you were a child? Are there more of these events now than before? What sorts of events are more popular today than in the past?", "어렸을 때 모임/기념일과 요즘 행사들 비교"],
+      [112, "Q6", "issue", "Celebrations and gatherings are important to people living in a city or town. However, a lot of work, organization and money go into putting one of these events together. Was there a discussion among people related to organizing an event recently? What was the issue or difficulty people were discussing?", "특정 행사 준비 관련해서 사람들이 논의했던 이슈 설명"],
+      [113, "Q7", "comparison", "Gatherings and celebrations in small towns are often different from those in big cities. Tell me about some of the similarities and differences between the celebrations people have in small towns and in big cities in your country.", "작은 마을과 대도시 간 모임 비교"],
+      [113, "Q8", "issue", "What kinds of concerns do you hear people express when they have gatherings and celebrations in your area? Do people complain about traffic, parking, noise, garbage or other problems? What do people in your area say about such celebrations?", "모임 관련 사람들이 갖고 있는 우려 설명"]
+    ],
+    "sets": [
+      [1, 111, "general", [1, 3, 4]],
+      [2, 111, "general", [2, 5, 6]],
+      [3, 111, "advanced", [7, 8]],
+      [4, 111, "advanced", [9, 10]]
+    ]
+  },
+  {"id": "staycation", "ko": "집에서 보내는 휴가", "en": "Vacation at Home", "category": "survey", "unit": 9, "section": "general",
+    "questions": [
+      [123, "Q1", "description", "You indicated in the survey that you stay at home for vacations. Who are the people you would like to see and spend time with on your vacation?", "집에서 보내는 휴가 중 만나고 싶은 사람 묘사"],
+      [123, "Q2", "routine", "Describe some of the things that you would like to do with people you visit or see during your vacation.", "휴가 때 만나는 사람들과 하고 싶은 일들 묘사"],
+      [123, "Q3", "experience", "Describe exactly what you did during the last vacation that you spent at home. Give me a description from the first to the last day of all the people you saw and everything that you did.", "지난번 휴가 때 했던 일들 묘사"],
+      [123, "Q4", "memorable", "Could you tell me about an unusual, unexpected, or satisfying experience you had while at home on vacations? Tell me all the details of that experience. What happened? Who was involved? And why was this experience so memorable?", "집에서 보낸 휴가 중에 기억에 남는 경험 묘사"],
+      [123, "Q5", "comparison", "You indicated in the survey that you stay at home for vacations. How do most people spend their vacation in your country? How does that compare to the way people spent their vacation when you were growing up? Are they doing things differently? How have things changed and why have things changed? Please take a minute to discuss this topic.", "사람들이 휴가를 보내는 방법 과거 현재 비교"],
+      [124, "Q6", "issue", "Experts state that vacations are important for every individual. Take a minute and report for me the important benefits of vacation time to a person’s health, relationships and personal growth.", "휴가가 중요하다고 생각하는 이유 설명"]
+    ],
+    "sets": [
+      [1, 122, "general", [1, 2, 3]],
+      [2, 122, "general", [1, 3, 4]],
+      [3, 122, "advanced", [5, 6]]
+    ]
+  },
+  {"id": "food", "ko": "식품", "en": "Food", "category": "surprise", "unit": 10, "section": "general",
+    "questions": [
+      [132, "Q1", "description", "Many people try to eat healthy these days. What kinds of foods are healthy and why are they healthy for us?", "건강 식품 종류와 건강에 좋은 이유 설명"],
+      [132, "variant-2", "routine", "What do you eat on a regular day? Tell me everything that you eat in detail.", "본인이 먹는 일상 음식 소개"],
+      [132, "Q2", "routine", "How do you shop for healthy food? What kinds of things do you have to do to cook healthy food?", "건강 식품 구매 및 조리 방법 설명"],
+      [132, "Q3", "experience", "Tell me how you found out about eating healthy. Did your family eat healthy when you were growing up? Did your friend become healthier by eating healthy food? Describe in detail how you started to eat healthy.", "건강 식품을 먹게 된 계기 설명"],
+      [133, "Q4", "experience", "When was the last time you had some healthy food? Who was it with and how did you feel? What was special about that experience?", "건강 식품을 최근에 먹어 본 경험 묘사"],
+      [133, "variant-6", "description", "What are some of the typical foods in your country? What dishes are popular?", "우리나라 대표 음식 묘사"],
+      [133, "Q5", "memorable", "Tell me about a memorable experience you had while eating something. It could have been something good or bad. What happened? Why was it so memorable or special? Tell me everything in as much detail as possible.", "음식 관련 기억에 남는 경험 묘사"],
+      [133, "Q6", "comparison", "How has food shopping changed over the last 20 years? What are some of the trends or changes you have noticed when comparing shopping today with that of the past?", "20년간 사람들의 식품 구매 방식 변화"],
+      [133, "Q7", "issue", "There have been many stories in the news of foods that have been contaminated or that contained dangerous bacteria. Tell me about the food scare stories you heard about or read about.", "식품 오염 사건 관련 뉴스 보도 설명"]
+    ],
+    "sets": [
+      [1, 132, "general", [1, 3, 4]],
+      [2, 132, "general", [1, 4, 5]],
+      [3, 132, "general", [6, 2, 7]],
+      [4, 132, "advanced", [8, 9]]
+    ]
+  },
+  {"id": "health", "ko": "건강", "en": "Health", "category": "surprise", "unit": 11, "section": "general",
+    "questions": [
+      [142, "Q1", "description", "Tell me about the kinds of foods healthy people eat. What foods are they? Where do they buy these foods?", "건강한 사람들이 먹는 음식 묘사"],
+      [142, "variant-2", "routine", "What are the eating habits of healthy people? What do they usually eat during the week, for breakfast, lunch, dinner, snacks, etc?", "건강한 사람들의 식습관 묘사"],
+      [142, "Q2", "description", "Tell me about a local health food store in your neighborhood. What does this place look like?", "본인의 동네에 건강한 식품 파는 식료품점 묘사"],
+      [142, "Q3", "description", "Tell me about someone you know who is very healthy. What is that person like?", "본인이 아는 건강한 사람 습관 묘사"],
+      [142, "Q4", "routine", "Tell me about all the things you do in order to stay healthy.", "본인이 건강을 위해 평상시 하는 일들 묘사"],
+      [142, "Q5", "experience", "Tell me about a time when you or someone you know did something new to become healthier. Maybe it was playing a sport or eating some healthy food. Tell me about the change in detail.", "본인이 건강을 위해 새로운 것을 시도해 본 경험 묘사"],
+      [142, "Q6", "experience", "People do a lot of things to try to be healthy. They might join a healthy cooking class or join a new exercise program. Tell me about something you have done to try to improve your health. Tell me why you chose that particular activity and how it all worked out.", "본인이 건강을 위해서 했던 행동 구체적으로 설명"],
+      [143, "Q7", "comparison", "Ideas about what good health is and how to maintain it change frequently. What did people do to maintain good health when you were a child? What was considered to be a healthy diet at that time? How did people usually exercise? Describe how our ideas of what is healthy have changed over time.", "건강에 대한 인식과 운동법 과거 현재 비교"],
+      [143, "variant-9", "comparison", "Different generations have different views on what is healthy. Some generations think people have to be skinny in order to be healthy, while others believe people must be muscular. What did your parents’ generation think people have to be like in order to be healthy? How does that compare to what your generation believes?", "건강에 대한 세대 간 인식 과거 현재 비교"],
+      [143, "variant-10", "comparison", "Describe how people usually stayed in good shape when you were a child. What kinds of sports did they play? Were gyms popular then? Describe what fitness was like then, and how it has changed over the years.", "사람들의 건강 유지 방법 과거 현재 비교"],
+      [143, "Q8", "issue", "Tell me about a recent news story related to health issues. Describe what happened in detail. What was the reaction of your community?", "건강 관련 최근 본 뉴스 내용 설명"],
+      [143, "variant-12", "issue", "Describe a recent event in your area that involved health issues. Perhaps, something happened in the food or medical industries. Perhaps, something related to sports happened or something like smoking was banned. Describe what happened in detail including the reaction of your community.", "건강 관련 최근 발생한 사건 설명"]
+    ],
+    "sets": [
+      [1, 141, "general", [1, 5, 8]],
+      [2, 141, "general", [3, 2, 8]],
+      [3, 141, "general", [4, 6, 7]],
+      [4, 141, "advanced", [9, 11]],
+      [5, 141, "advanced", [10, 12]]
+    ]
+  },
+  {"id": "shopping", "ko": "쇼핑", "en": "Shopping", "category": "survey", "unit": 12, "section": "general",
+    "questions": [
+      [153, "Q1", "description", "You indicated in the survey that you go shopping. Tell me about stores or shopping centers in your country. What are these places like?", "우리나라 상점/쇼핑몰 묘사"],
+      [153, "Q2", "description", "Where do you go when you go shopping for something? What do you buy when you go there? What is special about that place?", "본인이 즐겨 가는 쇼핑 장소와 사는 물건 묘사"],
+      [153, "variant-3", "routine", "You indicated in the survey that you go shopping. I’d like to know more about your interest in shopping. Where do you go? Who do you shop with?", "본인의 쇼핑 습관 묘사"],
+      [153, "Q3", "routine", "Describe a typical shopping day for you. Tell me everything you do from the moment you leave home until you return.", "본인이 쇼핑을 하러 가는 날 하는 일들 순서대로 묘사"],
+      [153, "Q4", "experience", "Tell me about your early memories of shopping and how you came to enjoy it so much. You could include information about where and when you used to shop, the people you went shopping with, what kinds of things you used to do while shopping or anything else that would give a clear picture of that experience.", "어렸을 때 쇼핑 추억과 좋아하게 된 계기 묘사"],
+      [153, "variant-6", "experience", "Think about your early memories of shopping. Is there a store or a market that you remember from your childhood? Describe this place for me. What did it look like? What was your impression of the place?", "어렸을 때 기억에 남는 상점/시장 묘사"],
+      [154, "Q5", "experience", "When was the last time you went to shop for something? Where did you go and what did you buy? Who did you go with? What was special about that shopping experience?", "본인의 최근 쇼핑 경험 묘사"],
+      [154, "Q6", "memorable", "Sometimes, funny or unexpected things happen while shopping. Tell me the story of a memorable shopping experience you had. Maybe you saw a friend at a store, maybe the item you bought was broken or did not work. Tell me in detail about a shopping trip that you still remember for some reason.", "쇼핑 중 겪은 예상치 못한 경험 묘사"],
+      [154, "Q7", "comparison", "You indicated in the survey that you go shopping. Going shopping has changed a great deal over the years. Talk about the most significant changes in shopping over the years.", "사람들의 쇼핑 습관 관련된 가장 큰 변화 묘사"],
+      [154, "Q8", "issue", "What kinds of products and services do you hear shoppers talk about the most these days? Why do you think they are generating so much interest? Tell me in detail about those products. What are people saying about them and why?", "사람들이 요즘 많이 언급하는 인기 상품/서비스 묘사"]
+    ],
+    "sets": [
+      [1, 152, "general", [1, 2, 5]],
+      [2, 152, "general", [1, 4, 6]],
+      [3, 152, "general", [1, 6, 8]],
+      [4, 152, "general", [3, 4, 5]],
+      [5, 152, "general", [], "", "p.152: the final specific shopping episode is listed in the SET table, but no distinct matching English prompt appears on pp.153-154. Not replaced with the narrower unexpected-event prompt."],
+      [6, 152, "advanced", [9, 10]]
+    ]
+  },
+  {"id": "domestic-travel", "ko": "국내여행", "en": "Domestic Trips", "category": "survey", "unit": 13, "section": "general",
+    "questions": [
+      [164, "Q1", "description", "You indicated in the survey that you take vacations domestically. Tell me some of the places you like to travel and why you like going there.", "본인이 좋아하는 국내여행 장소들 묘사"],
+      [164, "Q2", "routine", "Can you tell me all the things you do in order to prepare to take trips?", "본인이 여행 가기 전에 하는 준비 과정 설명"],
+      [164, "Q3", "experience", "Tell me about some of the trips that you took in your youth. Where did you go? Who did you go with? And what did you see or do during those early trips?", "본인이 어렸을 때 갔었던 여행들 설명"],
+      [164, "Q4", "memorable", "Traveling can lead to many kinds of interesting, funny and unexpected experiences. Tell me about one travel experience you had that was unforgettable. Start by telling me when this happened, where you were, and who you were with. Then, tell me about all the things that happened that made this experience so unforgettable.", "여행 중에 있었던 잊을 수 없는 경험 묘사"],
+      [164, "Q5", "comparison", "You indicated in the survey that you take vacations domestically. Most people say that traveling has become more difficult in the past five years. Tell me what types of changes you have observed when traveling and how these changes affected the traveler or travel experience.", "지난 5년간 여행이 더 어려워진 이유 설명"],
+      [165, "Q6", "issue", "When people talk about traveling, what are the main issues or concerns they typically raise or discuss? What has caused these concerns? What is being done to address these concerns for the future?", "여행 관련하여 사람들이 갖고 있는 걱정 설명"]
+    ],
+    "sets": [
+      [1, 163, "general", [1, 2, 4]],
+      [2, 163, "general", [1, 2, 3]],
+      [3, 163, "general", [1, 3, 4]],
+      [4, 163, "advanced", [5, 6]]
+    ]
+  },
+  {"id": "overseas-travel", "ko": "해외여행", "en": "Overseas Trips", "category": "survey", "unit": 14, "section": "general",
+    "questions": [
+      [173, "Q1", "description", "You indicated in the survey that you take vacations internationally. Can you describe for me one of the countries or cities you’ve visited? What does it look like? And what are the people like there?", "본인이 가 본 해외의 국가나 도시, 현지인 묘사"],
+      [173, "Q2", "routine", "Can you tell me about the things you like to do when visiting another country?", "본인이 해외 여행지에 가서 주로 하는 일들 묘사"],
+      [173, "Q3", "experience", "Describe for me your first trip to another country. When was the trip? Where did you go? Who did you go with and what did you do? Describe that experience for me in as much detail as possible.", "본인이 처음으로 가 본 해외의 국가나 도시 묘사"],
+      [173, "variant-4", "experience", "Think about another country that you visited when you were young. Describe what that country was like with lots of details. What were your impressions of that place?", "본인이 어렸을 때 가 본 해외 국가 묘사"],
+      [173, "Q4", "description", "Tell me about a popular place tourists like to go to when traveling outside your country. Why do they like visiting those locations?", "우리나라 관광객들이 주로 가는 해외 여행지 묘사"],
+      [173, "variant-6", "description", "Where do people in your country go to when they travel abroad? Why do they like visiting those locations? What is special about the countries they visit?", "우리나라 사람들이 주로 가는 해외 국가 묘사"],
+      [174, "Q5", "memorable", "Sometimes, something out of the ordinary happens while traveling. I wonder if you have ever experienced anything surprising, unexpected or unusual while on a trip. Tell me the story of that experience in detail. Start by telling me when and where you were traveling. And then, tell me all the details of that experience, especially what happened that made it so unforgettable.", "해외여행 중에 겪은 잊을 수 없는 경험 묘사"],
+      [174, "Q6", "routine", "Tell me about where tourists go and what they do on their overseas trips.", "우리나라 관광객들이 해외 여행지에서 하는 일들 묘사"],
+      [174, "variant-9", "issue", "When people discuss traveling to other countries, what are the things that they are most interested in doing or seeing? Why are these things of such interest or importance to travelers?", "해외로 나가는 여행객들이 관심 갖는 것들 묘사"],
+      [174, "Q7", "comparison", "You indicated in the survey that you take vacations internationally. How has traveling to other countries changed over the years? Is it easier or more difficult? Describe what traveling was like in the past and what changes you have seen over the years.", "해외여행 과거와 현재 비교"]
+    ],
+    "sets": [
+      [1, 172, "general", [1, 2, 3]],
+      [2, 172, "general", [1, 3, 7]],
+      [3, 172, "general", [5, 4, 7]],
+      [4, 172, "general", [6, 4, 8]],
+      [5, 172, "advanced", [10, 9]]
+    ]
+  }
+]

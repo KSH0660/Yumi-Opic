@@ -1,57 +1,14 @@
-import type { Question, Topic } from "@/lib/types";
-import { surveyTopics as rawSurvey } from "./survey-topics";
-import { surpriseTopics as rawSurprise } from "./surprise-topics";
-import { roleplayTopics as rawRoleplay } from "./roleplay-topics";
-import { advancedTopics as rawAdvanced } from "./advanced-topics";
-import { verifiedByTopic } from "./verified";
-
-/**
- * 자체 제작 문항과 복원 기출을 한 주제로 합친다.
- * 복원 기출을 앞에 두어 같은 유형이면 기출이 먼저 눈에 띄게 한다.
- */
-function withVerified(topics: Topic[]): Topic[] {
-  return topics.map((topic) => {
-    const extra = verifiedByTopic[topic.id];
-    if (!extra || extra.length === 0) return topic;
-    return { ...topic, questions: [...extra, ...topic.questions] };
-  });
-}
-
-export const surveyTopics = withVerified(rawSurvey);
-export const surpriseTopics = withVerified(rawSurprise);
-export const roleplayTopics = withVerified(rawRoleplay);
-export const advancedTopics = withVerified(rawAdvanced);
-
-export const allTopics: Topic[] = [
-  ...surveyTopics,
-  ...surpriseTopics,
-  ...roleplayTopics,
-  ...advancedTopics,
-];
-
+import { textbookIntro, textbookTopics, textbookStats } from "./textbook/catalog";
+export { TEXTBOOK, DEFAULT_SURVEY_IDS, UNSUPPORTED_SURVEY_TOPICS, excludedSets, textbookSets, textbookSetById, textbookStats } from "./textbook/catalog";
+export const allTopics = textbookTopics;
 export const topicById = new Map(allTopics.map((t) => [t.id, t]));
-
-/** 1번 자기소개 — 기본적으로 건너뛰지만, 원하면 연습할 수 있게 남겨둔다. */
-export const introQuestion: Question = {
-  id: "intro-1",
-  type: "intro",
-  source: "verified",
-  en: "Let's start the interview now. Tell me about yourself",
-  ko: "간단한 자기소개를 하세요. (실전에서는 채점에 거의 반영되지 않아 보통 건너뜁니다.)",
-  hints: [
-    "My name is ... and I'm currently",
-    "I've been working as ... for about",
-    "In my free time I usually",
-    "That's pretty much it about me",
-  ],
-};
-
-export const totalQuestionCount = allTopics.reduce(
-  (sum, t) => sum + t.questions.length,
-  0,
-);
-
-export const verifiedQuestionCount = allTopics.reduce(
-  (sum, t) => sum + t.questions.filter((q) => q.source === "verified").length,
-  0,
-);
+export const surveyTopics = allTopics.filter((t) => t.category === "survey");
+export const surpriseTopics = allTopics.filter((t) => t.category === "surprise");
+export const roleplayTopics = allTopics.filter((t) => t.category === "roleplay");
+// An overlapping view, not duplicated topics/questions in the active bank.
+export const advancedTopics = allTopics.filter((t) => t.sets?.some((s) => s.kind === "advanced"));
+export const introQuestion = textbookIntro;
+export const totalQuestionCount = textbookStats.questions;
+export const textbookQuestionCount = textbookStats.questions;
+/** Legacy external reconstructions do not participate in the active textbook bank. */
+export const verifiedQuestionCount = 0;
