@@ -15,6 +15,7 @@ import {
 } from "@/lib/speech";
 import { mergeTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
+import MicLevelMeter from "./MicLevelMeter";
 import ExamResult, { type AnswerRecording } from "./ExamResult";
 import { SourceBadge } from "./ui";
 
@@ -110,6 +111,7 @@ export default function ExamRunner({
 
   const [listening, setListening] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
+  const [micPeak, setMicPeak] = useState(0);
   const [interim, setInterim] = useState("");
   const [micError, setMicError] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
@@ -149,6 +151,7 @@ export default function ExamRunner({
     session.stream.getTracks().forEach((track) => track.stop());
     void session.context.close().catch(() => undefined);
     setMicLevel(0);
+    setMicPeak(0);
   }, []);
 
   const stopAudioCapture = useCallback((save: boolean) => {
@@ -156,6 +159,7 @@ export default function ExamRunner({
     const session = audioRef.current;
     audioRef.current = null;
     setMicLevel(0);
+    setMicPeak(0);
     if (!session) return;
     session.saveOnStop = save;
     if (session.recorder.state !== "inactive") {
@@ -213,6 +217,9 @@ export default function ExamRunner({
       };
 
       const samples = new Uint8Array(analyser.fftSize);
+      let smoothedLevel = 0;
+      let peakLevel = 0;
+      let lastFrameAt = performance.now();
       const draw = () => {
         if (audioRef.current !== session) return;
         analyser.getByteTimeDomainData(samples);
@@ -223,7 +230,14 @@ export default function ExamRunner({
         }
         const rms = Math.sqrt(squareSum / samples.length);
         // 일반적인 대화 음성의 RMS 범위를 세로 미터 전체에 자연스럽게 펼친다.
-        setMicLevel(Math.min(1, Math.max(0, (rms - 0.01) * 7.5)));
+        const now = performance.now();
+        const frameSec = (now - lastFrameAt) / 1000;
+        lastFrameAt = now;
+        const targetLevel = Math.min(1, Math.max(0, (rms - 0.01) * 7.5));
+        smoothedLevel += (targetLevel - smoothedLevel) * (1 - Math.exp(-frameSec / 0.08));
+        peakLevel = Math.max(smoothedLevel, peakLevel - frameSec * 0.4);
+        setMicLevel(smoothedLevel);
+        setMicPeak(peakLevel);
         session.frame = window.requestAnimationFrame(draw);
       };
 
@@ -473,18 +487,8 @@ export default function ExamRunner({
             </div>
 
             {/* 실제 OPIc의 세로 표시는 조절기가 아니라 마이크 입력 레벨 확인용이다. */}
-            <div className="flex flex-row items-center justify-center gap-4 lg:flex-col lg:gap-3">
-              <div className="relative h-7 w-full lg:h-40 lg:w-8" aria-label={`마이크 입력 레벨 ${Math.round(micLevel * 100)}%`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(micLevel * 100)}>
-                <div className="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-exam-line lg:left-1/2 lg:top-0 lg:h-full lg:w-1 lg:-translate-x-1/2 lg:translate-y-0" />
-                <div
-                  className={`absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-exam-frame transition-[left] duration-75 lg:left-1/2 lg:transition-[bottom] ${listening ? "border-exam-rec" : "border-exam-ink-muted"}`}
-                  style={{ left: `${Math.max(4, micLevel * 100)}%`, bottom: undefined }}
-                />
-                <div
-                  className={`absolute bottom-0 left-1/2 hidden h-5 w-5 -translate-x-1/2 translate-y-1/2 rounded-full border-2 bg-exam-frame transition-[bottom] duration-75 lg:block ${listening ? "border-exam-rec" : "border-exam-ink-muted"}`}
-                  style={{ bottom: `${Math.max(0, micLevel * 100)}%` }}
-                />
-              </div>
+            <div className="flex flex-col items-center justify-center gap-3">
+              <MicLevelMeter level={micLevel} peak={micPeak} active={listening} />
               <span title={listening ? `마이크 입력 ${Math.round(micLevel * 100)}%` : "대기 중"} className={listening ? "text-exam-rec" : "text-exam-ink-muted"}>
                 <MicGlyph className={listening ? "h-5 w-5 animate-rec-pulse" : "h-5 w-5"} />
               </span>

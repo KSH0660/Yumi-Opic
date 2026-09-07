@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { surveyTopics } from "@/data";
 import { EXAM_GROUPS } from "@/lib/exam";
-import { clearHistory, defaultSettings, loadHistory, loadSettings, saveSettings, type HistoryEntry, type Settings } from "@/lib/storage";
+import { clearHistory, deleteHistory, defaultSettings, loadHistory, loadSettings, saveSettings, type HistoryEntry, type Settings } from "@/lib/storage";
 import Footer from "./Footer";
 import ThemeToggle from "./ThemeToggle";
 import { Badge, Card } from "./ui";
@@ -12,7 +12,15 @@ export default function HomeView() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [ready, setReady] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   useEffect(() => { setSettings(loadSettings()); setHistory(loadHistory()); setReady(true); }, []);
+  useEffect(() => {
+    const refresh = () => setHistory(loadHistory());
+    window.addEventListener("storage", refresh);
+    window.addEventListener("pageshow", refresh);
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("pageshow", refresh); };
+  }, []);
   const selectedCount = surveyTopics.filter((t) => settings.enabledSurveyIds.includes(t.id)).length;
   const verifiedQuestionCount = surveyTopics.reduce((sum, topic) => sum + topic.questions.filter((q) => q.source === "verified").length, 0);
 
@@ -22,6 +30,17 @@ export default function HomeView() {
     const next = { ...settings, enabledSurveyIds: selected ? settings.enabledSurveyIds.filter((t) => t !== id) : [...settings.enabledSurveyIds, id] };
     setSettings(next);
     saveSettings(next);
+  }
+
+  function removeHistory(id?: string) {
+    if (!window.confirm(id ? "이 연습 기록과 저장된 피드백을 삭제할까요?" : "모든 연습 기록과 저장된 피드백을 삭제할까요?")) return;
+    try {
+      if (id) setHistory(deleteHistory(id));
+      else { clearHistory(); setHistory([]); }
+      setHistoryError(null);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "기록을 삭제하지 못했습니다.");
+    }
   }
 
   return <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-12 sm:px-8">
@@ -65,8 +84,21 @@ export default function HomeView() {
     </section>
 
     {history.length > 0 && <section className="mt-10">
-      <div className="flex justify-between"><h2 className="text-sm font-semibold text-fg-muted">최근 연습 기록</h2><button type="button" className="text-xs text-fg-muted" onClick={() => { clearHistory(); setHistory([]); }}>기록 지우기</button></div>
-      <Card className="mt-3 divide-y divide-line">{history.slice(0, 6).map((entry) => <div key={entry.id} className="flex flex-wrap items-center gap-3 p-4 text-sm"><span className="text-xs text-fg-muted">{new Date(entry.finishedAt).toLocaleDateString("ko-KR")}</span><span className="min-w-0 flex-1 text-fg-muted">{entry.label}</span><span className="text-xs text-fg-muted">{entry.answered}/{entry.totalItems}문항 작성</span></div>)}</Card>
+      <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-semibold text-fg-muted">최근 연습 기록</h2><button type="button" className="min-h-11 rounded-lg px-3 text-xs text-fg-muted transition-colors hover:bg-surface-2" onClick={() => removeHistory()}>전체 삭제</button></div>
+      <p className="mt-1 text-xs text-fg-subtle">기록을 누르면 답변과 저장된 피드백을 다시 볼 수 있습니다. 이 브라우저에 최근 20회까지 보관합니다.</p>
+      {historyError && <p role="alert" className="mt-3 text-xs text-warn-ink">{historyError}</p>}
+      <Card className="mt-3 divide-y divide-line overflow-hidden">{history.slice(0, showAllHistory ? 20 : 6).map((entry) => (
+        <div key={entry.id} className="flex items-center gap-2 pr-3 sm:pr-4">
+          <Link href={`/exam?history=${encodeURIComponent(entry.id)}`} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 p-4 text-sm transition-colors hover:bg-surface-2 focus-visible:outline-offset-[-3px]">
+            <span className="text-xs text-fg-muted">{new Date(entry.finishedAt).toLocaleDateString("ko-KR")}</span>
+            <span className="min-w-0 flex-1 basis-40 font-medium text-fg">{entry.label}</span>
+            <span className="text-xs text-fg-muted">{entry.answered}/{entry.totalItems}문항 답변</span>
+            <span className="text-xs text-primary-ink">{entry.result ? `답변·피드백 보기 →` : "요약 보기 →"}</span>
+          </Link>
+          <button type="button" aria-label={`${entry.label} (${new Date(entry.finishedAt).toLocaleString("ko-KR")}) 기록 삭제`} onClick={() => removeHistory(entry.id)} className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-xs text-fg-muted transition-colors hover:bg-surface-2">삭제</button>
+        </div>
+      ))}</Card>
+      {history.length > 6 && <button type="button" onClick={() => setShowAllHistory((value) => !value)} className="mt-3 min-h-11 rounded-lg border border-line px-4 text-xs text-fg-muted">{showAllHistory ? "접기" : `기록 더 보기 (${history.length}개)`}</button>}
     </section>}
     <Footer />
   </main>;

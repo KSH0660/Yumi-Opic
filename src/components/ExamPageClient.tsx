@@ -5,11 +5,46 @@ import { useCallback, useEffect, useState } from "react";
 import type { Exam } from "@/lib/types";
 import { allTopics, topicById } from "@/data";
 import { buildFullExam, buildPracticeExam, buildSingleQuestion } from "@/lib/exam";
-import { loadSettings } from "@/lib/storage";
+import { loadHistory, loadSettings, type HistoryEntry } from "@/lib/storage";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
+import ExamResult from "./ExamResult";
 
 export default function ExamPageClient() {
+  const params = useSearchParams();
+  const historyId = params.get("history");
+  return historyId !== null ? <SavedHistoryResult key={historyId} id={historyId} /> : <NewExamPageClient />;
+}
+
+function SavedHistoryResult({ id }: { id: string }) {
+  const [entry, setEntry] = useState<HistoryEntry | null>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setEntry(loadHistory().find((item) => item.id === id) ?? null);
+    setReady(true);
+  }, [id]);
+
+  if (!ready) return <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-fg-muted">연습 기록을 불러오는 중…</main>;
+  if (entry?.result) return <ExamResult
+    exam={entry.result.exam} title={entry.label} answers={entry.result.answers}
+    times={entry.result.times} hintUse={entry.result.hintUse} replays={entry.result.replays}
+    historyEntry={entry}
+  />;
+
+  return <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
+    <Link href="/" className="text-sm text-fg-muted">← 홈</Link>
+    <Card className="mt-5 p-6">
+      <h1 className="text-xl font-semibold">{entry ? "지난 연습 기록" : "기록을 찾을 수 없습니다"}</h1>
+      {entry ? <>
+        <p className="mt-3 text-sm text-fg-muted">{entry.label} · {new Date(entry.finishedAt).toLocaleString("ko-KR")}</p>
+        <p className="mt-2 text-sm text-fg-muted">{entry.answered}/{entry.totalItems}문항 답변</p>
+        <p className="mt-4 text-sm leading-relaxed text-fg-muted">이전 버전에서 저장한 기록에는 질문·답변·피드백이 남아 있지 않습니다. 새로 완료하는 연습부터 상세 결과가 저장됩니다.</p>
+      </> : <p className="mt-3 text-sm text-fg-muted">삭제된 기록이거나 다른 브라우저에서 저장한 기록입니다.</p>}
+    </Card>
+  </main>;
+}
+
+function NewExamPageClient() {
   const params = useSearchParams();
   const mode = params.get("mode") ?? "full";
   const topicId = params.get("topic");

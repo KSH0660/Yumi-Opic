@@ -32,3 +32,18 @@ export interface OpicFeedback {
   pronunciationBasis: "audio_compare" | "browser_only" | "none";
   items: OpicFeedbackItem[];
 }
+
+export function isOpicFeedback(value: unknown): value is OpicFeedback {
+  if (!value || typeof value !== "object") return false;
+  const feedback = value as Partial<OpicFeedback>;
+  const structure = feedback.structure;
+  const statuses: unknown[] = ["good", "needs_work"];
+  const categories: unknown[] = ["storytelling", "detail", "emotion", "delivery", "pronunciation", "grammar"];
+  return typeof feedback.overall === "string" && !!structure
+    && statuses.includes(structure.topic) && statuses.includes(structure.detail)
+    && statuses.includes(structure.feeling) && typeof structure.note === "string"
+    && ["audio_compare", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
+    && Array.isArray(feedback.items) && feedback.items.every((item) => item
+      && categories.includes(item.category) && typeof item.title === "string"
+      && typeof item.message === "string" && typeof item.example === "string");
+}

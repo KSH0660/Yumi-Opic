@@ -1,0 +1,116 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const storage = require('../.test-build/lib/storage');
+const { buildSingleQuestion } = require('../.test-build/lib/exam');
+const { allTopics } = require('../.test-build/data');
+const KEY = 'yumi-opic:history';
+const feedback = {
+  overall: '구체적인 경험이 잘 드러납니다.',
+  structure: { topic: 'good', detail: 'good', feeling: 'needs_work', note: '감정을 덧붙여 보세요.' },
+  pronunciationBasis: 'browser_only', items: [],
+};
+
+function entry(id = 'attempt-1', exam = buildSingleQuestion(allTopics)) {
+  const slot = exam.items[0].slot;
+  return {
+    id, finishedAt: Date.now(), mode: exam.mode, label: '1문제 연습', answered: 1, totalItems: 1,
+    result: { exam, answers: { [slot]: 'I enjoyed the trip with my friends.' }, times: { [slot]: 30 },
+      hintUse: { [slot]: 1 }, replays: { [slot]: 1 }, feedback: { [slot]: feedback } },
+  };
+}
+
+function withStorage(run) {
+  const previous = global.window;
+  const data = new Map();
+  global.window = { localStorage: {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: (key) => data.delete(key),
+  } };
+  try { run(data); } finally {
+    if (previous === undefined) delete global.window;
+    else global.window = previous;
+  }
+}
+
+test('질문과 답변, 시간, 힌트, 재청취, 피드백을 함께 복원한다', () => withStorage(() => {
+  const original = entry();
+  storage.pushHistory(original);
+  assert.deepEqual(storage.loadHistory(), [original]);
+}));
+
+test('같은 시험을 다시 풀어도 회차별로 남고 같은 회차 저장은 중복되지 않는다', () => withStorage(() => {
+  const first = entry();
+  const second = entry('attempt-2', first.result.exam);
+  storage.pushHistory(first);
+  storage.pushHistory(second);
+  storage.pushHistory(second);
+  assert.deepEqual(storage.loadHistory().map((item) => item.id), ['attempt-2', 'attempt-1']);
+}));
+
+test('늦게 확정된 답변과 피드백을 원래 회차에 저장하고 날짜와 순서를 유지한다', () => withStorage(() => {
+  const first = entry();
+  storage.pushHistory(first);
+  storage.pushHistory(entry('attempt-2'));
+  const slot = first.result.exam.items[0].slot;
+  const updated = { ...first.result, answers: { [slot]: 'Final transcript.' },
+    feedback: { [slot]: { ...feedback, overall: '업데이트된 피드백' } } };
+  storage.updateHistoryResult(first.id, updated);
+  const history = storage.loadHistory();
+  assert.equal(history[1].finishedAt, first.finishedAt);
+  assert.deepEqual(history[1].result, updated);
+}));
+
+test('개별/전체 삭제가 상세 결과도 지우며 늦은 업데이트가 기록을 되살리지 않는다', () => withStorage((data) => {
+  const first = entry();
+  storage.pushHistory(first);
+  storage.pushHistory(entry('attempt-2'));
+  assert.equal(storage.deleteHistory(first.id).length, 1);
+  assert.throws(() => storage.updateHistoryResult(first.id, first.result), /삭제/);
+  assert.ok(!data.get(KEY).includes('attempt-1'));
+  storage.clearHistory();
+  assert.equal(data.has(KEY), false);
+}));
+
+test('최근 20회만 저장한다', () => withStorage(() => {
+  for (let i = 0; i < 21; i++) storage.pushHistory(entry(`attempt-${i}`));
+  const history = storage.loadHistory();
+  assert.equal(history.length, 20);
+  assert.equal(history[0].id, 'attempt-20');
+  assert.equal(history[19].id, 'attempt-1');
+}));
+
+test('이전 요약과 정상 기록을 보존하며 손상된 항목/피드백만 제외한다', () => withStorage((data) => {
+  const legacy = { id: 'legacy', finishedAt: 1, mode: 'single', label: '이전 기록', answered: 0, totalItems: 1 };
+  const broken = entry('broken');
+  broken.result.feedback[broken.result.exam.items[0].slot] = { items: [] };
+  const raw = JSON.stringify([null, {}, legacy, broken, entry()]);
+  data.set(KEY, raw);
+  const history = storage.loadHistory();
+  assert.equal(history.length, 3);
+  assert.equal(history[0].result, undefined);
+  assert.deepEqual(history[1].result.feedback, {});
+  assert.equal(data.get(KEY), raw, '읽기는 기존 저장 내용을 변경하지 않는다');
+  data.set(KEY, '{broken json');
+  assert.deepEqual(storage.loadHistory(), []);
+}));
+
+test('저장 공간 부족/권한 오류를 호출자에게 알리고 기존 기록을 유지한다', () => withStorage(() => {
+  const first = entry();
+  storage.pushHistory(first);
+  window.localStorage.setItem = () => { throw new Error('quota'); };
+  assert.throws(() => storage.pushHistory(entry('attempt-2')), /저장/);
+  assert.throws(() => storage.deleteHistory(first.id), /저장/);
+  assert.equal(storage.loadHistory()[0].id, first.id);
+}));
+
+test('이전 버전에서 ID를 재사용한 회차도 각각 보존한다', () => withStorage((data) => {
+  const legacy = { id: 'same-exam', finishedAt: 2, mode: 'single', label: '이전 기록', answered: 1, totalItems: 1 };
+  data.set(KEY, JSON.stringify([legacy, { ...legacy, finishedAt: 1 }]));
+  const history = storage.loadHistory();
+  assert.equal(history.length, 2);
+  assert.notEqual(history[0].id, history[1].id);
+  const oldId = history[1].id;
+  storage.pushHistory(entry());
+  assert.equal(storage.loadHistory()[2].id, oldId);
+}));

@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Exam, ExamItem } from "@/lib/types";
-import type { FeedbackCategory, OpicFeedback } from "@/lib/feedback";
+import { isOpicFeedback, type FeedbackCategory, type OpicFeedback } from "@/lib/feedback";
 import {
   countEnglishSentences,
   countEnglishWords,
   countUniqueEnglishWords,
   englishWords,
 } from "@/lib/answers";
-import { pushHistory } from "@/lib/storage";
+import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { Badge, Card, SourceBadge } from "./ui";
 import Footer from "./Footer";
 
@@ -40,6 +40,7 @@ export default function ExamResult({
   hintUse = {},
   replays = {},
   recordings = {},
+  historyEntry,
   onRetry,
   onRegenerate,
 }: {
@@ -53,7 +54,8 @@ export default function ExamResult({
   replays?: Record<number, number>;
   /** 브라우저에서 녹음한 문항별 답변. URL은 현재 페이지 세션 동안만 유지된다. */
   recordings?: Record<number, AnswerRecording>;
-  onRetry: () => void;
+  historyEntry?: HistoryEntry;
+  onRetry?: () => void;
   onRegenerate?: () => void;
 }) {
   const answeredCount = exam.items.filter((it) => (answers[it.slot] ?? "").trim().length > 0).length;
@@ -62,20 +64,55 @@ export default function ExamResult({
   const uniqueWords = new Set(
     exam.items.flatMap((it) => englishWords(answers[it.slot] ?? "").map((word) => word.toLowerCase())),
   ).size;
-  const saved = useRef(false);
+  const [attempt] = useState(() => ({
+    id: historyEntry?.id ?? crypto.randomUUID(),
+    finishedAt: historyEntry?.finishedAt ?? Date.now(),
+  }));
+  const [feedbackBySlot, setFeedbackBySlot] = useState<Record<number, OpicFeedback>>(historyEntry?.result?.feedback ?? {});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [persisted, setPersisted] = useState(!!historyEntry);
+  const saved = useRef(!!historyEntry);
+  // 초기 저장 이후 늦게 확정되는 STT도 반영한다. 기록 조회만으로는 다시 저장하지 않는다.
+  const latestResult = useRef<SavedResult>({ exam, answers, times, hintUse, replays, feedback: feedbackBySlot });
+  latestResult.current = { exam, answers, times, hintUse, replays, feedback: feedbackBySlot };
 
   useEffect(() => {
-    if (saved.current) return;
-    saved.current = true;
-    pushHistory({
-      id: exam.id,
-      finishedAt: Date.now(),
-      mode: exam.mode,
-      label: title,
-      answered: answeredCount,
-      totalItems: exam.items.length,
-    });
-  }, [exam.id, exam.mode, exam.items.length, title, answeredCount]);
+    if (historyEntry) return;
+    try {
+      if (saved.current) {
+        updateHistoryResult(attempt.id, latestResult.current);
+      } else {
+        pushHistory({ ...attempt, mode: exam.mode, label: title, answered: answeredCount,
+          totalItems: exam.items.length, result: latestResult.current });
+        saved.current = true;
+      }
+      setPersisted(true);
+      setSaveError(null);
+    } catch (error) {
+      setPersisted(false);
+      setSaveError(error instanceof Error ? error.message : "기록을 저장하지 못했습니다.");
+    }
+  }, [attempt, exam, title, answeredCount, answers, times, historyEntry]);
+
+  function saveFeedback(slot: number, feedback: OpicFeedback) {
+    const next = { ...latestResult.current.feedback, [slot]: feedback };
+    const result = { ...latestResult.current, feedback: next };
+    latestResult.current = result;
+    setFeedbackBySlot(next);
+    try {
+      if (saved.current) updateHistoryResult(attempt.id, result);
+      else {
+        pushHistory({ ...attempt, mode: exam.mode, label: title, answered: answeredCount,
+          totalItems: exam.items.length, result });
+        saved.current = true;
+      }
+      setPersisted(true);
+      setSaveError(null);
+    } catch (error) {
+      setPersisted(false);
+      setSaveError(error instanceof Error ? error.message : "피드백을 저장하지 못했습니다.");
+    }
+  }
 
   const totalTime = exam.items.reduce((sum, it) => sum + (times[it.slot] ?? 0), 0);
   const totalHints = exam.items.reduce((sum, it) => sum + (hintUse[it.slot] ?? 0), 0);
@@ -87,10 +124,14 @@ export default function ExamResult({
       <Link href="/" className="text-sm text-fg-muted transition hover:text-fg">← 홈</Link>
       <Card className="animate-fade-up mt-5 p-6 sm:p-8">
         <Badge tone="accent">{title}</Badge>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">연습 결과</h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{historyEntry ? "지난 연습 결과" : "연습 결과"}</h1>
+        <p className="mt-2 text-xs text-fg-subtle">{new Date(attempt.finishedAt).toLocaleString("ko-KR")}</p>
         <p className="mt-2 text-sm leading-relaxed text-fg-muted">
           문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. 원하는 답변만 AI 코칭을 받을 수 있습니다.
         </p>
+        {saveError ? <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p> : persisted && (
+          <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 홈의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
+        )}
 
         <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 text-center sm:grid-cols-4">
           <div><dt className="text-xs text-fg-muted">답변한 문항</dt><dd className="mt-1 text-lg font-medium tabular-nums">{answeredCount}/{exam.items.length}</dd></div>
@@ -110,12 +151,12 @@ export default function ExamResult({
           AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" onClick={onRetry} className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted">같은 문제 다시 풀기</button>
+        {(onRetry || onRegenerate) && <div className="mt-6 flex flex-wrap gap-3">
+          {onRetry && <button type="button" onClick={onRetry} className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted">같은 문제 다시 풀기</button>}
           {onRegenerate && (
             <button type="button" onClick={onRegenerate} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover">문제 다시 뽑기</button>
           )}
-        </div>
+        </div>}
       </Card>
 
       <h2 className="mt-10 text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
@@ -129,6 +170,8 @@ export default function ExamResult({
             hints={hintUse[item.slot] ?? 0}
             replays={replays[item.slot] ?? 0}
             recording={recordings[item.slot]}
+            feedback={feedbackBySlot[item.slot]}
+            onFeedback={(feedback) => saveFeedback(item.slot, feedback)}
           />
         ))}
       </div>
@@ -144,6 +187,8 @@ function ItemResult({
   hints,
   replays,
   recording,
+  feedback,
+  onFeedback,
 }: {
   item: ExamItem;
   answer: string;
@@ -151,9 +196,10 @@ function ItemResult({
   hints: number;
   replays: number;
   recording?: AnswerRecording;
+  feedback?: OpicFeedback;
+  onFeedback: (feedback: OpicFeedback) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [feedback, setFeedback] = useState<OpicFeedback | null>(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const hasAnswer = answer.trim().length > 0;
@@ -186,10 +232,10 @@ function ItemResult({
 
       const response = await fetch("/api/feedback", { method: "POST", body });
       const payload = (await response.json().catch(() => null)) as (OpicFeedback & { error?: string }) | null;
-      if (!response.ok || !payload || payload.error) {
+      if (!response.ok || !isOpicFeedback(payload) || payload?.error) {
         throw new Error(payload?.error || "AI 피드백을 불러오지 못했습니다.");
       }
-      setFeedback(payload);
+      onFeedback(payload);
     } catch (error) {
       setFeedbackError(error instanceof Error ? error.message : "AI 피드백을 불러오지 못했습니다.");
     } finally {
@@ -205,7 +251,7 @@ function ItemResult({
           <span className="block truncate text-sm text-fg">{item.typeLabel}</span>
           <span className="block truncate text-xs text-fg-subtle">{item.emoji} {item.topicKo}</span>
         </span>
-        <span className="shrink-0 text-xs text-fg-muted">{hasAnswer ? "답변함" : "답변 없음"}</span>
+        <span className="shrink-0 text-xs text-fg-muted">{feedback ? "피드백 있음" : hasAnswer ? "답변함" : "답변 없음"}</span>
         <span className="shrink-0 text-fg-subtle">{open ? "▲" : "▼"}</span>
       </button>
 
