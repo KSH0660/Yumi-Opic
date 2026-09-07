@@ -4,6 +4,12 @@ import { surpriseTopics as rawSurprise } from "./surprise-topics";
 import { roleplayTopics as rawRoleplay } from "./roleplay-topics";
 import { advancedTopics as rawAdvanced } from "./advanced-topics";
 import { verifiedByTopic } from "./verified";
+import {
+  textbookAdvancedTopics,
+  textbookRoleplayTopics,
+  textbookSurveyTopics,
+  textbookSurpriseTopics,
+} from "./textbook-bank";
 
 /**
  * 자체 제작 문항과 복원 기출을 한 주제로 합친다.
@@ -17,10 +23,16 @@ function withVerified(topics: Topic[]): Topic[] {
   });
 }
 
-export const surveyTopics = withVerified(rawSurvey);
-export const surpriseTopics = withVerified(rawSurprise);
-export const roleplayTopics = withVerified(rawRoleplay);
-export const advancedTopics = withVerified(rawAdvanced);
+/**
+ * 기존 문제은행은 그대로 보존하고, 사용자가 제공한 Pagoda OPIc 교재에서 추출한
+ * 문제 유형/세트 구조를 바탕으로 만든 교재 기반 문항을 추가한다.
+ * 교재 문구를 그대로 복제하지 않고 task를 자연스럽게 재구성했기 때문에
+ * source는 adapted로 유지한다.
+ */
+export const surveyTopics = withVerified([...rawSurvey, ...textbookSurveyTopics]);
+export const surpriseTopics = withVerified([...rawSurprise, ...textbookSurpriseTopics]);
+export const roleplayTopics = withVerified([...rawRoleplay, ...textbookRoleplayTopics]);
+export const advancedTopics = withVerified([...rawAdvanced, ...textbookAdvancedTopics]);
 
 export const allTopics: Topic[] = [
   ...surveyTopics,
