@@ -1,6 +1,7 @@
 import type { Question, QuestionSource, QuestionType, Topic } from "../lib/types";
+import { surveyRoleplayQuestionsByTopic } from "./survey-roleplay-bank";
 
-export const SURVEY_BANK_VERSION = "survey-reset-2026-09-07";
+export const SURVEY_BANK_VERSION = "survey-roleplay-2026-09-07";
 
 function q(
   id: string,
@@ -13,7 +14,7 @@ function q(
 }
 
 function topic(id: string, ko: string, en: string, emoji: string, questions: Question[]): Topic {
-  return { id, category: "survey", ko, en, emoji, questions };
+  return { id, category: "survey", ko, en, emoji, questions: [...questions, ...(surveyRoleplayQuestionsByTopic[id] ?? [])] };
 }
 
 export const surveyTopics: Topic[] = [
