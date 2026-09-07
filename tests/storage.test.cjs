@@ -4,13 +4,18 @@ const storage = require('../.test-build/lib/storage');
 const { buildSingleQuestion } = require('../.test-build/lib/exam');
 const { allTopics } = require('../.test-build/data');
 const KEY = 'yumi-opic:history';
+// 롤플레이의 명시적인 undefined 필드를 항상 포함해 JSON 저장 경계를 검증한다.
+const fixtureTopics = allTopics.map(topic => ({
+  ...topic, questions: topic.questions.filter(question => question.type === 'roleplay_ask'),
+}));
+const jsonSnapshot = value => JSON.parse(JSON.stringify(value));
 const feedback = {
   overall: '구체적인 경험이 잘 드러납니다.',
   structure: { topic: 'good', detail: 'good', feeling: 'needs_work', note: '감정을 덧붙여 보세요.' },
   pronunciationBasis: 'browser_only', items: [],
 };
 
-function entry(id = 'attempt-1', exam = buildSingleQuestion(allTopics)) {
+function entry(id = 'attempt-1', exam = buildSingleQuestion(fixtureTopics, () => 0)) {
   const slot = exam.items[0].slot;
   return {
     id, finishedAt: Date.now(), mode: exam.mode, label: '1문제 연습', answered: 1, totalItems: 1,
@@ -36,7 +41,21 @@ function withStorage(run) {
 test('질문과 답변, 시간, 힌트, 재청취, 피드백을 함께 복원한다', () => withStorage(() => {
   const original = entry();
   storage.pushHistory(original);
-  assert.deepEqual(storage.loadHistory(), [original]);
+  assert.deepEqual(storage.loadHistory(), jsonSnapshot([original]));
+}));
+
+test('JSON 저장 시 undefined는 생략하고 실제 선행 문항 배열은 보존한다', () => withStorage(() => {
+  const original = entry();
+  const question = original.result.exam.items[0].question;
+  assert.ok(Object.hasOwn(question, 'dependsOn'));
+  assert.equal(question.dependsOn, undefined);
+  storage.pushHistory(original);
+  assert.equal(Object.hasOwn(storage.loadHistory()[0].result.exam.items[0].question, 'dependsOn'), false);
+
+  const updated = jsonSnapshot(original.result);
+  updated.exam.items[0].question.dependsOn = ['previous-question'];
+  storage.updateHistoryResult(original.id, updated);
+  assert.deepEqual(storage.loadHistory()[0].result, updated);
 }));
 
 test('같은 시험을 다시 풀어도 회차별로 남고 같은 회차 저장은 중복되지 않는다', () => withStorage(() => {
@@ -58,7 +77,7 @@ test('늦게 확정된 답변과 피드백을 원래 회차에 저장하고 날�
   storage.updateHistoryResult(first.id, updated);
   const history = storage.loadHistory();
   assert.equal(history[1].finishedAt, first.finishedAt);
-  assert.deepEqual(history[1].result, updated);
+  assert.deepEqual(history[1].result, jsonSnapshot(updated));
 }));
 
 test('개별/전체 삭제가 상세 결과도 지우며 늦은 업데이트가 기록을 되살리지 않는다', () => withStorage((data) => {
