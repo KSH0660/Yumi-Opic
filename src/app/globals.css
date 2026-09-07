@@ -46,6 +46,27 @@
   --danger-tint: #fff1f2;
   --danger-ink: #be123c; /* 5.7:1 on danger-tint */
 
+  /* ── 시험 화면 크롬 ─────────────────────────────────────────────
+   * 실제 오픽 응시 화면을 흉내 낸 값이라 앱 팔레트와 따로 둔다. 시험 화면만
+   * 실전처럼 보이고 나머지 화면은 앱 테마를 그대로 지키게 하려는 것이다.
+   * 주황은 실제 화면보다 조금 어둡다. 흰 글자와 4.5:1 을 지키기 위해서다. */
+  --exam-frame: #ffffff;
+  --exam-frame-2: #f5f5f5;
+  --exam-line: #d6d6d6;
+  --exam-ink: #1f1f1f; /* 16.9:1 on exam-frame */
+  --exam-ink-muted: #616161; /* 6.2:1 on exam-frame */
+  --exam-accent: #c94c0a; /* Play · Next 버튼, 4.7:1 with white */
+  --exam-accent-hover: #a83d05;
+  --exam-accent-fg: #ffffff;
+  --exam-accent-soft: #e8b193; /* 아직 누를 수 없는 Next */
+  --exam-note: #2f34e6; /* 파란 안내 패널, 7.6:1 with white */
+  --exam-note-fg: #ffffff;
+  --exam-slot: #ebebeb;
+  --exam-slot-fg: #666666; /* 4.8:1 on exam-slot */
+  --exam-slot-active: #3f3f3f;
+  --exam-slot-active-fg: #ffffff; /* 10.5:1 on exam-slot-active */
+  --exam-rec: #c0271b;
+
   --shadow-card: 0 1px 2px rgb(30 27 75 / 0.05), 0 8px 24px -12px rgb(30 27 75 / 0.12);
   --shadow-raised: 0 1px 2px rgb(30 27 75 / 0.06), 0 12px 32px -14px rgb(30 27 75 / 0.2);
 }
@@ -84,6 +105,25 @@ html[data-theme="dark"] {
 
   --danger-tint: #2a1119;
   --danger-ink: #fda4af;
+
+  /* 시험 화면 크롬 — 흰 키오스크를 그대로 두면 다크에서 눈이 부시다.
+   * 배치와 강조색은 남기고 바탕만 어둡게 바꾼다. */
+  --exam-frame: #16161f;
+  --exam-frame-2: #1d1d28;
+  --exam-line: #33334a;
+  --exam-ink: #e9e9f2;
+  --exam-ink-muted: #a1a1b8;
+  --exam-accent: #f97316;
+  --exam-accent-hover: #fb8c3c;
+  --exam-accent-fg: #1a1005; /* 6.6:1 on exam-accent */
+  --exam-accent-soft: #7a4520;
+  --exam-note: #4f56ff; /* 5.1:1 with white */
+  --exam-note-fg: #ffffff;
+  --exam-slot: #26263a;
+  --exam-slot-fg: #8f8faa; /* 4.7:1 on exam-slot */
+  --exam-slot-active: #e9e9f2;
+  --exam-slot-active-fg: #16161f;
+  --exam-rec: #fb7185;
 
   --shadow-card: none;
   --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.6);
@@ -124,6 +164,23 @@ html[data-theme="dark"] {
 
   --color-danger-tint: var(--danger-tint);
   --color-danger-ink: var(--danger-ink);
+
+  --color-exam-frame: var(--exam-frame);
+  --color-exam-frame-2: var(--exam-frame-2);
+  --color-exam-line: var(--exam-line);
+  --color-exam-ink: var(--exam-ink);
+  --color-exam-ink-muted: var(--exam-ink-muted);
+  --color-exam-accent: var(--exam-accent);
+  --color-exam-accent-hover: var(--exam-accent-hover);
+  --color-exam-accent-fg: var(--exam-accent-fg);
+  --color-exam-accent-soft: var(--exam-accent-soft);
+  --color-exam-note: var(--exam-note);
+  --color-exam-note-fg: var(--exam-note-fg);
+  --color-exam-slot: var(--exam-slot);
+  --color-exam-slot-fg: var(--exam-slot-fg);
+  --color-exam-slot-active: var(--exam-slot-active);
+  --color-exam-slot-active-fg: var(--exam-slot-active-fg);
+  --color-exam-rec: var(--exam-rec);
 
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);
@@ -189,5 +246,78 @@ button:disabled {
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 시험 화면                                                            */
+/* ------------------------------------------------------------------ */
+
+/*
+ * 꾹 눌러 보는 힌트 버튼.
+ * touch-action 을 끄지 않으면 모바일에서 길게 누를 때 화면이 스크롤되고,
+ * 길게 누르기 메뉴(복사·공유)가 떠서 힌트가 바로 닫힌다.
+ */
+.hold-target {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* 이미 지나온 문항 번호. 실제 화면의 빗금 처리를 따라 그린다. */
+.exam-slot-done {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--exam-slot) 0 3px,
+    var(--exam-frame) 3px 6px
+  );
+}
+
+/* 녹음 표시등 */
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+.animate-rec-pulse {
+  animation: rec-pulse 1.1s ease-in-out infinite;
+}
+
+/* 면접관이 질문을 읽는 동안 움직이는 소리 표시 */
+@keyframes ava-wave {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.ava-wave > span {
+  animation: ava-wave 0.7s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.ava-wave > span:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.ava-wave > span:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rec-pulse,
+  .ava-wave > span {
+    animation: none;
   }
 }

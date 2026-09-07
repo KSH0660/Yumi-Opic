@@ -50,6 +50,12 @@ export default function ExamPageClient() {
       <h1 className="mt-4 text-2xl font-semibold">{exam.items.length}문항이 준비됐습니다</h1>
       <p className="mt-3 text-sm leading-relaxed text-fg-muted">선택한 주제 중 3개로 2~10번 세트를 만들고, 11~13번 롤플레이 세트와 14~15번 비교·이슈 문항을 더했습니다.</p>
       <p className="mt-3 text-xs leading-relaxed text-fg-muted">돌발 주제는 아직 다루지 않아 모든 문항이 배경 설문 주제에서 나옵니다. 번호와 유형은 실제 시험에서 늘 똑같이 맞아떨어지지는 않습니다.</p>
+      <ul className="mt-5 space-y-1.5 border-t border-line pt-4 text-xs leading-relaxed text-fg-muted">
+        <li>· 실제 응시 화면과 같습니다. 문항마다 <strong className="text-fg">▶ 를 눌러야</strong> 질문이 나옵니다.</li>
+        <li>· 질문이 끝난 뒤 <strong className="text-fg">5초 안에</strong> 같은 버튼을 누르면 한 번 더 들을 수 있고, 재청취는 문항당 한 번뿐입니다.</li>
+        <li>· 지문은 화면에 없습니다. 막히면 아래 <strong className="text-fg">힌트 버튼을 꾹 누르고 있는 동안에만</strong> 볼 수 있습니다.</li>
+        <li>· 답변은 마이크로 합니다. 말하는 대로 실시간으로 적히고, 필요하면 직접 고쳐 쓸 수 있습니다.</li>
+      </ul>
       {exam.notices?.map((notice) => <p key={notice} className="mt-3 text-xs leading-relaxed text-warn-ink">{notice}</p>)}
       <label className="mt-6 flex cursor-pointer items-center gap-3 text-sm text-fg-muted"><input type="checkbox" checked={includeIntro} onChange={(e) => { setIncludeIntro(e.target.checked); build(e.target.checked); }} />1번 자기소개 문항 포함하기</label>
       <div className="mt-7 flex flex-wrap gap-3"><button type="button" onClick={() => setStarted(true)} className="rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover">시작하기</button><button type="button" onClick={() => build(includeIntro)} className="rounded-xl border border-line px-4 py-3 text-sm text-fg-muted">문제 다시 뽑기</button></div>

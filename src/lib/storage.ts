@@ -2,8 +2,9 @@
 import { DEFAULT_SURVEY_IDS } from "@/data";
 const SETTINGS_KEY = "yumi-opic:settings";
 const HISTORY_KEY = "yumi-opic:history";
-export interface Settings { enabledSurveyIds: string[]; autoSpeak: boolean; showKorean: boolean }
-export const defaultSettings: Settings = { enabledSurveyIds: [...DEFAULT_SURVEY_IDS], autoSpeak: false, showKorean: false };
+/** volume 은 문제 낭독 음량(0~1)이다. 시험 화면의 음량 슬라이더가 여기에 저장된다. */
+export interface Settings { enabledSurveyIds: string[]; volume: number }
+export const defaultSettings: Settings = { enabledSurveyIds: [...DEFAULT_SURVEY_IDS], volume: 1 };
 export function loadSettings(): Settings {
   if (typeof window === "undefined") return { ...defaultSettings, enabledSurveyIds: [...defaultSettings.enabledSurveyIds] };
   try {
@@ -16,8 +17,10 @@ export function loadSettings(): Settings {
     const ids = Array.isArray(value.enabledSurveyIds)
       ? [...new Set(value.enabledSurveyIds.filter((id): id is string => typeof id === "string"))]
       : [...DEFAULT_SURVEY_IDS];
-    return { enabledSurveyIds: ids, autoSpeak: typeof value.autoSpeak === "boolean" ? value.autoSpeak : false,
-      showKorean: typeof value.showKorean === "boolean" ? value.showKorean : false };
+    const volume = typeof value.volume === "number" && Number.isFinite(value.volume)
+      ? Math.min(1, Math.max(0, value.volume))
+      : defaultSettings.volume;
+    return { enabledSurveyIds: ids, volume };
   } catch { return defaultSettings; }
 }
 export function saveSettings(settings: Settings): void {
