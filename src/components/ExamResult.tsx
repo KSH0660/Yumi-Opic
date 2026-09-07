@@ -12,6 +12,7 @@ import {
   summarizeAnswers,
 } from "@/lib/answers";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
+import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
 import { Badge, Card, SourceBadge } from "./ui";
 import Footer from "./Footer";
 
@@ -124,7 +125,7 @@ export default function ExamResult({
           문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. 원하는 답변만 AI 코칭을 받을 수 있습니다.
         </p>
         {saveError ? <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p> : persisted && (
-          <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 홈의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
+          <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
         )}
 
         <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 text-center sm:grid-cols-3">
@@ -202,8 +203,21 @@ function ItemResult({
   const hasAnswer = hasAnswerText(answer);
   const extension = recording?.mimeType.includes("ogg") ? "ogg" : "webm";
 
+  // 버튼 한 번이 관리자 지갑에서 나가는 돈이라 누르기 전에 대략적인 금액을 알린다.
+  const cost = estimateFeedbackCost({
+    questionChars: item.question.en.length,
+    transcriptChars: answer.length,
+    audioSec: recording ? elapsed : 0,
+  });
+
   async function requestFeedback() {
     if (!hasAnswer || feedbackLoading) return;
+    if (!window.confirm(
+      `이 버튼을 누르면 최대 약 ${formatKrw(cost.krw)}이 관리자의 지갑에서 지출될 예정입니다.\n\n`
+      + `· 피드백 생성 ${formatKrw(cost.modelKrw)}\n`
+      + (cost.transcribeKrw > 0 ? `· 녹음본 발음 비교 ${formatKrw(cost.transcribeKrw)}\n` : "")
+      + `\n실제 청구액은 보통 이보다 적습니다. 계속할까요?`,
+    )) return;
     setFeedbackLoading(true);
     setFeedbackError(null);
 
@@ -287,6 +301,7 @@ function ItemResult({
                   <div>
                     <p className="text-sm font-semibold text-fg">AI 스토리텔링 코치</p>
                     <p className="mt-1 text-xs leading-relaxed text-fg-subtle">최대 5개만, 전달력에 영향이 큰 것부터 봅니다.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-fg-subtle">한 번 요청할 때마다 최대 약 {formatKrw(cost.krw)}이 듭니다.</p>
                   </div>
                   <button
                     type="button"
