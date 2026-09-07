@@ -11,7 +11,7 @@ import {
 } from "@/data";
 import { TYPE_LABELS } from "@/lib/exam";
 import Footer from "./Footer";
-import { Badge, Card } from "./ui";
+import { Badge, Card, SourceBadge } from "./ui";
 
 const GROUPS: { category: TopicCategory; label: string; desc: string; topics: Topic[] }[] = [
   {
@@ -103,8 +103,11 @@ export default function TopicsView() {
                       <ul className="divide-y divide-ink-800 border-t border-ink-800">
                         {topic.questions.map((q) => (
                           <li key={q.id} className="px-4 py-3">
-                            <p className="text-[11px] uppercase tracking-widest text-accent-400/80">
-                              {TYPE_LABELS[q.type]}
+                            <p className="flex items-center gap-2">
+                              <span className="text-[11px] uppercase tracking-widest text-accent-400/80">
+                                {TYPE_LABELS[q.type]}
+                              </span>
+                              <SourceBadge source={q.source} />
                             </p>
                             <p className="mt-1.5 text-xs leading-relaxed text-ink-300">
                               {q.en}

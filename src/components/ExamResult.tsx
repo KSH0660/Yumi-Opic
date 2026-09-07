@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Exam, ScoreResult } from "@/lib/types";
 import { summarizeExam } from "@/lib/scoring";
 import { pushHistory } from "@/lib/storage";
-import { Badge, Card, ProgressBar, ScoreRing } from "./ui";
+import { Badge, Card, ProgressBar, ScoreRing, SourceBadge } from "./ui";
 
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
@@ -129,6 +129,7 @@ export default function ExamResult({
             typeLabel={item.typeLabel}
             topic={`${item.emoji} ${item.topicKo}`}
             questionEn={item.question.en}
+            source={item.question.source}
             questionKo={item.question.ko}
             answer={answers[item.slot] ?? ""}
             elapsed={times[item.slot] ?? 0}
@@ -146,6 +147,7 @@ function ItemResult({
   topic,
   questionEn,
   questionKo,
+  source,
   answer,
   elapsed,
   score,
@@ -154,6 +156,7 @@ function ItemResult({
   typeLabel: string;
   topic: string;
   questionEn: string;
+  source?: "verified" | "adapted";
   questionKo: string;
   answer: string;
   elapsed: number;
@@ -195,7 +198,8 @@ function ItemResult({
 
       {open && (
         <div className="border-t border-ink-800 px-5 py-5">
-          <p className="text-sm leading-relaxed text-ink-200">{questionEn}</p>
+          <SourceBadge source={source} />
+          <p className="mt-3 text-sm leading-relaxed text-ink-200">{questionEn}</p>
           <p className="mt-2 text-xs leading-relaxed text-ink-500">{questionKo}</p>
 
           {score ? (

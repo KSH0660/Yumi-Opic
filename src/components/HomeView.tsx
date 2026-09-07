@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { surveyTopics, totalQuestionCount } from "@/data";
+import { surveyTopics, totalQuestionCount, verifiedQuestionCount } from "@/data";
 import { SLOT_PLAN } from "@/lib/exam";
 import {
   clearHistory,
@@ -56,7 +56,9 @@ export default function HomeView() {
           시험지를 만듭니다. 문제는 텍스트로 보고 (원하면 브라우저가 영어로
           읽어줍니다), 답변은 타이핑하거나 마이크로 말하면 바로 채점됩니다.
           현재 문제 은행에 <strong className="text-ink-100">{totalQuestionCount}문항</strong>이
-          들어 있습니다.
+          들어 있고, 그중{" "}
+          <strong className="text-emerald-300">{verifiedQuestionCount}문항</strong>은
+          응시자들이 복원해 공개한 실제 출제 문항입니다.
         </p>
       </header>
 

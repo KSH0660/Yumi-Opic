@@ -1,10 +1,26 @@
 import type { Question, Topic } from "@/lib/types";
-import { surveyTopics } from "./survey-topics";
-import { surpriseTopics } from "./surprise-topics";
-import { roleplayTopics } from "./roleplay-topics";
-import { advancedTopics } from "./advanced-topics";
+import { surveyTopics as rawSurvey } from "./survey-topics";
+import { surpriseTopics as rawSurprise } from "./surprise-topics";
+import { roleplayTopics as rawRoleplay } from "./roleplay-topics";
+import { advancedTopics as rawAdvanced } from "./advanced-topics";
+import { verifiedByTopic } from "./verified";
 
-export { surveyTopics, surpriseTopics, roleplayTopics, advancedTopics };
+/**
+ * 자체 제작 문항과 복원 기출을 한 주제로 합친다.
+ * 복원 기출을 앞에 두어 같은 유형이면 기출이 먼저 눈에 띄게 한다.
+ */
+function withVerified(topics: Topic[]): Topic[] {
+  return topics.map((topic) => {
+    const extra = verifiedByTopic[topic.id];
+    if (!extra || extra.length === 0) return topic;
+    return { ...topic, questions: [...extra, ...topic.questions] };
+  });
+}
+
+export const surveyTopics = withVerified(rawSurvey);
+export const surpriseTopics = withVerified(rawSurprise);
+export const roleplayTopics = withVerified(rawRoleplay);
+export const advancedTopics = withVerified(rawAdvanced);
 
 export const allTopics: Topic[] = [
   ...surveyTopics,
@@ -19,7 +35,8 @@ export const topicById = new Map(allTopics.map((t) => [t.id, t]));
 export const introQuestion: Question = {
   id: "intro-1",
   type: "intro",
-  en: "Let's start the interview now. Tell me a little bit about yourself.",
+  source: "verified",
+  en: "Let's start the interview now. Tell me about yourself",
   ko: "간단한 자기소개를 하세요. (실전에서는 채점에 거의 반영되지 않아 보통 건너뜁니다.)",
   hints: [
     "My name is ... and I'm currently",
@@ -31,5 +48,10 @@ export const introQuestion: Question = {
 
 export const totalQuestionCount = allTopics.reduce(
   (sum, t) => sum + t.questions.length,
+  0,
+);
+
+export const verifiedQuestionCount = allTopics.reduce(
+  (sum, t) => sum + t.questions.filter((q) => q.source === "verified").length,
   0,
 );

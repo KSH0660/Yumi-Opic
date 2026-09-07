@@ -1,6 +1,7 @@
 import type { Exam, ExamItem, Question, QuestionType, Topic } from "./types";
 import {
   advancedTopics,
+  introQuestion,
   roleplayTopics,
   surpriseTopics,
   surveyTopics,
@@ -169,17 +170,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
       emoji: "🙋",
       comboLabel: "1번",
       typeLabel: "자기소개",
-      question: {
-        id: "intro-1",
-        type: "intro",
-        en: "Let's start the interview now. Tell me a little bit about yourself.",
-        ko: "간단한 자기소개를 하세요.",
-        hints: [
-          "My name is ... and I'm currently",
-          "I've been working as ... for about",
-          "In my free time I usually",
-        ],
-      },
+      question: introQuestion,
     });
   }
 

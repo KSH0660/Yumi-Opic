@@ -17,9 +17,19 @@ export type TopicCategory =
   | "roleplay" // 롤플레이 전용 상황 주제
   | "advanced"; // 고난도 (이슈/변화/비교)
 
+/**
+ * 문항 출처.
+ *  - verified : 응시자들이 복원해 공개한 실제 출제 문항을 그대로 옮긴 것
+ *  - adapted  : 실제 출제 문항이 아니라, OPIc 형식을 따라 자체 제작한 연습 문항
+ * OPIc 공식 문제은행은 공개되지 않으므로 verified 도 "복원본"이지 원본은 아니다.
+ */
+export type QuestionSource = "verified" | "adapted";
+
 export interface Question {
   id: string;
   type: QuestionType;
+  /** 생략하면 adapted 로 본다 */
+  source?: QuestionSource;
   /** 실제 시험에서 들리는 영어 지문 */
   en: string;
   /** 한국어 요약 (무엇을 물어보는지) */

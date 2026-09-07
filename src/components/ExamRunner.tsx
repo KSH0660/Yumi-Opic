@@ -13,7 +13,7 @@ import {
   type DictationHandle,
 } from "@/lib/speech";
 import { loadSettings, saveSettings } from "@/lib/storage";
-import { Badge, Card, ProgressBar } from "./ui";
+import { Badge, Card, ProgressBar, SourceBadge } from "./ui";
 import ExamResult from "./ExamResult";
 
 /** 유형별 권장 답변 시간(초) — 실전 감각을 잡기 위한 기준선 */
@@ -229,6 +229,7 @@ export default function ExamRunner({
           <Badge>
             {item.emoji} {item.topicKo}
           </Badge>
+          <SourceBadge source={item.question.source} />
           <span className="ml-auto flex items-center gap-2 text-xs tabular-nums">
             <span
               className={
