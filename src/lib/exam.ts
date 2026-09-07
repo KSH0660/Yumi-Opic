@@ -13,6 +13,7 @@ export const TYPE_LABELS: Record<QuestionType, string> = {
   issue: "이슈·관심사 · 15형",
   roleplay_ask: "문의하기 · 11형",
   roleplay_problem: "문제 해결 · 12형",
+  roleplay_experience: "과거 문제·특이 경험 · 13형",
 };
 
 export const EXAM_GROUPS = [
@@ -20,6 +21,9 @@ export const EXAM_GROUPS = [
   { slots: [3], label: "루틴", note: "평소 언제·누구와·무엇을 하는지 자연스럽게 연결" },
   { slots: [4, 6, 9], label: "최근·최초 경험", note: "단순 과거를 중심으로 시간 순서대로 설명" },
   { slots: [7, 10], label: "기억·문제 경험", note: "배경 → 사건/문제 → 행동 → 결과·감정" },
+  { slots: [11], label: "문의하기", note: "상황을 짧게 밝힌 뒤 필요한 정보를 3~4가지 질문" },
+  { slots: [12], label: "문제 해결", note: "문제를 설명하고 가능한 해결책이나 대안을 2~3가지 제안" },
+  { slots: [13], label: "과거 문제·특이 경험", note: "배경 → 문제/특이점 → 해결·행동 → 결과·마무리" },
   { slots: [14], label: "비교·변화", note: "과거와 현재 또는 두 대상을 비교" },
   { slots: [15], label: "이슈·관심사", note: "현재의 문제·트렌드·중요한 점에 의견 제시" },
 ] as const;
@@ -94,6 +98,11 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
     item(10, c, questionOfType(c, "memorable", rng), "서베이 SET 3"),
   ];
 
+  const roleplayTopic = pickRandom(enabled, rng);
+  items.push(item(11, roleplayTopic, questionOfType(roleplayTopic, "roleplay_ask", rng), "롤플레이 SET"));
+  items.push(item(12, roleplayTopic, questionOfType(roleplayTopic, "roleplay_problem", rng), "롤플레이 SET"));
+  items.push(item(13, roleplayTopic, questionOfType(roleplayTopic, "roleplay_experience", rng), "롤플레이 SET"));
+
   const comparisonTopic = pickRandom(enabled, rng);
   const issueTopic = pickRandom(enabled, rng);
   items.push(item(14, comparisonTopic, questionOfType(comparisonTopic, "comparison", rng), "고난도 서베이"));
@@ -115,7 +124,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   return {
     ...base("full"),
     items,
-    notices: ["현재 리셋 버전은 서베이 전용입니다. 실제 시험의 11~13번 롤플레이는 의도적으로 제외했습니다."],
+    notices: ["Q11~13은 같은 서베이 토픽의 문의하기 → 문제 해결 → 과거 문제·특이 경험 세트로 연속 출제됩니다."],
   };
 }
 

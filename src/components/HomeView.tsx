@@ -27,13 +27,13 @@ export default function HomeView() {
       <Badge tone="accent">서베이 전용 리셋</Badge>
       <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">복잡한 문제은행은 비우고,<br /><span className="text-accent-400">내 서베이만 반복</span></h1>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink-300">
-        현재 버전은 11개 서베이 주제와 {surveyQuestionCount}개 연습 문항만 사용합니다. 공개된 OPIc 복원 질문과 반복적으로 확인되는 출제 문형을 바탕으로 문구를 정리했고, 확실한 복원이 부족한 고난도 문항은 형식 기반 연습문제로 분리했습니다.
+        현재 버전은 11개 서베이 주제와 {surveyQuestionCount}개 연습 문항만 사용합니다. 공개된 OPIc 복원 질문과 반복적으로 확인되는 출제 문형을 바탕으로 문구를 정리했고, 각 서베이에는 Q11 문의하기 → Q12 문제 해결 → Q13 과거 문제·특이 경험 세트도 포함했습니다.
       </p>
       <p className="mt-3 text-xs leading-relaxed text-ink-400">공식 OPIc 전체 문제은행을 재현한 것이 아닙니다. 지금은 서베이 발화력을 빠르게 만드는 데만 집중합니다.</p>
     </header>
 
     <section className="mt-9 grid gap-4 sm:grid-cols-3">
-      <ModeCard href="/exam?mode=full" title="서베이 집중 드릴" desc="선택한 주제 중 3개로 Q2~10형을 만들고, Q14·15형을 추가합니다. 롤플레이는 제외합니다." primary />
+      <ModeCard href="/exam?mode=full" title="서베이 집중 드릴" desc="선택한 주제로 Q2~10, 같은 토픽의 Q11~13 롤플레이 세트, Q14·15까지 연속 연습합니다." primary />
       <ModeCard href="/topics" title="주제별 6유형" desc="한 토픽에서 묘사·루틴·최근/최초·기억 경험·비교·이슈를 한 번씩 연습합니다." />
       <ModeCard href="/exam?mode=single" title="랜덤 1문제" desc="현재 11개 서베이 문제은행에서 질문 하나만 빠르게 뽑습니다." />
     </section>
@@ -47,7 +47,7 @@ export default function HomeView() {
           <p className="mt-2 text-xs leading-relaxed text-ink-400">{group.note}</p>
         </Card>)}
       </div>
-      <Card className="mt-3 p-4"><p className="text-xs leading-relaxed text-ink-400"><strong className="text-ink-300">11~13번 롤플레이:</strong> 이번 리셋에서는 제거했습니다. 서베이 문제은행이 안정된 뒤 문의하기 → 문제 해결 → 과거 문제 경험 세트로 다시 붙이면 됩니다.</p></Card>
+      <Card className="mt-3 p-4"><p className="text-xs leading-relaxed text-ink-400"><strong className="text-ink-300">11~13번 롤플레이:</strong> 하나의 서베이 토픽에서 문의하기 → 문제 해결 → 관련 과거 문제·특이 경험이 이어지는 한 세트로 출제됩니다.</p></Card>
     </section>
 
     <section className="mt-10">

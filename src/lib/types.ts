@@ -1,5 +1,5 @@
 /** Task labels describe the prompt, never a fixed position in the exam. */
-export type QuestionType = "description" | "routine" | "experience" | "memorable" | "roleplay_ask" | "roleplay_problem" | "issue" | "comparison" | "intro";
+export type QuestionType = "description" | "routine" | "experience" | "memorable" | "roleplay_ask" | "roleplay_problem" | "roleplay_experience" | "issue" | "comparison" | "intro";
 export type TopicCategory = "survey" | "surprise" | "roleplay" | "advanced";
 export type QuestionSource = "textbook" | "verified" | "adapted";
 export type SetKind = "general" | "roleplay" | "advanced";
