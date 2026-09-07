@@ -1,8 +1,7 @@
-import { TEXTBOOK } from "@/data";
 export default function Footer() {
   return <footer className="mt-16 border-t border-ink-800 pb-2 pt-6">
-    <p className="text-xs leading-relaxed text-ink-400"><strong className="text-emerald-300">교재 수록</strong>은 제공된 {TEXTBOOK.title}의 영어 질문과 SET을 뜻합니다. {TEXTBOOK.edition}, 기출 분석 범위는 2020년 7월까지입니다. 공식 원본·최신 기출·출제 빈도를 검증했다는 의미가 아닙니다. 영문 문구는 유지하고 줄바꿈·공백을 정리했습니다.</p>
-    <p className="mt-3 text-xs leading-relaxed text-ink-400">기존 공개 복원 및 자체 제작 문항은 별도 소스 파일로 보존하고 현재 모의고사에는 섞지 않습니다. 문항 유형 표시는 앱의 분류이며 교재의 Int/Adv 표기와 다릅니다.</p>
+    <p className="text-xs leading-relaxed text-ink-400"><strong className="text-emerald-300">공개 복원 기반</strong> 문항은 공개된 수험자 복원·기출 정리 자료에서 반복적으로 확인되는 질문 문형을 연습하기 좋게 다듬은 것입니다. 공식 OPIc 원문 인증이나 실제 출제 확률을 의미하지 않습니다.</p>
+    <p className="mt-3 text-xs leading-relaxed text-ink-400"><strong className="text-ink-300">출제형식 기반</strong> 문항은 직접 확인되는 복원이 부족한 토픽에서 비교·이슈·경험 유형을 연습할 수 있도록 OPIc 형식에 맞춰 보완한 문제입니다. 현재 버전은 11개 서베이 토픽만 활성화하며 11~13번 롤플레이는 제외합니다.</p>
     <p className="mt-4 text-xs text-ink-500">© {new Date().getFullYear()} yumi-opic</p>
   </footer>;
 }
