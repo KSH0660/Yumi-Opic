@@ -11,9 +11,9 @@ export default function TopicsView() {
   return <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-10 sm:px-8">
     <Link href="/" className="text-sm text-ink-400">← 홈</Link>
     <header className="mt-5">
-      <Badge tone="accent">주제별 6유형</Badge>
-      <h1 className="mt-4 text-3xl font-semibold tracking-tight">한 토픽을 여섯 방향으로 돌려 말하기</h1>
-      <p className="mt-3 text-sm leading-relaxed text-ink-300">각 토픽에는 묘사 2개, 루틴 1개, 최근·최초 경험 2개, 기억·문제 경험 1개, 비교 1개, 이슈 1개가 있습니다. 연습을 시작하면 여섯 유형에서 하나씩 뽑습니다.</p>
+      <Badge tone="accent">주제별 문제은행</Badge>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight">한 토픽을 여러 방향으로 돌려 말하기</h1>
+      <p className="mt-3 text-sm leading-relaxed text-ink-300">각 토픽에는 기본 6유형 훈련용 문제와 Q11 문의하기 → Q12 문제 해결 → Q13 과거 문제·특이 경험 롤플레이 세트가 함께 있습니다. 6유형 연습 버튼은 기존 핵심 유형만 한 번씩 뽑습니다.</p>
     </header>
 
     <div className="mt-9 grid gap-3 sm:grid-cols-2">{surveyTopics.map((topic) => {
