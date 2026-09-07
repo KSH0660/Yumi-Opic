@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
+
+  --color-ink-950: #0a0a0f;
+  --color-ink-900: #12121a;
+  --color-ink-850: #171722;
+  --color-ink-800: #1e1e2c;
+  --color-ink-700: #2a2a3c;
+  --color-ink-600: #3a3a52;
+  --color-ink-400: #8a8aa3;
+  --color-ink-300: #b4b4c8;
+  --color-ink-100: #eaeaf2;
+
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -10%, #241d47 0%, transparent 62%),
+    var(--color-ink-950);
+  color: var(--color-ink-100);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-600);
+  color: #fff;
+}
+
+/* 스크롤바를 어두운 배경에 맞춘다 */
+* {
+  scrollbar-color: var(--color-ink-600) transparent;
+  scrollbar-width: thin;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}
