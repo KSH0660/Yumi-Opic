@@ -75,6 +75,35 @@ OPIc AL 준비를 위한 개인 서베이 집중 연습 앱입니다.
 
 이 저장소는 공식 OPIc 문제은행을 복제하거나 공식 출제 확률을 주장하지 않습니다.
 
+## 화면 테마
+
+기본 테마는 **라이트**입니다. 다크는 사용자가 직접 고른 경우에만 적용하며, OS의
+`prefers-color-scheme` 는 따라가지 않습니다. 홈과 주제 목록 화면 오른쪽 위 토글로
+바꿀 수 있고 선택값은 `yumi-opic:theme` 키로 브라우저에 저장됩니다.
+
+### 토큰 구조
+
+컴포넌트는 원시 색상 대신 의미 토큰만 사용합니다. 팔레트 두 벌은
+`src/app/globals.css` 한 곳에 있고, `:root` 가 라이트, `html[data-theme="dark"]`
+가 다크입니다. 토큰을 바꾸면 두 테마가 함께 따라옵니다.
+
+| 토큰 | 쓰임 |
+| --- | --- |
+| `canvas` | 페이지 배경 |
+| `surface` / `surface-2` / `surface-3` | 카드 · 안쪽 패널 · 호버 면 |
+| `fg` / `fg-muted` / `fg-subtle` | 본문 · 보조 · 흐린 텍스트 |
+| `line` / `line-strong` | 장식용 경계 · 입력 컨트롤 경계 |
+| `primary` 계열 | 주요 동작, 강조, 포커스 링 |
+| `success` / `warn-*` / `danger-*` 계열 | 상태 표시 |
+
+색상은 [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
+스킬의 Language Learning App 팔레트를 기준으로 잡고, 실제 조합마다 대비를 계산해
+조정했습니다. 라이트 테마의 본문 텍스트는 4.5:1 이상, 입력 컨트롤 경계는 3:1
+이상입니다.
+
+새 UI를 붙일 때 `bg-white`, `text-slate-500` 같은 고정 색을 쓰면 다크에서 깨집니다.
+위 토큰(`bg-surface`, `text-fg-muted` …)을 사용해 주세요.
+
 ## 개발
 
 ```bash
