@@ -4,32 +4,32 @@ import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, introQuestion, surveyTopics } 
 export type RandomSource = () => number;
 
 export const TYPE_LABELS: Record<QuestionType, string> = {
-  intro: "자기소개",
-  description: "묘사 · 2/5/8형",
-  routine: "루틴 · 3형",
-  experience: "최근·최초 경험 · 4/6/9형",
-  memorable: "기억·문제 경험 · 7/10형",
-  comparison: "비교·변화 · 14형",
-  issue: "이슈·관심사 · 15형",
-  roleplay_ask: "문의하기 · 11형",
-  roleplay_problem: "문제 해결 · 12형",
-  roleplay_experience: "과거 문제·특이 경험 · 13형",
+  intro: "자기소개 · 1번",
+  description: "묘사 · 2·5·8번",
+  routine: "습관 · 3번",
+  experience: "경험 · 4·6·9번",
+  memorable: "기억에 남는 경험 · 7·10번",
+  comparison: "비교 · 14번",
+  issue: "이슈 · 15번",
+  roleplay_ask: "롤플레이 질문하기 · 11번",
+  roleplay_problem: "롤플레이 문제 해결 · 12번",
+  roleplay_experience: "롤플레이 관련 경험 · 13번",
 };
 
 export const EXAM_GROUPS = [
-  { slots: [2, 5, 8], label: "묘사", note: "장소·사람·특징을 현재시제로 안정적으로 설명" },
-  { slots: [3], label: "루틴", note: "평소 언제·누구와·무엇을 하는지 자연스럽게 연결" },
-  { slots: [4, 6, 9], label: "최근·최초 경험", note: "단순 과거를 중심으로 시간 순서대로 설명" },
-  { slots: [7, 10], label: "기억·문제 경험", note: "배경 → 사건/문제 → 행동 → 결과·감정" },
-  { slots: [11], label: "문의하기", note: "상황을 짧게 밝힌 뒤 필요한 정보를 3~4가지 질문" },
-  { slots: [12], label: "문제 해결", note: "문제를 설명하고 가능한 해결책이나 대안을 2~3가지 제안" },
-  { slots: [13], label: "과거 문제·특이 경험", note: "배경 → 문제/특이점 → 해결·행동 → 결과·마무리" },
-  { slots: [14], label: "비교·변화", note: "과거와 현재 또는 두 대상을 비교" },
-  { slots: [15], label: "이슈·관심사", note: "현재의 문제·트렌드·중요한 점에 의견 제시" },
+  { slots: [2, 5, 8], label: "묘사", note: "장소나 사람의 특징을 현재 시제로 안정적으로 설명합니다." },
+  { slots: [3], label: "습관", note: "평소 언제, 누구와, 무엇을 하는지 자연스럽게 이어서 말합니다." },
+  { slots: [4, 6, 9], label: "경험", note: "과거 시제를 중심으로 있었던 일을 시간 순서대로 풀어냅니다." },
+  { slots: [7, 10], label: "기억에 남는 경험", note: "배경 → 사건 → 행동 → 결과와 감정 순서로 이야기합니다." },
+  { slots: [11], label: "롤플레이 질문하기", note: "상황을 짧게 밝힌 뒤 필요한 정보를 3~4가지 질문합니다." },
+  { slots: [12], label: "롤플레이 문제 해결", note: "문제 상황을 설명하고 해결책이나 대안을 2~3가지 제안합니다." },
+  { slots: [13], label: "롤플레이 관련 경험", note: "11~12번과 이어지는 실제 경험을 배경 → 문제 → 해결 → 결과로 말합니다." },
+  { slots: [14], label: "비교", note: "과거와 현재, 또는 두 대상의 공통점과 차이점을 짚습니다." },
+  { slots: [15], label: "이슈", note: "요즘의 문제나 변화에 대해 내 의견을 근거와 함께 말합니다." },
 ] as const;
 
 export function pickRandom<T>(items: readonly T[], rng: RandomSource = Math.random): T {
-  if (!items.length) throw new Error("선택 가능한 문제가 없습니다.");
+  if (!items.length) throw new Error("고를 수 있는 문제가 없습니다.");
   const r = rng();
   if (!Number.isFinite(r) || r < 0 || r >= 1) throw new RangeError("Random source must return a number in [0, 1).");
   return items[Math.floor(r * items.length)];
@@ -93,30 +93,30 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   const { includeIntro = true, rng = Math.random } = options;
   const requested = [...new Set(options.enabledSurveyIds ?? DEFAULT_SURVEY_IDS)];
   const enabled = surveyTopics.filter((topic) => requested.includes(topic.id));
-  if (enabled.length < 3) throw new Error("서베이 집중 드릴을 만들려면 주제를 3개 이상 선택해 주세요.");
+  if (enabled.length < 3) throw new Error("실전 모의고사를 만들려면 서베이 주제를 3개 이상 선택해 주세요.");
 
   const [a, b, c] = shuffle(enabled, rng).slice(0, 3);
   const items: ExamItem[] = [
-    item(2, a, questionOfType(a, "description", rng), "서베이 SET 1"),
-    item(3, a, questionOfType(a, "routine", rng), "서베이 SET 1"),
-    item(4, a, questionOfType(a, "experience", rng), "서베이 SET 1"),
-    item(5, b, questionOfType(b, "description", rng), "서베이 SET 2"),
-    item(6, b, questionOfType(b, "experience", rng), "서베이 SET 2"),
-    item(7, b, questionOfType(b, "memorable", rng), "서베이 SET 2"),
-    item(8, c, questionOfType(c, "description", rng), "서베이 SET 3"),
-    item(9, c, questionOfType(c, "experience", rng), "서베이 SET 3"),
-    item(10, c, questionOfType(c, "memorable", rng), "서베이 SET 3"),
+    item(2, a, questionOfType(a, "description", rng), "세트 1"),
+    item(3, a, questionOfType(a, "routine", rng), "세트 1"),
+    item(4, a, questionOfType(a, "experience", rng), "세트 1"),
+    item(5, b, questionOfType(b, "description", rng), "세트 2"),
+    item(6, b, questionOfType(b, "experience", rng), "세트 2"),
+    item(7, b, questionOfType(b, "memorable", rng), "세트 2"),
+    item(8, c, questionOfType(c, "description", rng), "세트 3"),
+    item(9, c, questionOfType(c, "experience", rng), "세트 3"),
+    item(10, c, questionOfType(c, "memorable", rng), "세트 3"),
   ];
 
   const roleplayTopic = pickRandom(enabled, rng);
-  items.push(item(11, roleplayTopic, questionOfType(roleplayTopic, "roleplay_ask", rng), "롤플레이 SET"));
-  items.push(item(12, roleplayTopic, questionOfType(roleplayTopic, "roleplay_problem", rng), "롤플레이 SET"));
-  items.push(item(13, roleplayTopic, questionOfType(roleplayTopic, "roleplay_experience", rng), "롤플레이 SET"));
+  items.push(item(11, roleplayTopic, questionOfType(roleplayTopic, "roleplay_ask", rng), "롤플레이 세트"));
+  items.push(item(12, roleplayTopic, questionOfType(roleplayTopic, "roleplay_problem", rng), "롤플레이 세트"));
+  items.push(item(13, roleplayTopic, questionOfType(roleplayTopic, "roleplay_experience", rng), "롤플레이 세트"));
 
   const comparisonTopic = pickRandom(enabled, rng);
   const issueTopic = pickRandom(enabled, rng);
-  items.push(item(14, comparisonTopic, questionOfType(comparisonTopic, "comparison", rng), "고난도 서베이"));
-  items.push(item(15, issueTopic, questionOfType(issueTopic, "issue", rng), "고난도 서베이"));
+  items.push(item(14, comparisonTopic, questionOfType(comparisonTopic, "comparison", rng), "어드밴스"));
+  items.push(item(15, issueTopic, questionOfType(issueTopic, "issue", rng), "어드밴스"));
 
   if (includeIntro) {
     items.unshift({
@@ -125,7 +125,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
       topicKo: "자기소개",
       topicEn: "Self-introduction",
       emoji: "👋",
-      comboLabel: "Q1",
+      comboLabel: "자기소개",
       typeLabel: TYPE_LABELS.intro,
       question: introQuestion,
     });
@@ -134,7 +134,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   return {
     ...base("full"),
     items,
-    notices: ["기본적으로 공개 복원 기반 문항을 우선 출제하며, 선택한 토픽에 해당 유형의 복원 문항이 없을 때만 출제형식 기반 문항을 보조적으로 사용합니다.", "Q11~13은 같은 서베이 토픽의 문의하기 → 문제 해결 → 과거 문제·특이 경험 세트로 연속 출제됩니다."],
+    notices: ["기출 복원 기반 문항을 먼저 출제하고, 선택한 주제에 그 유형의 복원 문항이 없을 때만 출제 유형 기반 문항으로 채웁니다.", "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다."],
   };
 }
 
@@ -142,12 +142,12 @@ const PRACTICE_TYPES: QuestionType[] = ["description", "routine", "experience", 
 
 export function buildPracticeExam(topic: Topic, _count = 6, rng: RandomSource = Math.random): Exam {
   const availableTypes = PRACTICE_TYPES.filter((type) => verifiedQuestions(topic).some((q) => q.type === type));
-  const items = availableTypes.map((type, index) => item(index + 1, topic, verifiedQuestionOfType(topic, type, rng), "공개 복원 유형"));
-  return { ...base("practice"), focusTopicId: topic.id, items, notices: ["주제별 연습에서는 공개 복원 기반으로 확인된 유형만 보여줍니다."] };
+  const items = availableTypes.map((type, index) => item(index + 1, topic, verifiedQuestionOfType(topic, type, rng), "주제별 연습"));
+  return { ...base("practice"), focusTopicId: topic.id, items, notices: ["주제별 연습에서는 기출 복원으로 확인된 유형만 출제합니다."] };
 }
 
 export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {
   const candidates = topics.flatMap((topic) => verifiedQuestions(topic).map((question) => ({ topic, question })));
   const { topic, question } = pickRandom(candidates, rng);
-  return { ...base("single"), items: [item(1, topic, question, "공개 복원 랜덤 1문제")] };
+  return { ...base("single"), items: [item(1, topic, question, "1문제 연습")] };
 }

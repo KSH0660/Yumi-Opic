@@ -3,8 +3,8 @@ import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Yumi OPIc — 서베이 스프린트",
-  description: "내가 선택한 OPIc 서베이 11개 주제를 묘사, 루틴, 경험, 비교, 이슈 유형으로 반복 연습합니다.",
+  title: "Yumi OPIc · 오픽 서베이 연습",
+  description: "오픽 배경 설문 주제 11개를 묘사·습관·경험·롤플레이·비교·이슈 유형으로 반복 연습하는 모의고사 앱입니다.",
 };
 
 export const viewport: Viewport = {
