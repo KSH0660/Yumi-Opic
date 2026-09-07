@@ -60,7 +60,7 @@ export default function HomeView() {
     </section>
     {history.length > 0 && <section className="mt-10">
       <div className="flex justify-between"><h2 className="text-sm font-semibold text-ink-300">최근 기록</h2><button type="button" className="text-xs text-ink-400" onClick={() => { clearHistory(); setHistory([]); }}>기록 지우기</button></div>
-      <Card className="mt-3 divide-y divide-ink-800">{history.slice(0, 6).map((entry) => <div key={entry.id} className="flex flex-wrap items-center gap-3 p-4 text-sm"><span className="text-xs text-ink-400">{new Date(entry.finishedAt).toLocaleDateString("ko-KR")}</span><span className="min-w-0 flex-1 text-ink-300">{entry.label}</span><span className="text-xs text-ink-400">{entry.answered}/{entry.totalItems}문항</span><span>{entry.average}점</span><span className="text-xs text-accent-400">{entry.level}</span></div>)}</Card>
+      <Card className="mt-3 divide-y divide-ink-800">{history.slice(0, 6).map((entry) => <div key={entry.id} className="flex flex-wrap items-center gap-3 p-4 text-sm"><span className="text-xs text-ink-400">{new Date(entry.finishedAt).toLocaleDateString("ko-KR")}</span><span className="min-w-0 flex-1 text-ink-300">{entry.label}</span><span className="text-xs text-ink-400">{entry.answered}/{entry.totalItems}문항</span></div>)}</Card>
     </section>}
     <Footer />
   </main>;

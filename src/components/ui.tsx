@@ -13,15 +13,9 @@ export function Badge({ children, tone = "default" }: { children: ReactNode; ton
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-ink-700/70 bg-ink-900/70 backdrop-blur-sm ${className}`}>{children}</div>;
 }
-export function ProgressBar({ value, max, tone = "accent" }: { value: number; max: number; tone?: "accent" | "score" }) {
+export function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
-  const color = tone === "score" ? pct >= 75 ? "bg-emerald-400" : pct >= 50 ? "bg-amber-400" : "bg-rose-400" : "bg-accent-500";
-  return <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-800"><div className={`h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${pct}%` }} /></div>;
-}
-export function ScoreRing({ score }: { score: number }) {
-  const pct = Math.min(100, Math.max(0, score));
-  const color = pct >= 75 ? "#34d399" : pct >= 50 ? "#fbbf24" : "#fb7185";
-  return <div className="relative grid h-24 w-24 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(${color} ${pct * 3.6}deg, var(--color-ink-800) 0deg)` }}><div className="grid h-[76px] w-[76px] place-items-center rounded-full bg-ink-900"><span className="text-2xl font-semibold tabular-nums">{score}</span></div></div>;
+  return <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-800"><div className="h-full rounded-full bg-accent-500 transition-[width] duration-500" style={{ width: `${pct}%` }} /></div>;
 }
 export function SourceBadge({ source = "adapted", sourceRef }: { source?: QuestionSource; sourceRef?: SourceReference }) {
   const labels: Record<QuestionSource, string> = { textbook: "교재 수록", verified: "기존 공개 복원", adapted: "형식 기반" };

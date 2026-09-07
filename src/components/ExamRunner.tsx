@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Exam, QuestionType, ScoreResult } from "@/lib/types";
-import { scoreAnswer } from "@/lib/scoring";
+import type { Exam } from "@/lib/types";
+import { countEnglishWords } from "@/lib/answers";
 import {
   isSpeechRecognitionSupported,
   isSpeechSynthesisSupported,
@@ -16,39 +16,10 @@ import { loadSettings, saveSettings } from "@/lib/storage";
 import { Badge, Card, ProgressBar, SourceBadge } from "./ui";
 import ExamResult from "./ExamResult";
 
-/** 유형별 권장 답변 시간(초) — 실전 감각을 잡기 위한 기준선 */
-const TIME_TARGET: Record<QuestionType, number> = {
-  intro: 60,
-  description: 90,
-  routine: 90,
-  experience: 105,
-  memorable: 110,
-  roleplay_ask: 60,
-  roleplay_problem: 80,
-  issue: 120,
-  comparison: 120,
-};
-
-const WORD_TARGET: Record<QuestionType, number> = {
-  intro: 95,
-  description: 130,
-  routine: 130,
-  experience: 160,
-  memorable: 170,
-  roleplay_ask: 90,
-  roleplay_problem: 120,
-  issue: 175,
-  comparison: 175,
-};
-
 function formatTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function countWords(text: string): number {
-  return (text.match(/[A-Za-z][A-Za-z'-]*/g) ?? []).length;
 }
 
 export default function ExamRunner({
@@ -79,10 +50,7 @@ export default function ExamRunner({
   const slot = item.slot;
   const answer = answers[slot] ?? "";
   const elapsed = times[slot] ?? 0;
-  const type = item.question.type;
-  const timeTarget = TIME_TARGET[type];
-  const wordTarget = WORD_TARGET[type];
-  const words = countWords(answer);
+  const words = countEnglishWords(answer);
 
   const speechAvailable = useMemo(() => isSpeechSynthesisSupported(), []);
   const micAvailable = useMemo(() => isSpeechRecognitionSupported(), []);
@@ -156,18 +124,6 @@ export default function ExamRunner({
     setListening(true);
   }
 
-  const scores = useMemo<Record<number, ScoreResult>>(() => {
-    if (!submitted) return {};
-    const result: Record<number, ScoreResult> = {};
-    for (const it of exam.items) {
-      const text = answers[it.slot] ?? "";
-      if (text.trim().length > 0) {
-        result[it.slot] = scoreAnswer(text, it.question.type);
-      }
-    }
-    return result;
-  }, [submitted, answers, exam.items]);
-
   function submit() {
     stopDictation();
     stopSpeaking();
@@ -182,7 +138,6 @@ export default function ExamRunner({
         title={title}
         answers={answers}
         times={times}
-        scores={scores}
         onRetry={() => {
           setSubmitted(false);
           setIndex(0);
@@ -231,16 +186,8 @@ export default function ExamRunner({
           </Badge>
           <SourceBadge source={item.question.source} />
           <span className="ml-auto flex items-center gap-2 text-xs tabular-nums">
-            <span
-              className={
-                elapsed > timeTarget + 30
-                  ? "text-rose-400"
-                  : elapsed >= timeTarget
-                    ? "text-emerald-400"
-                    : "text-ink-400"
-              }
-            >
-              {formatTime(elapsed)} / 목표 {formatTime(timeTarget)}
+            <span className="text-ink-400">
+              경과 {formatTime(elapsed)}
             </span>
             <button
               type="button"
@@ -328,12 +275,8 @@ export default function ExamRunner({
             내 답변 (영어)
           </label>
           <div className="flex items-center gap-3 text-xs">
-            <span
-              className={`tabular-nums ${
-                words >= wordTarget ? "text-emerald-400" : "text-ink-400"
-              }`}
-            >
-              {words} / {wordTarget}단어
+            <span className="tabular-nums text-ink-400">
+              영어 {words}단어
             </span>
             {micAvailable && (
               <button
@@ -364,10 +307,6 @@ export default function ExamRunner({
           className="w-full resize-y rounded-2xl border border-ink-700/70 bg-ink-900/70 px-4 py-3.5 text-[15px] leading-relaxed text-ink-100 outline-none transition placeholder:text-ink-600 focus:border-accent-600/60 focus:ring-2 focus:ring-accent-600/20"
         />
 
-        <div className="mt-2">
-          <ProgressBar value={words} max={wordTarget} tone="score" />
-        </div>
-
         {listening && (
           <p className="mt-2 text-xs text-rose-300">
             🎙 듣는 중… {interim && <span className="text-ink-400">{interim}</span>}
@@ -376,8 +315,8 @@ export default function ExamRunner({
         {micError && <p className="mt-2 text-xs text-amber-300">{micError}</p>}
         {micAvailable === false && (
           <p className="mt-2 text-xs text-ink-500">
-            마이크 받아쓰기는 Chrome · Edge에서만 동작합니다. 타이핑으로 연습해도
-            채점은 동일합니다.
+            이 브라우저는 마이크 받아쓰기를 지원하지 않습니다. 답변을 직접
+            입력해 연습할 수 있습니다.
           </p>
         )}
       </div>
@@ -410,7 +349,7 @@ export default function ExamRunner({
               onClick={submit}
               className="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-medium text-ink-950 transition hover:bg-emerald-400"
             >
-              채점하기
+              답변 돌아보기
             </button>
           )}
         </div>

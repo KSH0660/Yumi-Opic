@@ -26,11 +26,28 @@ export function saveSettings(settings: Settings): void {
 }
 export interface HistoryEntry {
   id: string; finishedAt: number; mode: "full" | "practice" | "single";
-  label: string; answered: number; totalItems: number; average: number; level: string;
+  label: string; answered: number; totalItems: number;
 }
 export function loadHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
-  try { const parsed = JSON.parse(window.localStorage.getItem(HISTORY_KEY) ?? "[]"); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // 이전 버전의 평가 필드는 제외하고 연습 기록만 유지한다.
+    const history: HistoryEntry[] = parsed.map(
+      ({ id, finishedAt, mode, label, answered, totalItems }) => ({
+        id, finishedAt, mode, label, answered, totalItems,
+      }),
+    );
+    const normalized = JSON.stringify(history);
+    if (normalized !== raw) {
+      try { window.localStorage.setItem(HISTORY_KEY, normalized); }
+      catch { /* 저장할 수 없어도 정리된 기록을 반환한다. */ }
+    }
+    return history;
+  } catch { return []; }
 }
 export function pushHistory(entry: HistoryEntry): HistoryEntry[] {
   const next = [entry, ...loadHistory()].slice(0, 20);
