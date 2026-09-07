@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", "module": "CommonJS", "moduleResolution": "node",
+    "strict": true, "resolveJsonModule": true, "esModuleInterop": true,
+    "skipLibCheck": true, "outDir": ".test-build", "rootDir": "src",
+    "types": [], "lib": ["ES2020", "DOM"]
+  },
+  "include": ["src/lib/types.ts", "src/lib/textbook-exam.ts", "src/lib/exam.ts", "src/data/textbook/**/*", "src/data/index.ts"]
+}
