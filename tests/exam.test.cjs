@@ -13,31 +13,22 @@ function seeded(seed) {
 
 const ids = (items) => items.map((x) => x.question.id);
 
-test('survey bank contains 11 selected topics and 121 questions including roleplay', () => {
+test('survey bank contains the 11 selected topics', () => {
   assert.equal(bank.surveyTopics.length, 11);
-  assert.equal(bank.surveyQuestionCount, 121);
   assert.deepEqual(bank.DEFAULT_SURVEY_IDS, ['home','music','beach','park','concert','shopping','jogging','walking','gym','staycation','overseas']);
   for (const topic of bank.surveyTopics) {
     assert.equal(topic.category, 'survey');
-    assert.equal(topic.questions.length, 11);
-    assert.equal(topic.questions.filter((q) => q.type === 'description').length, 2);
-    assert.equal(topic.questions.filter((q) => q.type === 'routine').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'experience').length, 2);
-    assert.equal(topic.questions.filter((q) => q.type === 'memorable').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'comparison').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'issue').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_ask').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_problem').length, 1);
-    assert.equal(topic.questions.filter((q) => q.type === 'roleplay_experience').length, 1);
+    assert.ok(topic.questions.some((q) => q.source === 'verified'));
   }
 });
 
-test('topic practice still returns one question from each of the six core training types', () => {
+test('topic practice returns only publicly reconstructed questions', () => {
   for (const topic of bank.surveyTopics) {
     const exam = engine.buildPracticeExam(topic, 6, seeded(7));
-    assert.equal(exam.items.length, 6);
-    assert.deepEqual(exam.items.map((i) => i.question.type), ['description','routine','experience','memorable','comparison','issue']);
+    assert.ok(exam.items.length > 0);
+    assert.ok(exam.items.length <= 6);
     assert.ok(exam.items.every((i) => i.topicId === topic.id));
+    assert.ok(exam.items.every((i) => i.question.source === 'verified'));
   }
 });
 
@@ -72,12 +63,13 @@ test('survey drill never substitutes unselected topics and requires at least thr
   }
 });
 
-test('single question mode reaches only active survey questions', () => {
-  const allowed = new Set(bank.surveyTopics.flatMap((t) => t.questions.map((q) => q.id)));
+test('single question mode reaches only publicly reconstructed survey questions', () => {
+  const allowed = new Set(bank.surveyTopics.flatMap((t) => t.questions.filter((q) => q.source === 'verified').map((q) => q.id)));
   for (let seed = 0; seed < 500; seed++) {
     const exam = engine.buildSingleQuestion(bank.surveyTopics, seeded(seed));
     assert.equal(exam.items.length, 1);
     assert.ok(allowed.has(exam.items[0].question.id));
+    assert.equal(exam.items[0].question.source, 'verified');
   }
   assert.throws(() => engine.buildSingleQuestion([]));
 });

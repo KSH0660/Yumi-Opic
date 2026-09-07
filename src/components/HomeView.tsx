@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { surveyQuestionCount, surveyTopics } from "@/data";
+import { surveyTopics } from "@/data";
 import { EXAM_GROUPS } from "@/lib/exam";
 import { clearHistory, defaultSettings, loadHistory, loadSettings, saveSettings, type HistoryEntry, type Settings } from "@/lib/storage";
 import Footer from "./Footer";
@@ -13,6 +13,7 @@ export default function HomeView() {
   const [ready, setReady] = useState(false);
   useEffect(() => { setSettings(loadSettings()); setHistory(loadHistory()); setReady(true); }, []);
   const selectedCount = surveyTopics.filter((t) => settings.enabledSurveyIds.includes(t.id)).length;
+  const verifiedQuestionCount = surveyTopics.reduce((sum, topic) => sum + topic.questions.filter((q) => q.source === "verified").length, 0);
 
   function toggleTopic(id: string) {
     const selected = settings.enabledSurveyIds.includes(id);
@@ -24,18 +25,18 @@ export default function HomeView() {
 
   return <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-12 sm:px-8">
     <header className="animate-fade-up">
-      <Badge tone="accent">서베이 전용 리셋</Badge>
-      <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">복잡한 문제은행은 비우고,<br /><span className="text-accent-400">내 서베이만 반복</span></h1>
+      <Badge tone="accent">공개 복원 우선</Badge>
+      <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">연습 문제는 줄이고,<br /><span className="text-accent-400">복원 질문부터 반복</span></h1>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink-300">
-        현재 버전은 11개 서베이 주제와 {surveyQuestionCount}개 연습 문항만 사용합니다. 공개된 OPIc 복원 질문과 반복적으로 확인되는 출제 문형을 바탕으로 문구를 정리했고, 각 서베이에는 Q11 문의하기 → Q12 문제 해결 → Q13 과거 문제·특이 경험 세트도 포함했습니다.
+        현재 기본 학습 화면에서는 11개 서베이 주제의 공개 복원 기반 {verifiedQuestionCount}개 문항만 사용합니다. 같은 유형에 복원 문항이 있으면 출제형식 기반 보조 문항은 보여주거나 랜덤으로 뽑지 않습니다.
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-ink-400">공식 OPIc 전체 문제은행을 재현한 것이 아닙니다. 지금은 서베이 발화력을 빠르게 만드는 데만 집중합니다.</p>
+      <p className="mt-3 text-xs leading-relaxed text-ink-400">서베이 집중 모의시험은 필요한 유형에 공개 복원 문항이 없는 경우에만 출제형식 기반 문항을 보조적으로 사용해 15문항 구성을 유지합니다.</p>
     </header>
 
     <section className="mt-9 grid gap-4 sm:grid-cols-3">
-      <ModeCard href="/exam?mode=full" title="서베이 집중 드릴" desc="선택한 주제로 Q2~10, 같은 토픽의 Q11~13 롤플레이 세트, Q14·15까지 연속 연습합니다." primary />
-      <ModeCard href="/topics" title="주제별 6유형" desc="한 토픽에서 묘사·루틴·최근/최초·기억 경험·비교·이슈를 한 번씩 연습합니다." />
-      <ModeCard href="/exam?mode=single" title="랜덤 1문제" desc="현재 11개 서베이 문제은행에서 질문 하나만 빠르게 뽑습니다." />
+      <ModeCard href="/exam?mode=full" title="서베이 집중 드릴" desc="Q2~15를 연속 연습합니다. 공개 복원 문항을 우선하고, 빈 유형만 보조 문항으로 채웁니다." primary />
+      <ModeCard href="/topics" title="공개 복원 주제연습" desc="한 토픽에서 실제 복원 근거가 확인된 유형만 반복합니다. 억지로 6유형을 채우지 않습니다." />
+      <ModeCard href="/exam?mode=single" title="복원 랜덤 1문제" desc="공개 복원 기반 문제 중 하나만 빠르게 뽑습니다." />
     </section>
 
     <section className="mt-10">
@@ -47,7 +48,7 @@ export default function HomeView() {
           <p className="mt-2 text-xs leading-relaxed text-ink-400">{group.note}</p>
         </Card>)}
       </div>
-      <Card className="mt-3 p-4"><p className="text-xs leading-relaxed text-ink-400"><strong className="text-ink-300">11~13번 롤플레이:</strong> 하나의 서베이 토픽에서 문의하기 → 문제 해결 → 관련 과거 문제·특이 경험이 이어지는 한 세트로 출제됩니다.</p></Card>
+      <Card className="mt-3 p-4"><p className="text-xs leading-relaxed text-ink-400"><strong className="text-ink-300">11~13번 롤플레이:</strong> 가능한 경우 공개 복원된 문의하기 → 문제 해결 → 과거 문제·특이 경험 세트를 우선 사용합니다.</p></Card>
     </section>
 
     <section className="mt-10">
