@@ -13,6 +13,16 @@ import {
   stopSpeaking,
   type DictationHandle,
 } from "@/lib/speech";
+import {
+  createMicProbe,
+  isMicConflict,
+  loadMicMode,
+  observeMicLevel,
+  observeMicResult,
+  saveMicMode,
+  type MicMode,
+  type MicProbe,
+} from "@/lib/micShare";
 import { mergeTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
@@ -52,6 +62,10 @@ function micMessage(code: string): string {
     return "마이크를 찾지 못했습니다. 기기에 마이크가 연결돼 있는지 확인해 주세요.";
   if (code === "network")
     return "음성 인식 서버에 연결하지 못했습니다. 네트워크를 확인하고 다시 녹음해 주세요.";
+  if (code === "start-blocked")
+    return "이 브라우저는 버튼을 누른 직후에만 받아쓰기를 켤 수 있습니다. 아래 다시 녹음하기를 눌러 주세요.";
+  if (code === "restart-limit")
+    return "음성 인식이 한 글자도 받지 못한 채 계속 끊깁니다. 다시 녹음하기를 누르거나 직접 입력으로 바꿔 주세요.";
   return "음성 인식이 잠시 멈췄습니다. 다시 녹음하기를 누르거나 직접 입력으로 바꿔 주세요.";
 }
 
@@ -117,6 +131,10 @@ export default function ExamRunner({
   const [micLevel, setMicLevel] = useState(0);
   const [interim, setInterim] = useState("");
   const [micError, setMicError] = useState<string | null>(null);
+  /** 오류는 아니고 마이크를 지금 어떻게 쓰고 있는지 알리는 안내. */
+  const [micNotice, setMicNotice] = useState<string | null>(null);
+  /** 이 기기에서 받아쓰기와 녹음이 마이크를 함께 쓸 수 있는지. */
+  const [micMode, setMicMode] = useState<MicMode>("share");
   const [typing, setTyping] = useState(false);
 
   const [reveal, setReveal] = useState<Reveal | null>(null);
@@ -129,6 +147,9 @@ export default function ExamRunner({
   const answersRef = useRef<Record<number, string>>({});
   const audioRef = useRef<AudioSession | null>(null);
   const audioTokenRef = useRef(0);
+  const micModeRef = useRef<MicMode>("share");
+  /** 함께 켜 본 뒤 받아쓰기가 소리를 못 받고 있는지 지켜보는 저울. */
+  const probeRef = useRef<MicProbe | null>(null);
   const recordingsRef = useRef<Record<number, AnswerRecording>>({});
   /** 낭독을 시작한 시각. 길이가 뒤늦게 와도 진행 막대의 기준점은 여기로 고정한다. */
   const playStartedAtRef = useRef(0);
@@ -151,6 +172,21 @@ export default function ExamRunner({
     [],
   );
 
+  // 마이크를 하나만 쓸 수 있는 기기인지는 브라우저에서만 알 수 있다. 서버에서 그린
+  // 첫 화면과 어긋나지 않도록 붙은 뒤에 읽는다.
+  useEffect(() => {
+    const mode = loadMicMode();
+    micModeRef.current = mode;
+    setMicMode(mode);
+  }, []);
+
+  const applyMicMode = useCallback((mode: MicMode) => {
+    // 다음 그림을 기다리지 않고 바로 읽는 자리가 있어 ref 도 함께 옮긴다.
+    micModeRef.current = mode;
+    setMicMode(mode);
+    saveMicMode(mode);
+  }, []);
+
   const disposeAudioSession = useCallback((session: AudioSession) => {
     window.cancelAnimationFrame(session.frame);
     session.stream.getTracks().forEach((track) => track.stop());
@@ -160,6 +196,7 @@ export default function ExamRunner({
 
   const stopAudioCapture = useCallback((save: boolean) => {
     audioTokenRef.current += 1;
+    probeRef.current = null;
     const session = audioRef.current;
     audioRef.current = null;
     setMicLevel(0);
@@ -171,6 +208,78 @@ export default function ExamRunner({
       disposeAudioSession(session);
     }
   }, [disposeAudioSession]);
+
+  const stopDictation = useCallback((mode: "flush" | "discard") => {
+    const handle = dictationRef.current;
+    dictationRef.current = null;
+    setListening(false);
+    setInterim("");
+    if (!handle) return;
+    if (mode === "discard") {
+      dictationSessionRef.current += 1;
+      handle.abort();
+      return;
+    }
+    handle.stop();
+  }, []);
+
+  /**
+   * 받아쓰기만 새로 켠다. 녹음과 따로 떼어 두어야 마이크를 뺏긴 것을 알아챈 뒤
+   * 녹음만 접고 받아쓰기를 이어서 켤 수 있다.
+   */
+  const startDictationFor = useCallback((targetSlot: number): boolean => {
+    if (!isSpeechRecognitionSupported()) return false;
+    const previous = dictationRef.current;
+    dictationRef.current = null;
+    // 번호를 먼저 올려 두면 지금 끊는 인식기의 늦은 결과가 새 세션에 섞이지 않는다.
+    const session = (dictationSessionRef.current += 1);
+    previous?.abort();
+
+    baseRef.current = answersRef.current[targetSlot] ?? "";
+    setInterim("");
+
+    const handle = startDictation({
+      onUpdate: ({ committed, interim: pending }) => {
+        if (dictationSessionRef.current !== session) return;
+        // 한 글자라도 왔으면 이 기기는 받아쓰기와 녹음을 함께 쓸 수 있다.
+        if (probeRef.current && (committed || pending)) {
+          probeRef.current = observeMicResult(probeRef.current);
+        }
+        setAnswers((prev) => ({
+          ...prev,
+          [targetSlot]: mergeTranscript(baseRef.current, committed),
+        }));
+        setInterim(pending);
+      },
+      onError: (code) => setMicError(micMessage(code)),
+      onEnd: () => {
+        if (dictationSessionRef.current !== session) return;
+        setListening(false);
+        setInterim("");
+      },
+    });
+
+    if (!handle) {
+      // 인식기는 있는데 시작이 막혔다. 버튼을 누른 직후에만 켤 수 있는 브라우저다.
+      setMicError(micMessage("start-blocked"));
+      return false;
+    }
+    dictationRef.current = handle;
+    setListening(true);
+    return true;
+  }, []);
+
+  /**
+   * 녹음이 마이크를 쥐는 바람에 받아쓰기가 한 글자도 못 받고 있다. 녹음을 놓아
+   * 주고 받아쓰기를 다시 켠 뒤, 이 기기에서는 다음부터 처음부터 받아쓰기만 쓴다.
+   */
+  const handleMicConflict = useCallback((targetSlot: number) => {
+    probeRef.current = null;
+    applyMicMode("dictation-only");
+    stopAudioCapture(false);
+    startDictationFor(targetSlot);
+    setMicNotice("녹음이 마이크를 쥐고 있어 받아쓰기가 한 글자도 받지 못했습니다. 녹음을 끄고 받아쓰기를 다시 켰습니다.");
+  }, [applyMicMode, startDictationFor, stopAudioCapture]);
 
   const beginAudioCapture = useCallback(async (targetSlot: number) => {
     if (!recordingAvailable) return;
@@ -236,11 +345,26 @@ export default function ExamRunner({
         const frameSec = (now - lastFrameAt) / 1000;
         lastFrameAt = now;
         const targetLevel = Math.min(1, Math.max(0, (rms - 0.01) * 7.5));
+
+        // 소리는 이만큼 들어오는데 받아쓰기가 한 글자도 없다면 이 녹음이 마이크를
+        // 쥐고 있는 것이다. 그때는 녹음을 접고 받아쓰기에 마이크를 넘긴다.
+        const probe = probeRef.current;
+        if (probe) {
+          probeRef.current = observeMicLevel(probe, targetLevel, now);
+          if (isMicConflict(probeRef.current)) {
+            handleMicConflict(session.slot);
+            return;
+          }
+        }
+
         smoothedLevel += (targetLevel - smoothedLevel) * (1 - Math.exp(-frameSec / 0.08));
         setMicLevel(smoothedLevel);
         session.frame = window.requestAnimationFrame(draw);
       };
 
+      // 받아쓰기가 실제로 돌고 있을 때만, 정말 함께 쓸 수 있는 기기인지 지켜본다.
+      // 받아쓰기가 없는데 지켜보면 소리만 듣고 애먼 녹음을 끄게 된다.
+      probeRef.current = dictationRef.current ? createMicProbe(performance.now()) : null;
       recorder.start(250);
       draw();
     } catch {
@@ -248,21 +372,7 @@ export default function ExamRunner({
         setMicError("마이크 녹음 권한을 확인해 주세요. 음성 인식은 되더라도 녹음본 저장이 제한될 수 있습니다.");
       }
     }
-  }, [disposeAudioSession, recordingAvailable, stopAudioCapture]);
-
-  const stopDictation = useCallback((mode: "flush" | "discard") => {
-    const handle = dictationRef.current;
-    dictationRef.current = null;
-    setListening(false);
-    setInterim("");
-    if (!handle) return;
-    if (mode === "discard") {
-      dictationSessionRef.current += 1;
-      handle.abort();
-      return;
-    }
-    handle.stop();
-  }, []);
+  }, [disposeAudioSession, handleMicConflict, recordingAvailable, stopAudioCapture]);
 
   const stopAnswerCapture = useCallback((mode: "save" | "discard") => {
     stopDictation(mode === "save" ? "flush" : "discard");
@@ -278,32 +388,17 @@ export default function ExamRunner({
   const beginAnswerCapture = useCallback((targetSlot: number) => {
     stopAnswerCapture("discard");
     setMicError(null);
-    baseRef.current = answersRef.current[targetSlot] ?? "";
 
-    if (isSpeechRecognitionSupported()) {
-      const session = (dictationSessionRef.current += 1);
-      const handle = startDictation({
-        onUpdate: ({ committed, interim: pending }) => {
-          if (dictationSessionRef.current !== session) return;
-          setAnswers((prev) => ({
-            ...prev,
-            [targetSlot]: mergeTranscript(baseRef.current, committed),
-          }));
-          setInterim(pending);
-        },
-        onError: (code) => setMicError(micMessage(code)),
-        onEnd: () => {
-          if (dictationSessionRef.current !== session) return;
-          setListening(false);
-          setInterim("");
-        },
-      });
-      dictationRef.current = handle;
-    }
+    const dictating = isSpeechRecognitionSupported();
+    const dictationOn = dictating ? startDictationFor(targetSlot) : false;
+    if (!dictating) baseRef.current = answersRef.current[targetSlot] ?? "";
 
-    setListening(true);
-    void beginAudioCapture(targetSlot);
-  }, [beginAudioCapture, stopAnswerCapture]);
+    // 마이크를 한 곳에서만 쓸 수 있는 기기에서는 녹음을 열지 않는다. 열면 받아쓰기가
+    // 소리를 못 받는다. 받아쓰기가 아예 없는 브라우저라면 녹음이라도 남긴다.
+    const recordingOn = !dictating || micModeRef.current === "share";
+    if (recordingOn) void beginAudioCapture(targetSlot);
+    setListening(dictationOn || recordingOn);
+  }, [beginAudioCapture, startDictationFor, stopAnswerCapture]);
 
   const playQuestion = useCallback((targetSlot: number, questionId: string, text: string, isReplay: boolean) => {
     // 다시 듣기를 누르면 직전 몇 초의 답변 녹음은 버리고, 재청취가 끝난 뒤 새로 시작한다.
@@ -344,6 +439,7 @@ export default function ExamRunner({
     setReplayLeftSec(0);
     setReveal(null);
     setMicError(null);
+    setMicNotice(null);
     // 문항 전환 때만 초기화한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, submitted]);
@@ -385,6 +481,13 @@ export default function ExamRunner({
     const el = transcriptRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [answer, interim]);
+
+  /** 이 기기가 정말 마이크를 하나만 쓰는지 녹음을 함께 켜서 다시 겪어 본다. */
+  function retryMicShare() {
+    applyMicMode("share");
+    setMicNotice(null);
+    if (listening && !typing) beginAnswerCapture(slot);
+  }
 
   function goToQuestion(targetIndex: number) {
     if (targetIndex < 0 || targetIndex >= exam.items.length || targetIndex === index) return;
@@ -451,6 +554,13 @@ export default function ExamRunner({
         : "Recording · 지금 답변하세요";
 
   const playLabel = phase === "playing" ? "재생 중" : phase === "ready" ? "질문 듣기" : "질문 다시 듣기";
+  /** 받아쓰기가 마이크를 혼자 쓰는 중이면 입력 레벨을 잴 길이 없다. */
+  const micLevelBlind = micAvailable && micMode === "dictation-only";
+  const micStatusLabel = !listening
+    ? "대기 중"
+    : micLevelBlind
+      ? "받아쓰기 중 · 이 기기는 입력 레벨을 함께 볼 수 없습니다"
+      : `마이크 입력 ${Math.round(micLevel * 100)}%`;
   const hints = item.question.hints ?? [];
   const replayIconVisible = phase === "answering";
 
@@ -500,8 +610,8 @@ export default function ExamRunner({
 
             {/* 실제 OPIc의 세로 표시는 조절기가 아니라 마이크 입력 레벨 확인용이다. */}
             <div className="flex flex-col items-center justify-center gap-3">
-              <MicLevelMeter level={micLevel} active={listening} />
-              <span title={listening ? `마이크 입력 ${Math.round(micLevel * 100)}%` : "대기 중"} className={listening ? "text-exam-rec" : "text-exam-ink-muted"}>
+              <MicLevelMeter level={micLevel} active={listening} indeterminate={micLevelBlind} />
+              <span title={micStatusLabel} className={listening ? "text-exam-rec" : "text-exam-ink-muted"}>
                 <MicGlyph className={listening ? "h-5 w-5 animate-rec-pulse" : "h-5 w-5"} />
               </span>
             </div>
@@ -602,6 +712,13 @@ export default function ExamRunner({
               </div>
 
               {micError && <p role="alert" className="mt-2 text-xs leading-relaxed text-exam-rec">{micError}</p>}
+              {micNotice && <p role="status" className="mt-2 text-xs leading-relaxed text-exam-ink-muted">{micNotice}</p>}
+              {micAvailable && recordingAvailable && micMode === "dictation-only" && (
+                <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">
+                  이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. 녹음본 저장과 발음 비교는 노트북에서 사용해 주세요.{" "}
+                  <button type="button" onClick={retryMicShare} className="underline underline-offset-2 transition hover:text-exam-ink">녹음도 함께 켜보기</button>
+                </p>
+              )}
               {!micAvailable && <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">이 브라우저는 음성 받아쓰기를 지원하지 않습니다. 녹음은 가능할 수 있으며, Chrome이나 Edge에서는 받아쓰기도 사용할 수 있습니다.</p>}
 
               <div className="h-24 overflow-y-auto rounded border border-exam-line bg-exam-frame-2 px-3 py-2.5 text-sm leading-relaxed">
