@@ -468,13 +468,16 @@ function ItemResult({
           {recording && <RecordingPlayer recording={recording} slot={item.slot} />}
 
           {/*
-            녹음본 자리가 말없이 비어 있으면 노트북에서 쓰던 사람은 무엇이 빠졌는지
-            모른다. AI 피드백은 답변 텍스트만 있으면 되므로 그대로 된다는 것부터 밝힌다.
+            녹음본이 없다는 말은 "재생만 안 된다"가 아니다. 답변 텍스트를 바로잡을
+            수단이 함께 사라진다는 뜻이라, 무엇이 빠졌는지보다 남은 텍스트를 얼마나
+            믿을 수 있는지를 먼저 밝힌다.
           */}
           {hasAnswer && !recording && (
             <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
-              이 문항에는 녹음본이 없습니다. <strong className="font-semibold text-fg">AI 피드백은 그대로 받을 수 있고</strong>, 녹음본 재생과
-              녹음본 재전사(발음 비교·답변 텍스트 교정)만 빠집니다. 휴대폰은 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기를 먼저 켜기 때문입니다.
+              이 문항에는 녹음본이 없습니다. 아래 답변은 <strong className="font-semibold text-fg">브라우저 받아쓰기 그대로</strong>이고,
+              녹음본이 없어 OpenAI 재전사로 바로잡을 수 없습니다. 브라우저 받아쓰기는 발음이 조금만 흐려도 다른 단어를 적으므로
+              (<span className="whitespace-nowrap">gym → dreams</span>) 실제로 말한 것과 다를 수 있습니다. 녹음본과 발음 비교가 필요하면
+              노트북(크롬·엣지)에서 연습하세요.
             </p>
           )}
 
@@ -516,7 +519,12 @@ function ItemResult({
                   <div>
                     <p className="text-sm font-semibold text-fg">AI 스토리텔링 코치</p>
                     <p className="mt-1 text-xs leading-relaxed text-fg-subtle">최대 5개만, 전달력에 영향이 큰 것부터 봅니다.</p>
-                    {recording && <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본을 함께 보내 OpenAI 가 답변을 다시 받아씁니다. 브라우저 받아쓰기보다 정확하면 위 답변도 그 텍스트로 바뀝니다.</p>}
+                    {recording ? (
+                      <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본을 함께 보내 OpenAI 가 답변을 다시 받아씁니다. 브라우저 받아쓰기보다 정확하면 위 답변도 그 텍스트로 바뀝니다.</p>
+                    ) : (
+                      /* 돈이 나가는 버튼 바로 옆이다. 무엇을 근거로 조언이 나오는지 여기서 한 번 더 밝힌다. */
+                      <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본이 없어 <strong className="font-semibold text-fg-muted">브라우저 받아쓰기 그대로</strong> 분석합니다. 받아쓰기가 잘못 적은 곳은 조언도 그 문장을 기준으로 나옵니다.</p>
+                    )}
                     <p className="mt-1 text-xs leading-relaxed text-fg-subtle">한 번 요청할 때마다 최대 약 {formatKrw(cost.krw)}이 듭니다.</p>
                   </div>
                   <button
