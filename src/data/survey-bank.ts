@@ -105,8 +105,8 @@ export const surveyTopics: Topic[] = [
     q("gym-e1", "experience", "Why did you first start going to a gym? What was difficult at first, and how did your routine develop?", "왜 처음 헬스장에 다니기 시작했나요? 처음에는 무엇이 어려웠고 루틴은 어떻게 발전했나요?"),
     q("gym-e2", "experience", "Tell me about a recent workout that went particularly well or badly. What exercises did you do, and how did you feel afterward?", "최근 운동이 특히 잘됐거나 잘 안됐던 경험을 말해 주세요. 어떤 운동을 했고 끝난 뒤 기분은 어땠나요?", "adapted"),
     q("gym-m1", "memorable", "Tell me about a memorable problem or obstacle you faced at the gym, such as an injury, crowded equipment, or a difficult exercise. How did you handle it?", "헬스장에서 부상, 기구 혼잡, 어려운 운동 같은 기억에 남는 문제나 장애를 겪은 경험을 말해 주세요. 어떻게 대처했나요?", "adapted"),
-    q("gym-c1", "comparison", "Compare the way you work out now with how you exercised in the past. What has changed in your goals, routine, equipment, or habits?", "현재 운동 방식과 과거 운동 방식을 비교해 주세요. 목표, 루틴, 기구, 습관은 어떻게 달라졌나요?", "adapted"),
-    q("gym-i1", "issue", "What fitness trends or technologies are popular these days? How are apps, smart devices, or new gym services changing the way people exercise?", "요즘 어떤 피트니스 트렌드나 기술이 인기인가요? 앱, 스마트기기, 새로운 헬스장 서비스가 운동 방식을 어떻게 바꾸고 있나요?", "adapted"),
+    q("gym-c1", "comparison", "Compare two gyms you have been to or know about. How are their facilities, equipment, prices, and atmosphere different, and which one do you prefer?", "다녀 봤거나 알고 있는 헬스장 두 곳을 비교해 주세요. 시설, 기구, 가격, 분위기는 어떻게 다르며 어느 곳을 더 좋아하나요?", "adapted"),
+    q("gym-i1", "issue", "What problems or concerns do people often have at gyms these days, such as crowded equipment, hygiene, noise, or membership contracts? Why do these problems happen, and what do you think should be done about them?", "요즘 사람들이 헬스장에서 겪는 문제나 걱정거리는 무엇인가요? 기구 혼잡, 위생, 소음, 회원권 계약 등을 생각해 보고 왜 생기는지, 어떻게 해결해야 하는지 말해 주세요.", "adapted"),
   ]),
   topic("staycation", "집에서 보내는 휴가", "Vacation at Home", "🛋️", [
     q("staycation-d1", "description", "Why do you like spending vacations at home? What makes a vacation at home comfortable or enjoyable for you?", "왜 집에서 휴가 보내는 것을 좋아하나요? 무엇이 집휴가를 편안하고 즐겁게 만드나요?"),
