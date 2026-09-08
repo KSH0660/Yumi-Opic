@@ -7,6 +7,8 @@ import { hasAnswerText } from "./answers";
 export interface ReportItem {
   item: ExamItem;
   answer: string;
+  /** 답변이 OpenAI 받아쓰기로 바뀐 문항의 원래 브라우저 받아쓰기. */
+  browserAnswer?: string;
   elapsedSec: number;
   hints: number;
   replays: number;
@@ -17,6 +19,8 @@ export interface ReportSection {
   id: string;
   label: string;
   finishedAt: number;
+  /** 답변이나 AI 피드백을 마지막으로 저장한 시각. 모아보기 머리글의 시각 기준이다. */
+  updatedAt?: number;
   mode: HistoryEntry["mode"];
   items: ReportItem[];
   /** 이 회차에서 고른 범위에 해당하는 문항이 하나도 없을 때의 사유. */
@@ -53,8 +57,10 @@ function sectionItems(entry: HistoryEntry, scope: ReportScope): ReportItem[] {
     const answer = result.answers[item.slot] ?? "";
     const feedback = result.feedback[item.slot];
     if (scope === "feedback" ? !feedback : !hasAnswerText(answer)) return [];
+    const browserAnswer = result.browserAnswers?.[item.slot];
     return [{
       item, answer, feedback,
+      ...(hasAnswerText(browserAnswer) ? { browserAnswer } : {}),
       elapsedSec: result.times[item.slot] ?? 0,
       hints: result.hintUse[item.slot] ?? 0,
       replays: result.replays[item.slot] ?? 0,
@@ -77,7 +83,9 @@ export function buildFeedbackReport(
   const sections = history.filter((entry) => wanted.has(entry.id)).map((entry): ReportSection => {
     const items = sectionItems(entry, scope);
     return {
-      id: entry.id, label: entry.label, finishedAt: entry.finishedAt, mode: entry.mode, items,
+      id: entry.id, label: entry.label, finishedAt: entry.finishedAt,
+      ...(entry.updatedAt === undefined ? {} : { updatedAt: entry.updatedAt }),
+      mode: entry.mode, items,
       emptyReason: items.length ? undefined : emptyReason(entry, scope),
     };
   });

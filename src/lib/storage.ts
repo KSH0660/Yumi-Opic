@@ -32,12 +32,17 @@ export function saveSettings(settings: Settings): void {
 export interface HistoryEntry {
   id: string; finishedAt: number; mode: "full" | "practice" | "single";
   label: string; answered: number; totalItems: number;
+  /** 답변이나 AI 피드백을 마지막으로 저장한 시각. 저장을 한 번도 덧붙이지 않은 기록에는 없다. */
+  updatedAt?: number;
   /** 이전 버전은 요약만 저장했다. 녹음 Blob/URL은 저장하지 않는다. */
   result?: SavedResult;
 }
 export interface SavedResult {
   exam: Exam;
+  /** 화면과 통계에 쓰는 답변 정본. 녹음본을 OpenAI 로 다시 받아쓰면 그 텍스트로 바뀐다. */
   answers: Record<number, string>;
+  /** OpenAI 받아쓰기가 덮어쓰기 전의 브라우저 받아쓰기. 되돌리기와 발음 비교에 쓴다. */
+  browserAnswers?: Record<number, string>;
   times: Record<number, number>;
   hintUse: Record<number, number>;
   replays: Record<number, number>;
@@ -67,13 +72,18 @@ function readResult(value: unknown): SavedResult | undefined {
     || !["full", "practice", "single"].includes(String(exam.mode))
     || !Array.isArray(exam.items) || exam.items.length === 0 || !exam.items.every(isExamItem)
     || new Set(exam.items.map((item) => item.slot)).size !== exam.items.length) return undefined;
-  const answers = isRecord(value.answers) ? value.answers : {};
   const numbers = (record: unknown): Record<number, number> => Object.fromEntries(
     Object.entries(isRecord(record) ? record : {}).filter(([, count]) => isCount(count)),
   ) as Record<number, number>;
+  const texts = (record: unknown): Record<number, string> => Object.fromEntries(
+    Object.entries(isRecord(record) ? record : {}).filter(([, text]) => typeof text === "string"),
+  ) as Record<number, string>;
+  // 원본 받아쓰기는 OpenAI 로 다시 받아쓴 문항에만 있다. 없는 기록에 빈 값을 만들지 않는다.
+  const browserAnswers = texts(value.browserAnswers);
   return {
     exam: exam as unknown as Exam,
-    answers: Object.fromEntries(Object.entries(answers).filter(([, text]) => typeof text === "string")) as Record<number, string>,
+    answers: texts(value.answers),
+    ...(Object.keys(browserAnswers).length ? { browserAnswers } : {}),
     times: numbers(value.times), hintUse: numbers(value.hintUse), replays: numbers(value.replays),
     feedback: Object.fromEntries(Object.entries(isRecord(value.feedback) ? value.feedback : {})
       .filter(([, feedback]) => isOpicFeedback(feedback))) as Record<number, OpicFeedback>,
@@ -100,6 +110,7 @@ export function loadHistory(): HistoryEntry[] {
       return [{
         id, finishedAt: entry.finishedAt, label: entry.label,
         mode: entry.mode as HistoryEntry["mode"], answered: entry.answered, totalItems: entry.totalItems,
+        ...(isCount(entry.updatedAt) ? { updatedAt: entry.updatedAt } : {}),
         result: readResult(entry.result),
       }];
     }).slice(0, 20);
@@ -121,12 +132,15 @@ export function pushHistory(entry: HistoryEntry): HistoryEntry[] {
   return next;
 }
 
-/** 피드백이 늦게 도착해도 다른 탭에서 삭제한 기록을 되살리지 않는다. */
+/**
+ * 피드백이 늦게 도착해도 다른 탭에서 삭제한 기록을 되살리지 않는다.
+ * 연습을 마친 시각은 그대로 두고, 목록에 보여 줄 시각만 지금으로 옮긴다.
+ */
 export function updateHistoryResult(id: string, result: SavedResult): void {
   const history = loadHistory();
   if (!history.some((entry) => entry.id === id)) throw new Error("이 연습 기록이 삭제되어 변경 내용을 저장하지 못했습니다.");
   saveHistory(history.map((entry) => entry.id === id ? {
-    ...entry, result,
+    ...entry, result, updatedAt: Date.now(),
     answered: result.exam.items.filter((item) => (result.answers[item.slot] ?? "").trim()).length,
   } : entry));
 }

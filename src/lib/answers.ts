@@ -32,6 +32,34 @@ export function hasAnswerText(text: string | undefined): boolean {
   return !!text?.trim();
 }
 
+/**
+ * 화면과 통계에 쓸 답변 정본.
+ *
+ * 결과 화면에서 답변을 바꿔 쓴 문항만 덮는다. 브라우저 받아쓰기는 발음이 조금만
+ * 흐려도 엉뚱한 단어를 적으므로, AI 분석에 녹음본을 함께 보낸 문항은 OpenAI 가 다시
+ * 받아쓴 텍스트로 바뀐다. 되돌리면 원래 받아쓰기가 다시 덮는다.
+ * 빈 텍스트는 답변을 지우지 않도록 무시한다.
+ */
+export function applyAnswerRewrites(
+  answers: Record<number, string>,
+  rewrites: Record<number, string>,
+): Record<number, string> {
+  const merged: Record<number, string> = { ...answers };
+  for (const [slot, text] of Object.entries(rewrites)) {
+    if (hasAnswerText(text)) merged[Number(slot)] = text;
+  }
+  return merged;
+}
+
+/**
+ * 두 받아쓰기가 사실상 같은 말인지.
+ * 대소문자·문장부호·띄어쓰기만 다르면 바꿀 이유가 없어 저장도 하지 않는다.
+ */
+export function sameSpokenText(a: string, b: string): boolean {
+  const normalize = (text: string) => englishWords(text).join(" ").toLowerCase();
+  return normalize(a) === normalize(b);
+}
+
 /** 통계와 평균의 분모는 실제로 답변 텍스트가 있는 문항만 포함한다. */
 export function summarizeAnswers(
   items: readonly { slot: number }[],

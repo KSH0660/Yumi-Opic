@@ -6,6 +6,7 @@ import type { Exam } from "@/lib/types";
 import { allTopics, surveyTopics, topicById } from "@/data";
 import { buildFullExam, buildPracticeExam, buildSingleQuestion, EXAM_GROUPS } from "@/lib/exam";
 import { defaultSettings, loadHistory, loadSettings, saveSettings, type HistoryEntry } from "@/lib/storage";
+import { formatHistoryStamp } from "@/lib/history";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
 import ExamResult from "./ExamResult";
@@ -38,7 +39,7 @@ function SavedHistoryResult({ id }: { id: string }) {
     <Card className="mt-5 p-6">
       <h1 className="text-xl font-semibold">{entry ? "지난 연습 기록" : "기록을 찾을 수 없습니다"}</h1>
       {entry ? <>
-        <p className="mt-3 text-sm text-fg-muted">{entry.label} · {new Date(entry.finishedAt).toLocaleString("ko-KR")}</p>
+        <p className="mt-3 text-sm text-fg-muted">{entry.label} · {formatHistoryStamp(entry)}</p>
         <p className="mt-2 text-sm text-fg-muted">{entry.answered}/{entry.totalItems}문항 답변</p>
         <p className="mt-4 text-sm leading-relaxed text-fg-muted">이전 버전에서 저장한 기록에는 질문·답변·피드백이 남아 있지 않습니다. 새로 완료하는 연습부터 상세 결과가 저장됩니다.</p>
       </> : <p className="mt-3 text-sm text-fg-muted">삭제된 기록이거나 다른 브라우저에서 저장한 기록입니다.</p>}

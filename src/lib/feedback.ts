@@ -61,6 +61,27 @@ export interface OpicFeedback {
   items: OpicFeedbackItem[];
 }
 
+/** `/api/feedback` 응답. 피드백과 함께 녹음본을 다시 받아쓴 결과를 돌려준다. */
+export interface FeedbackResponse {
+  feedback: OpicFeedback;
+  /**
+   * 녹음본을 OpenAI STT 로 다시 받아쓴 답변.
+   * 녹음본이 없거나 전사에 실패하면 빈 문자열이다.
+   */
+  audioTranscript: string;
+}
+
+/** 응답을 읽는다. 형식이 어긋나면 null 을 돌려 호출한 쪽에서 오류로 처리한다. */
+export function readFeedbackResponse(value: unknown): FeedbackResponse | null {
+  if (!value || typeof value !== "object") return null;
+  const payload = value as { feedback?: unknown; audioTranscript?: unknown };
+  if (!isOpicFeedback(payload.feedback)) return null;
+  return {
+    feedback: { ...payload.feedback, items: payload.feedback.items.slice(0, 5) },
+    audioTranscript: typeof payload.audioTranscript === "string" ? payload.audioTranscript.trim() : "",
+  };
+}
+
 export function isOpicFeedback(value: unknown): value is OpicFeedback {
   if (!value || typeof value !== "object") return false;
   const feedback = value as Partial<OpicFeedback>;
