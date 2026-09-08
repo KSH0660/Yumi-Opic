@@ -22,17 +22,16 @@ test('survey bank contains the 11 selected topics', () => {
   }
 });
 
-test('topic practice uses actual slots 1-15 for one topic, including intro and coherent roleplay', () => {
-  const types = ['intro', 'description', 'routine', 'experience', 'description', 'experience',
+test('topic practice uses actual slots 2-15 for one topic, without intro and with coherent roleplay', () => {
+  const types = ['description', 'routine', 'experience', 'description', 'experience',
     'memorable', 'description', 'experience', 'memorable',
     'roleplay_ask', 'roleplay_problem', 'roleplay_experience', 'comparison', 'issue'];
   for (const topic of bank.surveyTopics) {
     for (let seed = 0; seed < 100; seed++) {
       const exam = engine.buildPracticeExam(topic, seeded(seed));
       assert.deepEqual(exam.items.map((item) => item.question.type), types);
-      assert.deepEqual(exam.items.map((item) => item.slot), [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
-      assert.equal(exam.items[0].topicId, 'intro');
-      assert.ok(exam.items.slice(1).every((i) => i.topicId === topic.id));
+      assert.deepEqual(exam.items.map((item) => item.slot), [2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
+      assert.ok(exam.items.every((i) => i.topicId === topic.id));
       assert.equal(exam.focusTopicId, topic.id);
       for (const [index, item] of exam.items.entries()) {
         if (topic.questions.some((q) => q.type === item.question.type && q.source === 'verified')) {
@@ -45,7 +44,7 @@ test('topic practice uses actual slots 1-15 for one topic, including intro and c
     }
     const first = engine.buildPracticeExam(topic, () => 0);
     const last = engine.buildPracticeExam(topic, () => 0.999);
-    assert.notEqual(first.items[1].question.id, last.items[1].question.id);
+    assert.notEqual(first.items[0].question.id, last.items[0].question.id);
   }
 });
 
@@ -58,7 +57,7 @@ test('topic practice draws repeated types independently and allows duplicate que
   assert.deepEqual(ids(descriptions), ['home-d1', 'home-d2', 'home-d1']);
   const repeated = engine.buildPracticeExam(topic, () => 0);
   assert.equal(new Set(ids(repeated.items.filter((i) => [2,5,8].includes(i.slot)))).size, 1);
-  assert.equal(repeated.items.length, 15);
+  assert.equal(repeated.items.length, 14);
 });
 
 test('topic practice rejects incomplete topics instead of renumbering slots', () => {
