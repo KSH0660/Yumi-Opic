@@ -1,4 +1,4 @@
-import { requiresFrontLoadedOpening, type OpicFeedback } from "@/lib/feedback";
+import { requiresFrontLoadedOpening, type FeedbackResponse, type OpicFeedback } from "@/lib/feedback";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -248,7 +248,9 @@ export async function POST(request: Request) {
     const feedback = JSON.parse(outputText) as OpicFeedback;
     if (!Array.isArray(feedback.items)) throw new Error("invalid feedback");
     feedback.items = feedback.items.slice(0, 5);
-    return Response.json(feedback);
+    // 전사는 이미 돈을 들여 받아 둔 결과다. 프롬프트에만 쓰고 버리지 않고 화면으로 돌려준다.
+    const payload: FeedbackResponse = { feedback, audioTranscript };
+    return Response.json(payload);
   } catch {
     return Response.json({ error: "AI 피드백 결과 형식을 읽지 못했습니다." }, { status: 502 });
   }

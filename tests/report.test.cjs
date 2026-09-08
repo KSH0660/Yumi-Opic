@@ -83,3 +83,20 @@ test('목록에 보여 줄 피드백 개수를 센다', () => {
   assert.equal(feedbackCount(history[0]), 1);
   assert.equal(feedbackCount({ id: 'x', finishedAt: 1, mode: 'full', label: '요약만', answered: 0, totalItems: 15 }), 0);
 });
+
+test('다시 받아쓴 문항은 원래 브라우저 받아쓰기까지 담는다', () => {
+  const rewritten = entry('c', 300);
+  const [first, second] = rewritten.result.exam.items;
+  rewritten.updatedAt = 400;
+  rewritten.result.browserAnswers = { [first.slot]: 'I go to the gem.' };
+  const section = buildFeedbackReport([rewritten], ['c'], 'answered').sections[0];
+  assert.equal(section.updatedAt, 400);
+  assert.equal(section.items[0].browserAnswer, 'I go to the gem.');
+  assert.equal(Object.hasOwn(section.items[1], 'browserAnswer'), false, `${second.slot}번은 바꿔 쓰지 않았다`);
+});
+
+test('바꿔 쓰지 않은 회차에는 원본 받아쓰기와 업데이트 시각이 없다', () => {
+  const section = buildFeedbackReport(history, ['a'], 'answered').sections[0];
+  assert.equal(Object.hasOwn(section, 'updatedAt'), false);
+  assert.equal(section.items.every((item) => !Object.hasOwn(item, 'browserAnswer')), true);
+});

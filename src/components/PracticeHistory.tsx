@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { deleteHistoryEntries, loadHistory, type HistoryEntry } from "@/lib/storage";
+import { formatHistoryStamp } from "@/lib/history";
 import { feedbackCount, reportHref } from "@/lib/report";
 import { Card } from "./ui";
 
@@ -66,6 +67,7 @@ export function HistoryList({ title, entries, error, onRemove, onRemoveAll, onRe
       <button type="button" className="min-h-11 rounded-lg px-3 text-xs text-fg-muted transition-colors hover:bg-surface-2" onClick={() => onRemoveAll(entries.map((entry) => entry.id))}>전체 삭제</button>
     </div>
     <p className="mt-1 text-xs text-fg-subtle">기록을 누르면 답변과 저장된 피드백을 다시 볼 수 있습니다. 이 브라우저에 최근 20회까지 보관합니다.</p>
+    <p className="mt-1 text-xs text-fg-subtle">시각은 답변이나 AI 피드백을 마지막으로 저장한 때입니다. 같은 날 여러 번 연습해도 분까지 보여 회차를 구분할 수 있습니다.</p>
     <p className="mt-1 text-xs text-fg-subtle">왼쪽 체크상자로 여러 회차를 골라 한 화면에 모아 보거나(PDF 저장), 한 번에 지울 수 있습니다.</p>
     {error && <p role="alert" className="mt-3 text-xs text-warn-ink">{error}</p>}
 
@@ -88,16 +90,16 @@ export function HistoryList({ title, entries, error, onRemove, onRemoveAll, onRe
       return <div key={entry.id} className="flex items-center gap-2 pl-3 pr-3 sm:pr-4">
         <label className="grid min-h-11 w-9 shrink-0 cursor-pointer place-items-center">
           <input type="checkbox" checked={checked} onChange={() => toggle(entry.id)} className="h-4 w-4 accent-[var(--primary)]"
-            aria-label={`${entry.label} (${new Date(entry.finishedAt).toLocaleString("ko-KR")}) 선택`} />
+            aria-label={`${entry.label} (${formatHistoryStamp(entry)}) 선택`} />
         </label>
         <Link href={`/exam?history=${encodeURIComponent(entry.id)}`} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 py-4 pr-1 text-sm transition-colors hover:bg-surface-2 focus-visible:outline-offset-[-3px]">
-          <span className="text-xs text-fg-muted">{new Date(entry.finishedAt).toLocaleDateString("ko-KR")}</span>
+          <span className="text-xs tabular-nums text-fg-muted">{formatHistoryStamp(entry)}</span>
           <span className="min-w-0 flex-1 basis-40 font-medium text-fg">{entry.label}</span>
           <span className="text-xs text-fg-muted">{entry.answered}/{entry.totalItems}문항 답변</span>
           {saved > 0 && <span className="text-xs text-success-ink">피드백 {saved}개</span>}
           <span className="text-xs text-primary-ink">{entry.result ? "답변·피드백 보기 →" : "요약 보기 →"}</span>
         </Link>
-        <button type="button" aria-label={`${entry.label} (${new Date(entry.finishedAt).toLocaleString("ko-KR")}) 기록 삭제`} onClick={() => onRemove(entry.id)} className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-xs text-fg-muted transition-colors hover:bg-surface-2">삭제</button>
+        <button type="button" aria-label={`${entry.label} (${formatHistoryStamp(entry)}) 기록 삭제`} onClick={() => onRemove(entry.id)} className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-xs text-fg-muted transition-colors hover:bg-surface-2">삭제</button>
       </div>;
     })}</Card>
     {entries.length > 6 && <button type="button" onClick={() => setShowAll((value) => !value)} className="mt-3 min-h-11 rounded-lg border border-line px-4 text-xs text-fg-muted">{showAll ? "접기" : `기록 더 보기 (${entries.length}개)`}</button>}

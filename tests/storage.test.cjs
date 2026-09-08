@@ -144,3 +144,46 @@ test('이전 버전에서 ID를 재사용한 회차도 각각 보존한다', () 
   storage.pushHistory(entry());
   assert.equal(storage.loadHistory()[2].id, oldId);
 }));
+
+test('덧붙여 저장하면 연습 시각은 두고 업데이트 시각만 새로 찍는다', () => withStorage(() => {
+  const first = entry();
+  first.finishedAt = Date.now() - 60_000;
+  storage.pushHistory(first);
+  assert.equal(storage.loadHistory()[0].updatedAt, undefined, '연습을 마친 기록에는 업데이트 시각이 없다');
+
+  const before = Date.now();
+  storage.updateHistoryResult(first.id, first.result);
+  const saved = storage.loadHistory()[0];
+  assert.equal(saved.finishedAt, first.finishedAt);
+  assert.ok(saved.updatedAt >= before, '덧붙여 저장한 시각을 남긴다');
+  assert.ok(saved.updatedAt > saved.finishedAt);
+}));
+
+test('OpenAI 로 다시 받아쓴 답변과 원래 받아쓰기를 함께 저장한다', () => withStorage(() => {
+  const original = entry();
+  const slot = original.result.exam.items[0].slot;
+  storage.pushHistory(original);
+
+  const rewritten = {
+    ...original.result,
+    answers: { [slot]: 'I enjoyed the trip with my friends.' },
+    browserAnswers: { [slot]: 'I enjoyed the trip with my friend.' },
+  };
+  storage.updateHistoryResult(original.id, rewritten);
+  assert.deepEqual(storage.loadHistory()[0].result, jsonSnapshot(rewritten));
+
+  // 되돌리면 원본 키가 사라지고 예전 기록과 같은 모양으로 남는다.
+  storage.updateHistoryResult(original.id, original.result);
+  assert.equal(Object.hasOwn(storage.loadHistory()[0].result, 'browserAnswers'), false);
+}));
+
+test('손상된 원래 받아쓰기와 업데이트 시각은 버린다', () => withStorage((data) => {
+  const broken = entry();
+  const slot = broken.result.exam.items[0].slot;
+  broken.updatedAt = '어제';
+  broken.result.browserAnswers = { [slot]: 12, 99: 'kept' };
+  data.set(KEY, JSON.stringify([broken]));
+  const saved = storage.loadHistory()[0];
+  assert.equal(saved.updatedAt, undefined);
+  assert.deepEqual(saved.result.browserAnswers, { 99: 'kept' });
+}));

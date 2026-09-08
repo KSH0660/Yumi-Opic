@@ -12,6 +12,7 @@ import {
 } from "@/lib/report";
 import { feedbackCategoryLabel, requiresFrontLoadedOpening } from "@/lib/feedback";
 import { countEnglishWords } from "@/lib/answers";
+import { formatHistoryStamp } from "@/lib/history";
 import { loadHistory, type HistoryEntry } from "@/lib/storage";
 import { Badge, Card } from "./ui";
 
@@ -75,7 +76,7 @@ export default function FeedbackReportView() {
         <section key={section.id} className="print-block">
           <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-2">
             <h2 className="text-base font-semibold text-fg">{section.label}</h2>
-            <span className="text-xs text-fg-muted">{new Date(section.finishedAt).toLocaleString("ko-KR")} · {section.items.length}문항</span>
+            <span className="text-xs tabular-nums text-fg-muted">{formatHistoryStamp(section)} · {section.items.length}문항</span>
           </div>
           {section.emptyReason
             ? <p className="mt-3 text-sm text-fg-muted">{emptyReasonText[section.emptyReason]}</p>
@@ -90,7 +91,7 @@ export default function FeedbackReportView() {
 }
 
 function ReportItemCard({ entry }: { entry: ReportItem }) {
-  const { item, answer, feedback } = entry;
+  const { item, answer, browserAnswer, feedback } = entry;
   const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   return <Card className="print-block px-5 py-5">
     <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
@@ -104,6 +105,11 @@ function ReportItemCard({ entry }: { entry: ReportItem }) {
     <div className="mt-4 rounded-xl border border-line bg-surface-2 px-4 py-3">
       <p className="text-[11px] tracking-widest text-fg-subtle">내 답변 · {countEnglishWords(answer)}단어 · {formatTime(entry.elapsedSec)} · 다시 듣기 {entry.replays}회 · 힌트 {entry.hints}회</p>
       <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">{answer || "답변 텍스트가 없습니다."}</p>
+      {browserAnswer !== undefined && <>
+        <p className="mt-3 border-t border-line pt-3 text-[11px] tracking-widest text-fg-subtle">브라우저 받아쓰기 · {countEnglishWords(browserAnswer)}단어</p>
+        <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-fg-subtle">{browserAnswer}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-fg-subtle">위 답변은 AI 분석에 보낸 녹음본을 OpenAI 가 다시 받아쓴 텍스트입니다.</p>
+      </>}
     </div>
 
     {feedback ? <div className="mt-4 border-t border-line pt-4">

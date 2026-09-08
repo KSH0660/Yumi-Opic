@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { hasAnswerText, summarizeAnswers, defaultResultFilter, filterItemsByAnswer } = require('../.test-build/lib/answers');
+const { hasAnswerText, summarizeAnswers, defaultResultFilter, filterItemsByAnswer, applyAnswerRewrites, sameSpokenText } = require('../.test-build/lib/answers');
 
 test('답변 유무는 텍스트의 공백을 제거한 뒤 판단한다', () => {
   for (const text of [undefined, '', ' \n\t ', '\u00a0']) assert.equal(hasAnswerText(text), false);
@@ -45,4 +45,20 @@ test('답변한 문항만 보기는 빈 답변을 걸러 내고 전체 보기는
   assert.deepEqual(filterItemsByAnswer(items, answers, 'answered'), [{ slot: 1 }, { slot: 4 }]);
   assert.deepEqual(filterItemsByAnswer(items, answers, 'all'), items);
   assert.deepEqual(filterItemsByAnswer(items, {}, 'answered'), []);
+});
+
+test('바꿔 쓴 답변만 덮고 빈 텍스트는 답변을 지우지 않는다', () => {
+  const answers = { 2: 'I like running.', 5: 'I go to the gym.' };
+  assert.deepEqual(applyAnswerRewrites(answers, {}), answers);
+  assert.deepEqual(applyAnswerRewrites(answers, { 2: 'I like jogging.' }),
+    { 2: 'I like jogging.', 5: 'I go to the gym.' });
+  assert.deepEqual(applyAnswerRewrites(answers, { 2: '  ' }), answers);
+  // 원본은 그대로 둔다.
+  assert.deepEqual(answers, { 2: 'I like running.', 5: 'I go to the gym.' });
+});
+
+test('대소문자·문장부호만 다른 받아쓰기는 같은 말로 본다', () => {
+  assert.equal(sameSpokenText('I like running!', 'i like running'), true);
+  assert.equal(sameSpokenText('I like running.', 'I like jogging.'), false);
+  assert.equal(sameSpokenText('', '  '), true);
 });
