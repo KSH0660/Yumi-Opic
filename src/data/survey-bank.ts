@@ -35,7 +35,9 @@ export const surveyTopics: Topic[] = [
     q("music-e1", "experience", "How did you first become interested in music? What did you listen to at first, and who or what influenced you?", "처음 음악에 관심을 갖게 된 계기는 무엇인가요? 처음 어떤 음악을 들었고 누가 또는 무엇이 영향을 줬나요?"),
     q("music-e2", "experience", "Tell me about a recent time when you listened to live music. Where were you, who were you with, and what was the atmosphere like?", "최근 라이브 음악을 들었던 경험을 말해 주세요. 어디였고 누구와 있었으며 분위기는 어땠나요?"),
     q("music-m1", "memorable", "Tell me about an unpleasant or unexpected incident related to music. What was the problem, and how did you deal with it?", "음악과 관련해 겪은 불쾌하거나 예상 밖의 사건을 말해 주세요. 어떤 문제였고 어떻게 대처했나요?"),
+    q("music-m2", "memorable", "Tell me about the most memorable live music or performance you have ever experienced. Where was it, who was performing, and what made that day stay with you?", "지금까지 경험한 라이브 음악이나 공연 중 가장 기억에 남는 것을 말해 주세요. 어디였고 누가 공연했으며 그날이 왜 기억에 남나요?"),
     q("music-c1", "comparison", "How has your taste in music changed from when you were younger to now? Give specific examples of what you listened to then and what you listen to today.", "어릴 때와 지금의 음악 취향은 어떻게 달라졌나요? 과거와 현재에 듣는 음악을 구체적으로 비교해 주세요."),
+    q("music-c2", "comparison", "Compare two different kinds of music you listen to. How are they different in sound, mood, and the situations you listen to them in, and which one do you prefer?", "듣는 음악 중 서로 다른 두 종류를 비교해 주세요. 소리, 분위기, 듣는 상황은 어떻게 다르며 어느 쪽을 더 좋아하나요?"),
     q("music-i1", "issue", "How has technology changed the way people discover and listen to music? What music-related devices or services are people interested in these days?", "기술은 사람들이 음악을 발견하고 듣는 방식을 어떻게 바꿨나요? 요즘 어떤 음악 관련 기기나 서비스에 관심이 많나요?", "adapted"),
   ]),
   topic("beach", "해변", "Beaches", "🏖️", [

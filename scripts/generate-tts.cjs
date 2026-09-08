@@ -191,7 +191,7 @@ async function main() {
   const questionHashes = {};
   let made = 0;
 
-  // 한 번에 하나씩 보낸다. 122문항이면 몇 분 걸리지만 속도 제한에 걸릴 일이 없다.
+  // 한 번에 하나씩 보낸다. 124문항이면 몇 분 걸리지만 속도 제한에 걸릴 일이 없다.
   // 도중에 끊기더라도 여기까지 만든 것은 목록에 남겨, 다시 돌릴 때 두 번 만들지 않는다.
   try {
     for (const q of questions) {
