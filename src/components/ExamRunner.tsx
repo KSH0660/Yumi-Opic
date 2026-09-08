@@ -715,7 +715,7 @@ export default function ExamRunner({
               {micNotice && <p role="status" className="mt-2 text-xs leading-relaxed text-exam-ink-muted">{micNotice}</p>}
               {micAvailable && recordingAvailable && micMode === "dictation-only" && (
                 <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">
-                  이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. 녹음본 저장과 발음 비교는 노트북에서 사용해 주세요.{" "}
+                  이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. AI 피드백은 그대로 받을 수 있고, 녹음본 저장과 발음 비교만 빠집니다.{" "}
                   <button type="button" onClick={retryMicShare} className="underline underline-offset-2 transition hover:text-exam-ink">녹음도 함께 켜보기</button>
                 </p>
               )}

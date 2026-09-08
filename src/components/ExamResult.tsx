@@ -404,6 +404,17 @@ function ItemResult({
             </div>
           )}
 
+          {/*
+            녹음본 자리가 말없이 비어 있으면 노트북에서 쓰던 사람은 무엇이 빠졌는지
+            모른다. AI 피드백은 답변 텍스트만 있으면 되므로 그대로 된다는 것부터 밝힌다.
+          */}
+          {hasAnswer && !recording && (
+            <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
+              이 문항에는 녹음본이 없습니다. <strong className="font-semibold text-fg">AI 피드백은 그대로 받을 수 있고</strong>, 녹음본 재생과
+              녹음본 재전사(발음 비교·답변 텍스트 교정)만 빠집니다. 휴대폰은 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기를 먼저 켜기 때문입니다.
+            </p>
+          )}
+
           {hasAnswer ? (
             <>
               <div className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3">
