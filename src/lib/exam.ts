@@ -141,7 +141,7 @@ const PRACTICE_TYPES: QuestionType[] = [
   "roleplay_ask", "roleplay_problem", "roleplay_experience", "comparison", "issue",
 ];
 
-/** 주제 목록을 펼쳤을 때 보여 줄 유형별 예시 문항. 실제 연습은 15문항이다. */
+/** 주제 목록을 펼쳤을 때 보여 줄 유형별 예시 문항. 실제 연습은 14문항이다. */
 export function selectPracticeQuestions(topic: Topic, rng: RandomSource = Math.random): Question[] {
   return PRACTICE_TYPES.filter((type) => topic.questions.some((q) => q.type === type))
     .map((type) => questionOfType(topic, type, rng));
@@ -155,12 +155,12 @@ export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random)
     "roleplay_experience", "comparison", "issue",
   ];
   if (slotTypes.some((type) => !topic.questions.some((q) => q.type === type))) {
-    throw new Error("이 주제에는 1~15번 연습에 필요한 유형의 문항이 부족합니다.");
+    throw new Error("이 주제에는 2~15번 연습에 필요한 유형의 문항이 부족합니다.");
   }
-  const items = [introItem(), ...slotTypes.map((type, index) =>
-    item(index + 2, topic, questionOfType(topic, type, rng), "주제별 연습"))];
+  const items = slotTypes.map((type, index) =>
+    item(index + 2, topic, questionOfType(topic, type, rng), "주제별 연습"));
   return { ...base("practice"), focusTopicId: topic.id, items,
-    notices: ["자기소개와 선택한 주제의 문제를 실제 시험 번호인 1~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
+    notices: ["선택한 주제의 문제를 실제 시험 번호인 2~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
 }
 
 export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {
