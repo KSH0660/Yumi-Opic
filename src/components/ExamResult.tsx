@@ -23,6 +23,7 @@ import {
   type ResultFilter,
 } from "@/lib/answers";
 import { formatHistoryStamp } from "@/lib/history";
+import { examExitLink, nextPracticeLink } from "@/lib/nav";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
 import {
@@ -181,13 +182,18 @@ export default function ExamResult({
   const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
   const visibleItems = filterItemsByAnswer(exam.items, answerBySlot, filter);
   const rewrittenCount = Object.keys(rewrites.browser).length;
+  const exit = examExitLink(exam.mode);
+  const next = nextPracticeLink(exam.mode);
   // 연습을 마친 뒤 답변이나 피드백을 덧붙였다면 언제 저장한 회차인지 함께 적는다.
   const finishedStamp = formatHistoryStamp({ finishedAt: attempt.finishedAt });
   const savedStamp = formatHistoryStamp({ finishedAt: attempt.finishedAt, updatedAt: savedAt });
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 pb-24 pt-8 sm:px-8">
-      <Link href="/" className="text-sm text-fg-muted transition hover:text-fg">← 홈</Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href={exit.href} className="text-sm text-fg-muted transition hover:text-fg">{exit.label}</Link>
+        <Link href="/" className="text-sm text-fg-muted transition hover:text-fg">홈 →</Link>
+      </div>
       <Card className="animate-fade-up mt-5 p-6 sm:p-8">
         <Badge tone="accent">{title}</Badge>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">{historyEntry ? "지난 연습 결과" : "연습 결과"}</h1>
@@ -222,12 +228,14 @@ export default function ExamResult({
           AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 1~2문장에서 질문에 바로 답하는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
         </p>
 
-        {(onRetry || onRegenerate) && <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap gap-3">
           {onRetry && <button type="button" onClick={onRetry} className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted">같은 문제 다시 풀기</button>}
           {onRegenerate && (
             <button type="button" onClick={onRegenerate} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover">문제 다시 뽑기</button>
           )}
-        </div>}
+          {/* 여기까지 왔으면 다음 연습으로 가는 길이 있어야 한다. 없으면 뒤로가기가 유일한 다음 행동이 된다. */}
+          <Link href={next.href} className="inline-flex items-center rounded-xl border border-line px-4 py-2.5 text-sm text-primary-ink transition-colors hover:bg-surface-2">{next.label}</Link>
+        </div>
       </Card>
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-3">

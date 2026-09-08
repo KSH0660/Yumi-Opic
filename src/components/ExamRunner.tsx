@@ -23,6 +23,7 @@ import {
   type MicMode,
   type MicProbe,
 } from "@/lib/micShare";
+import { examExitLink } from "@/lib/nav";
 import { mergeTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
@@ -36,6 +37,8 @@ const SPEECH_RATE = 0.92;
 const MAX_REPLAYS = 1;
 /** 낭독이 끝난 뒤 다시 듣기를 누를 수 있는 시간(초). */
 const REPLAY_WINDOW_SEC = 5;
+/** 기록은 결과 화면에서 처음 저장된다. 그전에 나가면 답변이 남지 않는다. */
+const LEAVE_CONFIRM = "아직 저장하지 않은 답변이 있습니다. 지금 나가면 이 회차의 답변과 녹음이 사라집니다. 나갈까요?";
 
 type Phase = "ready" | "playing" | "answering";
 type Reveal = "script" | "korean" | "keywords";
@@ -164,6 +167,18 @@ export default function ExamRunner({
 
   answersRef.current = answers;
   recordingsRef.current = recordings;
+
+  const exit = useMemo(() => examExitLink(exam.mode), [exam.mode]);
+  /** 답변은 결과 화면에 닿아야 저장된다. 그 전에 나가면 말한 내용이 사라진다. */
+  const unsaved = !submitted && exam.items.some((entry) => hasAnswerText(answers[entry.slot]) || recordings[entry.slot]);
+
+  // 새로고침·창 닫기에는 브라우저 기본 확인창이 뜬다. 화면 안의 나가기 링크는 아래에서 따로 묻는다.
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
 
   const speechAvailable = useMemo(() => isSpeechSynthesisSupported(), []);
   const micAvailable = useMemo(() => isSpeechRecognitionSupported(), []);
@@ -567,7 +582,11 @@ export default function ExamRunner({
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <Link href="/" className="text-sm text-fg-muted transition hover:text-fg">← 홈</Link>
+        <Link
+          href={exit.href}
+          onClick={(event) => { if (unsaved && !window.confirm(LEAVE_CONFIRM)) event.preventDefault(); }}
+          className="text-sm text-fg-muted transition hover:text-fg"
+        >{exit.label}</Link>
         <span className="text-xs text-fg-subtle">{title}</span>
       </div>
 

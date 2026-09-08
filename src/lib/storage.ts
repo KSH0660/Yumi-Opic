@@ -54,6 +54,24 @@ export function saveSettings(settings: Settings): void {
   try { window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* Storage can be unavailable. */ }
 }
 
+/**
+ * 이 브라우저에서 배경 설문 화면을 한 번이라도 거쳤는지. 첫 방문만 설문으로 보내고,
+ * 그 뒤에는 홈에서 바로 연습을 고르게 하는 데 쓴다.
+ */
+export function hasSavedSettings(): boolean {
+  if (typeof window === "undefined") return false;
+  try { return window.localStorage.getItem(SETTINGS_KEY) !== null; }
+  catch { return false; }
+}
+
+/**
+ * 설문 화면에 들어온 사실만 남긴다. 저장이 없으면 홈이 계속 설문으로 되돌려 보내,
+ * 아무것도 고치지 않고 나가면 다시 설문에 갇히기 때문이다. 고른 값은 바꾸지 않는다.
+ */
+export function markSurveySeen(): void {
+  if (!hasSavedSettings()) saveSettings(loadSettings());
+}
+
 /** 배경 설문에서 고른 항목을 저장한다. 시험에 쓸 주제 목록도 여기서 함께 맞춘다. */
 export function saveSurveyChoices(choiceIds: readonly string[]): Settings {
   const next: Settings = {

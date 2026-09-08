@@ -7,6 +7,7 @@ import { allTopics, surveyTopics, topicById } from "@/data";
 import { buildFullExam, buildPracticeExam, buildSingleQuestion, EXAM_GROUPS } from "@/lib/exam";
 import { defaultSettings, loadHistory, loadSettings, saveEnabledTopics, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
+import { examExitLink } from "@/lib/nav";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
 import ExamResult from "./ExamResult";
@@ -34,8 +35,9 @@ function SavedHistoryResult({ id }: { id: string }) {
     historyEntry={entry}
   />;
 
+  const exit = entry ? examExitLink(entry.mode) : { href: "/", label: "← 홈" };
   return <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
-    <Link href="/" className="text-sm text-fg-muted">← 홈</Link>
+    <Link href={exit.href} className="text-sm text-fg-muted">{exit.label}</Link>
     <Card className="mt-5 p-6">
       <h1 className="text-xl font-semibold">{entry ? "지난 연습 기록" : "기록을 찾을 수 없습니다"}</h1>
       {entry ? <>
