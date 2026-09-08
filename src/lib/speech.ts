@@ -320,6 +320,12 @@ const RESTART_DELAY_MS = 300;
 /** 마이크가 아예 안 잡히는 환경에서 무한 재시작을 막는 한도. */
 const MAX_RESTARTS = 60;
 
+/*
+ * 마이크는 한 번에 한 곳만 쓰는 기기가 있다. 휴대폰에서 이 인식기와 녹음용
+ * getUserMedia 를 함께 열면 나중에 연 녹음이 마이크를 가져가 인식기는 조용한
+ * 소리만 받는다. 누가 마이크를 쓸지는 부르는 쪽에서 정한다. `./micShare` 참고.
+ */
+
 export interface DictationHandlers {
   /** 세션이 시작된 뒤 지금까지 받아 적은 전체 텍스트를 매번 통째로 넘긴다. */
   onUpdate: (draft: TranscriptDraft) => void;
@@ -412,9 +418,10 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
         if (!result) continue;
-        next.push({ isFinal: result.isFinal, transcript: result[0]?.transcript ?? "" });
-        // 잘 받아 적는 중이면 재시작 한도를 되돌린다
-        if (result.isFinal) restarts = 0;
+        const transcript = result[0]?.transcript ?? "";
+        next.push({ isFinal: result.isFinal, transcript });
+        // 한 글자라도 받아 적는 중이면 재시작 한도를 되돌린다
+        if (transcript.trim()) restarts = 0;
       }
       chunks = next;
       emit();
@@ -436,7 +443,14 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       detach(recognition);
       if (active === recognition) active = null;
 
-      if (dead || closing || restarts >= MAX_RESTARTS) {
+      if (dead || closing) {
+        finish();
+        return;
+      }
+      if (restarts >= MAX_RESTARTS) {
+        // 한 글자도 못 받은 채 계속 끊기고 있다. 조용히 멈추면 사용자는 계속 받아
+        // 적히는 줄 알고 말하게 되므로 여기서만은 알린다.
+        handlers.onError?.("restart-limit");
         finish();
         return;
       }

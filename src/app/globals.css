@@ -291,6 +291,25 @@ button:disabled {
   animation: rec-pulse 1.1s ease-in-out infinite;
 }
 
+/*
+ * 받아쓰기가 마이크를 혼자 쓰는 기기의 입력 표시.
+ * 입력 세기를 잴 길이 없으니 숫자를 지어내지 않고 천천히 오르내리기만 한다.
+ * 움직임을 끈 사용자에게는 인라인 style 의 가운데 위치가 그대로 보인다.
+ */
+@keyframes mic-listen {
+  0%,
+  100% {
+    transform: translateY(calc(var(--mic-travel) * 0.62 - 50%));
+  }
+  50% {
+    transform: translateY(calc(var(--mic-travel) * 0.3 - 50%));
+  }
+}
+
+.animate-mic-listen {
+  animation: mic-listen 1.8s ease-in-out infinite;
+}
+
 /* 면접관이 질문을 읽는 동안 움직이는 소리 표시 */
 @keyframes ava-wave {
   0%,
@@ -317,6 +336,7 @@ button:disabled {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rec-pulse,
+  .animate-mic-listen,
   .ava-wave > span {
     animation: none;
   }
