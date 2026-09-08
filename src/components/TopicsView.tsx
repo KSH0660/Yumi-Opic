@@ -11,7 +11,7 @@ import { Badge, Card, SourceBadge } from "./ui";
 
 export default function TopicsView() {
   const [openId, setOpenId] = useState<string | null>(null);
-  const { history, error, remove, removeAll } = usePracticeHistory();
+  const { history, error, remove, removeAll, removeSelected } = usePracticeHistory();
   const entries = useMemo(() => history.filter((entry) => entry.mode === "practice" || entry.mode === "single"), [history]);
   const counts = useMemo(() => topicPracticeCounts(history, surveyTopics), [history]);
 
@@ -49,7 +49,7 @@ export default function TopicsView() {
       </Card>;
     })}</div>
 
-    <HistoryList title="연습 기록" entries={entries} error={error} onRemove={remove} onRemoveAll={removeAll} />
+    <HistoryList title="연습 기록" entries={entries} error={error} onRemove={remove} onRemoveAll={removeAll} onRemoveSelected={removeSelected} />
     <Footer />
   </main>;
 }

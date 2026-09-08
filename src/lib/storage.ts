@@ -132,7 +132,13 @@ export function updateHistoryResult(id: string, result: SavedResult): void {
 }
 
 export function deleteHistory(id: string): HistoryEntry[] {
-  const next = loadHistory().filter((entry) => entry.id !== id);
+  return deleteHistoryEntries([id]);
+}
+
+/** 고른 기록을 한 번에 지운다. 저장은 한 번만 해서 중간에 실패한 상태를 남기지 않는다. */
+export function deleteHistoryEntries(ids: readonly string[]): HistoryEntry[] {
+  const removed = new Set(ids);
+  const next = loadHistory().filter((entry) => !removed.has(entry.id));
   saveHistory(next);
   return next;
 }

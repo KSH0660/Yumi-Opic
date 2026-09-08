@@ -363,3 +363,60 @@ button:disabled {
   border-radius: 50%;
   background: var(--exam-ink-muted);
 }
+
+/* ------------------------------------------------------------------ */
+/* 인쇄 · PDF 저장                                                      */
+/* ------------------------------------------------------------------ */
+
+/*
+ * 피드백 모아보기(/report)를 브라우저 인쇄로 PDF 저장할 때의 모양.
+ * 다크 테마로 보고 있어도 종이에는 밝은 배경으로 나가야 읽히므로 인쇄할 때만
+ * 토큰을 라이트 값으로 되돌린다.
+ */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+
+    --canvas: #ffffff;
+    --canvas-glow: transparent;
+    --surface: #ffffff;
+    --surface-2: #f6f6f6;
+    --surface-3: #ededed;
+
+    --fg: #111111;
+    --fg-muted: #333333;
+    --fg-subtle: #555555;
+
+    --line: #c8c8c8;
+    --line-strong: #8a8a8a;
+
+    --primary: #333333;
+    --primary-fg: #ffffff;
+    --primary-tint: #f0f0f0;
+    --primary-tint-strong: #e6e6e6;
+    --primary-ink: #222222;
+
+    --success-tint: #f2f7f2;
+    --success-ink: #14532d;
+    --warn-tint: #fbf7ef;
+    --warn-ink: #6b3f10;
+
+    --shadow-card: none;
+    --shadow-raised: none;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  /* 인쇄본에 남길 이유가 없는 조작 버튼과 링크 */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* 한 문항이 페이지 경계에서 잘리지 않게 한다 */
+  .print-block {
+    break-inside: avoid;
+  }
+}

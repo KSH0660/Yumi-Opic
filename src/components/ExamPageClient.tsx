@@ -56,7 +56,7 @@ function NewExamPageClient() {
   const [error, setError] = useState<string | null>(null);
   // 배경 설문 주제는 실전 모의고사 시작 화면에서 고른다. 처음에는 11개가 모두 켜져 있다.
   const [enabledIds, setEnabledIds] = useState<string[]>(defaultSettings.enabledSurveyIds);
-  const { history, error: historyError, remove, removeAll } = usePracticeHistory();
+  const { history, error: historyError, remove, removeAll, removeSelected } = usePracticeHistory();
   const fullHistory = useMemo(() => history.filter((entry) => entry.mode === "full"), [history]);
 
   const build = useCallback((withIntro: boolean) => {
@@ -129,7 +129,7 @@ function NewExamPageClient() {
       <div className="mt-7 flex flex-wrap gap-3"><button type="button" disabled={!exam} onClick={() => setStarted(true)} className="rounded-xl bg-primary px-5 py-3 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover disabled:opacity-50">시작하기</button><button type="button" onClick={() => build(includeIntro)} className="rounded-xl border border-line px-4 py-3 text-sm text-fg-muted">문제 다시 뽑기</button></div>
     </Card>
 
-    <HistoryList title="모의고사 기록" entries={fullHistory} error={historyError} onRemove={remove} onRemoveAll={removeAll} />
+    <HistoryList title="모의고사 기록" entries={fullHistory} error={historyError} onRemove={remove} onRemoveAll={removeAll} onRemoveSelected={removeSelected} />
     <Footer />
   </main>;
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Exam, ExamItem } from "@/lib/types";
-import { isOpicFeedback, requiresFrontLoadedOpening, type FeedbackCategory, type OpicFeedback } from "@/lib/feedback";
+import { feedbackCategoryLabel, isOpicFeedback, requiresFrontLoadedOpening, type OpicFeedback } from "@/lib/feedback";
 import {
   countEnglishSentences,
   countEnglishWords,
@@ -16,21 +16,19 @@ import {
 } from "@/lib/answers";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
+import {
+  draftId,
+  expressionFromFeedbackItem,
+  expressionFromOverall,
+  type ExpressionDraft,
+} from "@/lib/expressions";
+import { SaveExpressionButton, useSavedExpressions } from "./SavedExpressions";
 import { Badge, Card, SourceBadge } from "./ui";
 import Footer from "./Footer";
 
 function formatTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 }
-
-const feedbackCategoryLabel: Record<FeedbackCategory, string> = {
-  storytelling: "스토리텔링",
-  detail: "활동·디테일",
-  emotion: "감정·의미",
-  delivery: "전달력",
-  pronunciation: "발음 체크",
-  grammar: "문법",
-};
 
 export interface AnswerRecording {
   url: string;
@@ -115,6 +113,9 @@ export default function ExamResult({
     }
   }
 
+  // 별표로 저장한 피드백은 회차가 아니라 문항에 붙는다. 같은 문항을 다시 풀 때 연습 도구에 나온다.
+  const expressions = useSavedExpressions();
+
   const recordingCount = answeredSlots.filter((slot) => recordings[slot]).length;
   // 미답변 문항이 목록을 채우면 실제로 말한 답변을 다시 보기 어렵다. 기본은 답변한 문항만 보여 준다.
   const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
@@ -187,6 +188,9 @@ export default function ExamResult({
             recording={recordings[item.slot]}
             feedback={feedbackBySlot[item.slot]}
             onFeedback={(feedback) => saveFeedback(item.slot, feedback)}
+            savedIds={expressions.savedIds}
+            onToggleExpression={expressions.toggle}
+            expressionError={expressions.error}
           />
         ))}
         {visibleItems.length === 0 && (
@@ -209,6 +213,9 @@ function ItemResult({
   recording,
   feedback,
   onFeedback,
+  savedIds,
+  onToggleExpression,
+  expressionError,
 }: {
   item: ExamItem;
   answer: string;
@@ -218,6 +225,10 @@ function ItemResult({
   recording?: AnswerRecording;
   feedback?: OpicFeedback;
   onFeedback: (feedback: OpicFeedback) => void;
+  /** 이미 저장한 조언의 키. 별표 버튼의 켜짐/꺼짐을 정한다. */
+  savedIds: ReadonlySet<string>;
+  onToggleExpression: (draft: ExpressionDraft) => void;
+  expressionError: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -226,6 +237,11 @@ function ItemResult({
   const extension = recording?.mimeType.includes("ogg") ? "ogg" : "webm";
   // 롤플레이는 전화 대화에 가까워 두괄식을 요구하지 않는다. 칩 라벨도 기준에 맞춰 바뀐다.
   const frontLoaded = requiresFrontLoadedOpening(item.question.type);
+  const expressionContext = {
+    questionId: item.question.id, questionEn: item.question.en,
+    topicId: item.topicId, topicKo: item.topicKo,
+  };
+  const overallDraft = feedback ? expressionFromOverall(feedback, expressionContext) : undefined;
 
   // 버튼 한 번이 관리자 지갑에서 나가는 돈이라 누르기 전에 대략적인 금액을 알린다.
   const cost = estimateFeedbackCost({
@@ -354,6 +370,12 @@ function ItemResult({
                     <p className="mt-3 text-sm font-medium leading-relaxed text-fg">{feedback.overall}</p>
                     <p className="mt-1 text-xs leading-relaxed text-fg-muted">{feedback.structure.note}</p>
 
+                    {overallDraft && <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <SaveExpressionButton draft={overallDraft} saved={savedIds.has(draftId(overallDraft))} onToggle={onToggleExpression} />
+                      <span className="text-[11px] leading-relaxed text-fg-subtle">★ 로 저장한 조언은 같은 문항이나 같은 주제를 다시 풀 때 연습 도구에 나옵니다.</span>
+                    </div>}
+                    {expressionError && <p role="alert" className="mt-2 text-xs text-warn-ink">{expressionError}</p>}
+
                     {feedback.pronunciationBasis === "audio_compare" ? (
                       <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
                         발음 항목은 녹음본을 별도로 재전사해 브라우저 받아쓰기와 비교한 점검 신호입니다. 두 음성인식 모두 틀릴 수 있으므로 확정 판정으로 보지는 마세요.
@@ -366,24 +388,28 @@ function ItemResult({
 
                     {feedback.items.length > 0 ? (
                       <ol className="mt-4 space-y-3">
-                        {feedback.items.slice(0, 5).map((entry, idx) => (
-                          <li key={`${entry.category}-${idx}`} className="rounded-lg bg-surface-2 px-3.5 py-3">
-                            <div className="flex items-start gap-2">
-                              <span className="mt-0.5 shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold text-fg-subtle">
-                                {feedbackCategoryLabel[entry.category]}
-                              </span>
-                              <div className="min-w-0">
-                                <p className="text-xs font-semibold text-fg">{entry.title}</p>
-                                <p className="mt-1 text-xs leading-relaxed text-fg-muted">{entry.message}</p>
-                                {entry.example && (
-                                  <p className="mt-2 rounded-md border border-line bg-surface px-2.5 py-2 text-xs leading-relaxed text-fg">
-                                    {entry.example}
-                                  </p>
-                                )}
+                        {feedback.items.slice(0, 5).map((detail, idx) => {
+                          const draft = expressionFromFeedbackItem(detail, expressionContext);
+                          return (
+                            <li key={`${detail.category}-${idx}`} className="rounded-lg bg-surface-2 px-3.5 py-3">
+                              <div className="flex items-start gap-2">
+                                <span className="mt-0.5 shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold text-fg-subtle">
+                                  {feedbackCategoryLabel[detail.category]}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-semibold text-fg">{detail.title}</p>
+                                  <p className="mt-1 text-xs leading-relaxed text-fg-muted">{detail.message}</p>
+                                  {detail.example && (
+                                    <p className="mt-2 rounded-md border border-line bg-surface px-2.5 py-2 text-xs leading-relaxed text-fg">
+                                      {detail.example}
+                                    </p>
+                                  )}
+                                </div>
+                                <SaveExpressionButton draft={draft} saved={savedIds.has(draftId(draft))} onToggle={onToggleExpression} />
                               </div>
-                            </div>
-                          </li>
-                        ))}
+                            </li>
+                          );
+                        })}
                       </ol>
                     ) : (
                       <p className="mt-4 text-xs text-fg-muted">지금 답변에서 꼭 고칠 만한 큰 문제는 찾지 않았습니다.</p>

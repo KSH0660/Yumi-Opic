@@ -17,6 +17,7 @@ import { mergeTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
 import ExamResult, { type AnswerRecording } from "./ExamResult";
+import { SavedExpressionsPanel } from "./SavedExpressions";
 import { SourceBadge } from "./ui";
 
 /** 실전에 가까운 낭독 속도. */
@@ -114,7 +115,6 @@ export default function ExamRunner({
 
   const [listening, setListening] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
-  const [micPeak, setMicPeak] = useState(0);
   const [interim, setInterim] = useState("");
   const [micError, setMicError] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
@@ -156,7 +156,6 @@ export default function ExamRunner({
     session.stream.getTracks().forEach((track) => track.stop());
     void session.context.close().catch(() => undefined);
     setMicLevel(0);
-    setMicPeak(0);
   }, []);
 
   const stopAudioCapture = useCallback((save: boolean) => {
@@ -164,7 +163,6 @@ export default function ExamRunner({
     const session = audioRef.current;
     audioRef.current = null;
     setMicLevel(0);
-    setMicPeak(0);
     if (!session) return;
     session.saveOnStop = save;
     if (session.recorder.state !== "inactive") {
@@ -223,7 +221,6 @@ export default function ExamRunner({
 
       const samples = new Uint8Array(analyser.fftSize);
       let smoothedLevel = 0;
-      let peakLevel = 0;
       let lastFrameAt = performance.now();
       const draw = () => {
         if (audioRef.current !== session) return;
@@ -240,9 +237,7 @@ export default function ExamRunner({
         lastFrameAt = now;
         const targetLevel = Math.min(1, Math.max(0, (rms - 0.01) * 7.5));
         smoothedLevel += (targetLevel - smoothedLevel) * (1 - Math.exp(-frameSec / 0.08));
-        peakLevel = Math.max(smoothedLevel, peakLevel - frameSec * 0.4);
         setMicLevel(smoothedLevel);
-        setMicPeak(peakLevel);
         session.frame = window.requestAnimationFrame(draw);
       };
 
@@ -505,7 +500,7 @@ export default function ExamRunner({
 
             {/* 실제 OPIc의 세로 표시는 조절기가 아니라 마이크 입력 레벨 확인용이다. */}
             <div className="flex flex-col items-center justify-center gap-3">
-              <MicLevelMeter level={micLevel} peak={micPeak} active={listening} />
+              <MicLevelMeter level={micLevel} active={listening} />
               <span title={listening ? `마이크 입력 ${Math.round(micLevel * 100)}%` : "대기 중"} className={listening ? "text-exam-rec" : "text-exam-ink-muted"}>
                 <MicGlyph className={listening ? "h-5 w-5 animate-rec-pulse" : "h-5 w-5"} />
               </span>
@@ -627,6 +622,9 @@ export default function ExamRunner({
                 {hints.length > 0 && <HoldButton label="키워드 보기" active={reveal === "keywords"} onPress={() => holdReveal("keywords")} onRelease={() => releaseReveal("keywords")} />}
                 <span className="ml-auto self-center text-[11px] tabular-nums text-exam-ink-muted">이 문항 힌트 {hintUse[slot] ?? 0}회 · 다시 듣기 {replays[slot] ?? 0}/{MAX_REPLAYS}회</span>
               </div>
+
+              {/* 결과 화면에서 별표로 저장해 둔 조언. 힌트와 달리 사용 횟수를 세지 않는다. */}
+              <SavedExpressionsPanel questionId={item.question.id} topicId={item.topicId} topicKo={item.topicKo} />
             </div>
           )}
 
