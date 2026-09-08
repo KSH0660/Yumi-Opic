@@ -220,3 +220,17 @@ test('시험 화면에서 주제를 껐다 켜도 문제은행이 없는 선택�
   assert.deepEqual(saved.surveyChoiceIds,
     ['job-none', 'housing-dorm', 'leisure-cafe', 'hobby-music', 'sport-gym', 'leisure-park']);
 }));
+
+test('설문을 거치지 않은 브라우저와 거친 브라우저를 구분한다', () => withStorage((data) => {
+  assert.equal(storage.hasSavedSettings(), false);
+  storage.markSurveySeen();
+  assert.equal(storage.hasSavedSettings(), true);
+  // 방문 사실만 남기고 고른 값은 기본값 그대로여야 한다.
+  assert.deepEqual(JSON.parse(data.get(SETTINGS_KEY)).surveyChoiceIds, storage.defaultSettings.surveyChoiceIds);
+}));
+
+test('이미 고른 설문이 있으면 방문 표시가 그 선택을 덮지 않는다', () => withStorage(() => {
+  storage.saveSurveyChoices(['job-none', 'hobby-music', 'sport-gym', 'vacation-home']);
+  storage.markSurveySeen();
+  assert.deepEqual(storage.loadSettings().surveyChoiceIds, ['job-none', 'hobby-music', 'sport-gym', 'vacation-home']);
+}));
