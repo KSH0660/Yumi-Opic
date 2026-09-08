@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Exam } from "@/lib/types";
 import { allTopics, surveyTopics, topicById } from "@/data";
 import { buildFullExam, buildPracticeExam, buildSingleQuestion, EXAM_GROUPS } from "@/lib/exam";
-import { defaultSettings, loadHistory, loadSettings, saveSettings, type HistoryEntry } from "@/lib/storage";
+import { defaultSettings, loadHistory, loadSettings, saveEnabledTopics, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
@@ -87,8 +87,7 @@ function NewExamPageClient() {
     const selected = enabledIds.includes(id);
     if (selected && selectedCount <= 3) return;
     const next = selected ? enabledIds.filter((value) => value !== id) : [...enabledIds, id];
-    setEnabledIds(next);
-    saveSettings({ ...loadSettings(), enabledSurveyIds: next });
+    setEnabledIds(saveEnabledTopics(next).enabledSurveyIds);
     build(includeIntro);
   }
 

@@ -2,7 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const storage = require('../.test-build/lib/storage');
 const { buildSingleQuestion } = require('../.test-build/lib/exam');
-const { allTopics } = require('../.test-build/data');
+const { allTopics, DEFAULT_SURVEY_IDS } = require('../.test-build/data');
+const SETTINGS_KEY = 'yumi-opic:settings';
 const KEY = 'yumi-opic:history';
 // 롤플레이의 명시적인 undefined 필드를 항상 포함해 JSON 저장 경계를 검증한다.
 const fixtureTopics = allTopics.map(topic => ({
@@ -186,4 +187,36 @@ test('손상된 원래 받아쓰기와 업데이트 시각은 버린다', () => 
   const saved = storage.loadHistory()[0];
   assert.equal(saved.updatedAt, undefined);
   assert.deepEqual(saved.result.browserAnswers, { 99: 'kept' });
+}));
+
+test('설정이 없으면 문제은행이 있는 항목이 모두 켜진 채로 시작한다', () => withStorage(() => {
+  const settings = storage.loadSettings();
+  assert.deepEqual(settings.enabledSurveyIds.slice().sort(), DEFAULT_SURVEY_IDS.slice().sort());
+  assert.ok(settings.surveyChoiceIds.includes('job-none'));
+  assert.equal(settings.volume, 1);
+}));
+
+test('주제만 저장했던 이전 설정을 실제 서베이 선택으로 되살린다', () => withStorage((data) => {
+  data.set(SETTINGS_KEY, JSON.stringify({ enabledSurveyIds: ['home', 'music', 'park'], volume: 0.5 }));
+  const settings = storage.loadSettings();
+  assert.deepEqual(settings.enabledSurveyIds, ['home', 'park', 'music']);
+  assert.deepEqual(settings.surveyChoiceIds,
+    ['job-none', 'student-no', 'course-lapsed', 'housing-alone', 'hobby-music', 'leisure-park']);
+  assert.equal(settings.volume, 0.5);
+}));
+
+test('서베이 선택을 저장하면 문제은행이 있는 주제만 시험 목록으로 추린다', () => withStorage(() => {
+  const saved = storage.saveSurveyChoices(['housing-dorm', 'leisure-cafe', 'sport-gym', 'hobby-music', 'vacation-home']);
+  assert.deepEqual(saved.enabledSurveyIds, ['music', 'gym', 'staycation']);
+  // 문제 준비 중인 항목도 화면에 그대로 다시 보여 줘야 해서 저장해 둔다.
+  assert.deepEqual(storage.loadSettings().surveyChoiceIds,
+    ['housing-dorm', 'leisure-cafe', 'sport-gym', 'hobby-music', 'vacation-home']);
+}));
+
+test('시험 화면에서 주제를 껐다 켜도 문제은행이 없는 선택은 그대로 남는다', () => withStorage(() => {
+  storage.saveSurveyChoices(['job-none', 'housing-dorm', 'leisure-cafe', 'hobby-music', 'sport-gym', 'vacation-home']);
+  const saved = storage.saveEnabledTopics(['music', 'gym', 'park']);
+  assert.deepEqual(saved.enabledSurveyIds, ['park', 'music', 'gym']);
+  assert.deepEqual(saved.surveyChoiceIds,
+    ['job-none', 'housing-dorm', 'leisure-cafe', 'hobby-music', 'sport-gym', 'leisure-park']);
 }));

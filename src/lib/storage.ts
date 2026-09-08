@@ -1,34 +1,76 @@
 "use client";
-import { DEFAULT_SURVEY_IDS } from "../data";
+import {
+  DEFAULT_SINGLE_CHOICE_IDS,
+  DEFAULT_SURVEY_CHOICE_IDS,
+  DEFAULT_SURVEY_IDS,
+  choiceIdsForTopics,
+  surveyChoiceById,
+  topicIdsForChoices,
+} from "../data";
 import type { Exam, ExamItem } from "./types";
 import { isOpicFeedback, type OpicFeedback } from "./feedback";
 const SETTINGS_KEY = "yumi-opic:settings";
 const HISTORY_KEY = "yumi-opic:history";
-/** volume 은 문제 낭독 음량(0~1)이다. 시험 화면의 음량 슬라이더가 여기에 저장된다. */
-export interface Settings { enabledSurveyIds: string[]; volume: number }
-export const defaultSettings: Settings = { enabledSurveyIds: [...DEFAULT_SURVEY_IDS], volume: 1 };
+/**
+ * surveyChoiceIds 는 배경 설문 화면에서 고른 항목 전부다. 문제은행이 없는 항목도 그대로 남긴다.
+ * enabledSurveyIds 는 그 가운데 문제은행이 있는 주제만 추린 값이라 늘 함께 움직인다.
+ * volume 은 문제 낭독 음량(0~1)이다. 시험 화면의 음량 슬라이더가 여기에 저장된다.
+ */
+export interface Settings { enabledSurveyIds: string[]; surveyChoiceIds: string[]; volume: number }
+export const defaultSettings: Settings = {
+  enabledSurveyIds: [...DEFAULT_SURVEY_IDS],
+  surveyChoiceIds: [...DEFAULT_SURVEY_CHOICE_IDS],
+  volume: 1,
+};
+
+function freshSettings(): Settings {
+  return { ...defaultSettings, enabledSurveyIds: [...DEFAULT_SURVEY_IDS], surveyChoiceIds: [...DEFAULT_SURVEY_CHOICE_IDS] };
+}
+
+function idList(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === "string"))] : undefined;
+}
+
 export function loadSettings(): Settings {
-  if (typeof window === "undefined") return { ...defaultSettings, enabledSurveyIds: [...defaultSettings.enabledSurveyIds] };
+  if (typeof window === "undefined") return freshSettings();
   try {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return { ...defaultSettings, enabledSurveyIds: [...defaultSettings.enabledSurveyIds] };
+    if (!raw) return freshSettings();
     const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return defaultSettings;
+    if (!parsed || typeof parsed !== "object") return freshSettings();
     const value = parsed as Partial<Settings>;
-    // Keep unknown IDs so the UI can explain unsupported coverage. Never add unchosen topics.
-    const ids = Array.isArray(value.enabledSurveyIds)
-      ? [...new Set(value.enabledSurveyIds.filter((id): id is string => typeof id === "string"))]
-      : [...DEFAULT_SURVEY_IDS];
+    // 이전 버전은 주제 ID만 저장했다. 그 선택을 실제 서베이 항목으로 되살린다.
+    const choiceIds = idList(value.surveyChoiceIds)
+      ?? [...new Set([...DEFAULT_SINGLE_CHOICE_IDS, ...choiceIdsForTopics(idList(value.enabledSurveyIds) ?? DEFAULT_SURVEY_IDS)])];
     const volume = typeof value.volume === "number" && Number.isFinite(value.volume)
       ? Math.min(1, Math.max(0, value.volume))
       : defaultSettings.volume;
-    return { enabledSurveyIds: ids, volume };
-  } catch { return defaultSettings; }
+    // 모르는 항목도 저장해 둔 그대로 둔다. 나중에 문제은행이 생기면 그 선택이 다시 살아난다.
+    return { enabledSurveyIds: topicIdsForChoices(choiceIds), surveyChoiceIds: choiceIds, volume };
+  } catch { return freshSettings(); }
 }
 export function saveSettings(settings: Settings): void {
   if (typeof window === "undefined") return;
   try { window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* Storage can be unavailable. */ }
 }
+
+/** 배경 설문에서 고른 항목을 저장한다. 시험에 쓸 주제 목록도 여기서 함께 맞춘다. */
+export function saveSurveyChoices(choiceIds: readonly string[]): Settings {
+  const next: Settings = {
+    ...loadSettings(),
+    surveyChoiceIds: [...new Set(choiceIds)],
+    enabledSurveyIds: topicIdsForChoices(choiceIds),
+  };
+  saveSettings(next);
+  return next;
+}
+
+/** 시험 화면에서 주제만 켜고 끌 때 쓴다. 문제은행이 없는 서베이 선택은 건드리지 않는다. */
+export function saveEnabledTopics(topicIds: readonly string[]): Settings {
+  const kept = loadSettings().surveyChoiceIds.filter((id) => !surveyChoiceById.get(id)?.topicId);
+  return saveSurveyChoices([...kept, ...choiceIdsForTopics(topicIds)]);
+}
+
 export interface HistoryEntry {
   id: string; finishedAt: number; mode: "full" | "practice" | "single";
   label: string; answered: number; totalItems: number;
