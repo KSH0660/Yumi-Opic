@@ -24,6 +24,16 @@ export type FeedbackCategory =
   | "pronunciation"
   | "grammar";
 
+/** 화면과 PDF 모아보기에서 함께 쓰는 유형 이름. */
+export const feedbackCategoryLabel: Record<FeedbackCategory, string> = {
+  storytelling: "스토리텔링",
+  detail: "활동·디테일",
+  emotion: "감정·의미",
+  delivery: "전달력",
+  pronunciation: "발음 체크",
+  grammar: "문법",
+};
+
 export type FlowStatus = "good" | "needs_work";
 
 export interface OpicFeedbackItem {

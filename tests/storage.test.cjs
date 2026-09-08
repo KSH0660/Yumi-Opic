@@ -91,6 +91,17 @@ test('개별/전체 삭제가 상세 결과도 지우며 늦은 업데이트가 
   assert.equal(data.has(KEY), false);
 }));
 
+test('고른 기록을 한 번에 지우고 나머지는 그대로 둔다', () => withStorage((data) => {
+  storage.pushHistory(entry('attempt-1'));
+  storage.pushHistory(entry('attempt-2'));
+  storage.pushHistory(entry('attempt-3'));
+  const left = storage.deleteHistoryEntries(['attempt-1', 'attempt-3', '없는-기록']);
+  assert.deepEqual(left.map(item => item.id), ['attempt-2']);
+  assert.deepEqual(storage.loadHistory().map(item => item.id), ['attempt-2']);
+  assert.ok(!data.get(KEY).includes('attempt-3'));
+  assert.deepEqual(storage.deleteHistoryEntries([]).map(item => item.id), ['attempt-2']);
+}));
+
 test('최근 20회만 저장한다', () => withStorage(() => {
   for (let i = 0; i < 21; i++) storage.pushHistory(entry(`attempt-${i}`));
   const history = storage.loadHistory();
