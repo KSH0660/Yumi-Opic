@@ -734,7 +734,7 @@ export default function ExamRunner({
               {micNotice && <p role="status" className="mt-2 text-xs leading-relaxed text-exam-ink-muted">{micNotice}</p>}
               {micAvailable && recordingAvailable && micMode === "dictation-only" && (
                 <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">
-                  이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. AI 피드백은 그대로 받을 수 있고, 녹음본 저장과 발음 비교만 빠집니다.{" "}
+                  이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. 화면에 적히는 텍스트가 곧 답변이 되고, 녹음본이 없어 나중에 바로잡을 수 없습니다. 잘못 적힌 곳은 <strong className="font-semibold text-exam-ink">직접 입력·고쳐 쓰기</strong>로 다듬으세요. 녹음본과 발음 비교가 필요하면 노트북에서 연습하는 편이 낫습니다.{" "}
                   <button type="button" onClick={retryMicShare} className="underline underline-offset-2 transition hover:text-exam-ink">녹음도 함께 켜보기</button>
                 </p>
               )}

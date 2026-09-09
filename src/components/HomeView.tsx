@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MIN_PRACTICE_TOPICS, surveyTopics } from "@/data";
 import { formatHistoryStamp } from "@/lib/history";
+import { loadMicMode } from "@/lib/micShare";
 import { repeatPracticeLink } from "@/lib/nav";
 import { defaultSettings, hasSavedSettings, loadSettings } from "@/lib/storage";
 import Footer from "./Footer";
@@ -26,11 +27,14 @@ export default function HomeView() {
   const router = useRouter();
   const [enabledIds, setEnabledIds] = useState<string[]>(defaultSettings.enabledSurveyIds);
   const [ready, setReady] = useState(false);
+  /** 마이크를 한 곳에서만 쓰는 기기(휴대폰·태블릿). 여기서는 녹음본이 남지 않는다. */
+  const [dictationOnly, setDictationOnly] = useState(false);
   const { history } = usePracticeHistory();
 
   useEffect(() => {
     if (!hasSavedSettings()) { router.replace("/survey"); return; }
     setEnabledIds(loadSettings().enabledSurveyIds);
+    setDictationOnly(loadMicMode() === "dictation-only");
     setReady(true);
   }, [router]);
 
@@ -51,6 +55,17 @@ export default function HomeView() {
 
     <p className="mt-5 text-2xl font-semibold leading-snug tracking-tight">오늘은 어떤 연습을 할까요?</p>
     <p className="mt-2 text-sm leading-relaxed text-fg-muted">배경 설문에서 고른 주제를 실제 시험 번호대로 연습합니다. 돌발 주제는 아직 다루지 않습니다.</p>
+
+    {/*
+      휴대폰에서도 연습은 되지만 받아쓰기 텍스트 하나에 모든 게 걸린다. 그 텍스트가
+      틀리면 AI 피드백도 틀린 문장을 고쳐 주므로, 연습을 고르기 전에 미리 알린다.
+    */}
+    {dictationOnly && (
+      <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
+        <strong className="font-semibold text-fg">노트북에서 연습하시길 권합니다.</strong> 휴대폰은 마이크를 한 곳에서만 쓸 수 있어 받아쓰기만
+        켜지고 녹음본이 남지 않습니다. 받아쓰기가 잘못 적어도 바로잡을 길이 없어 AI 피드백까지 그 텍스트를 그대로 믿습니다.
+      </p>
+    )}
 
     {last && repeat && <Card className="mt-7 p-5 sm:p-6">
       <p className="text-xs text-fg-subtle">마지막 연습 · {formatHistoryStamp(last)}</p>

@@ -23,6 +23,7 @@ import {
   type ResultFilter,
 } from "@/lib/answers";
 import { formatHistoryStamp } from "@/lib/history";
+import { recordingExtension, recordingFileName, recordingToMp3 } from "@/lib/mp3";
 import { examExitLink, nextPracticeLink } from "@/lib/nav";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
@@ -280,6 +281,73 @@ export default function ExamResult({
   );
 }
 
+/**
+ * 녹음본 재생과 mp3 내려받기.
+ *
+ * 녹음 원본은 webm/opus 라 휴대폰이나 기본 음악 앱에서 열리지 않는 일이 잦다.
+ * 그래서 받는 순간에 브라우저가 mp3 로 다시 만든다. 몇 초가 걸리므로 버튼에
+ * 진행률을 적고, 한 번 만든 파일은 들고 있다가 다시 누르면 그대로 내려 준다.
+ * 변환이 실패해도 녹음을 못 받는 일은 없어야 하므로 원본 내려받기를 남겨 둔다.
+ */
+function RecordingPlayer({ recording, slot }: { recording: AnswerRecording; slot: number }) {
+  const [progress, setProgress] = useState<number | null>(null);
+  const [failed, setFailed] = useState(false);
+  const mp3UrlRef = useRef<string | null>(null);
+  const extension = recordingExtension(recording.mimeType);
+
+  // 문항을 접거나 결과 화면을 떠나면 만들어 둔 mp3 주소를 놓아 준다.
+  useEffect(() => () => {
+    if (mp3UrlRef.current) URL.revokeObjectURL(mp3UrlRef.current);
+  }, []);
+
+  const converting = progress !== null;
+
+  async function downloadMp3() {
+    if (converting) return;
+    setFailed(false);
+    try {
+      if (!mp3UrlRef.current) {
+        setProgress(0);
+        const source = await (await fetch(recording.url)).blob();
+        const mp3 = await recordingToMp3(source, (ratio) => setProgress(ratio));
+        mp3UrlRef.current = URL.createObjectURL(mp3);
+      }
+      const link = document.createElement("a");
+      link.href = mp3UrlRef.current;
+      link.download = recordingFileName(slot, "mp3");
+      link.click();
+    } catch {
+      setFailed(true);
+    } finally {
+      setProgress(null);
+    }
+  }
+
+  return (
+    <div className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <audio controls preload="metadata" src={recording.url} className="max-w-full flex-1" />
+        <button
+          type="button"
+          onClick={downloadMp3}
+          disabled={converting}
+          className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-fg-muted transition hover:text-fg disabled:cursor-progress disabled:opacity-70"
+        >
+          {converting ? `mp3로 바꾸는 중 ${Math.round((progress ?? 0) * 100)}%` : "녹음본 mp3 다운로드"}
+        </button>
+      </div>
+      {failed && (
+        <p className="mt-2 text-xs leading-relaxed text-fg-muted">
+          mp3로 바꾸지 못했습니다.{" "}
+          <a href={recording.url} download={recordingFileName(slot, extension)} className="underline">
+            원본({extension}) 파일로 받기
+          </a>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ItemResult({
   item,
   answer,
@@ -317,7 +385,7 @@ function ItemResult({
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [showBrowserAnswer, setShowBrowserAnswer] = useState(false);
   const hasAnswer = hasAnswerText(answer);
-  const extension = recording?.mimeType.includes("ogg") ? "ogg" : "webm";
+  const extension = recordingExtension(recording?.mimeType ?? "");
   // 롤플레이는 전화 대화에 가까워 두괄식을 요구하지 않는다. 칩 라벨도 기준에 맞춰 바뀐다.
   const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   const expressionContext = {
@@ -360,7 +428,7 @@ function ItemResult({
           const audioResponse = await fetch(recording.url);
           const blob = await audioResponse.blob();
           if (blob.size > 0) {
-            body.append("audio", blob, `yumi-opic-question-${item.slot}.${extension}`);
+            body.append("audio", blob, recordingFileName(item.slot, extension));
           }
         } catch {
           // 녹음본 전송이 실패해도 텍스트 피드백은 받을 수 있다.
@@ -397,29 +465,19 @@ function ItemResult({
           <p className="mt-3 text-sm leading-relaxed text-fg">{item.question.en}</p>
           <p className="mt-2 text-xs leading-relaxed text-fg-subtle">{item.question.ko}</p>
 
-          {recording && (
-            <div className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <audio controls preload="metadata" src={recording.url} className="max-w-full flex-1" />
-                <a
-                  href={recording.url}
-                  download={`yumi-opic-question-${item.slot}.${extension}`}
-                  className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-fg-muted transition hover:text-fg"
-                >
-                  녹음본 다운로드
-                </a>
-              </div>
-            </div>
-          )}
+          {recording && <RecordingPlayer recording={recording} slot={item.slot} />}
 
           {/*
-            녹음본 자리가 말없이 비어 있으면 노트북에서 쓰던 사람은 무엇이 빠졌는지
-            모른다. AI 피드백은 답변 텍스트만 있으면 되므로 그대로 된다는 것부터 밝힌다.
+            녹음본이 없다는 말은 "재생만 안 된다"가 아니다. 답변 텍스트를 바로잡을
+            수단이 함께 사라진다는 뜻이라, 무엇이 빠졌는지보다 남은 텍스트를 얼마나
+            믿을 수 있는지를 먼저 밝힌다.
           */}
           {hasAnswer && !recording && (
             <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
-              이 문항에는 녹음본이 없습니다. <strong className="font-semibold text-fg">AI 피드백은 그대로 받을 수 있고</strong>, 녹음본 재생과
-              녹음본 재전사(발음 비교·답변 텍스트 교정)만 빠집니다. 휴대폰은 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기를 먼저 켜기 때문입니다.
+              이 문항에는 녹음본이 없습니다. 아래 답변은 <strong className="font-semibold text-fg">브라우저 받아쓰기 그대로</strong>이고,
+              녹음본이 없어 OpenAI 재전사로 바로잡을 수 없습니다. 브라우저 받아쓰기는 발음이 조금만 흐려도 다른 단어를 적으므로
+              (<span className="whitespace-nowrap">gym → dreams</span>) 실제로 말한 것과 다를 수 있습니다. 녹음본과 발음 비교가 필요하면
+              노트북(크롬·엣지)에서 연습하세요.
             </p>
           )}
 
@@ -461,7 +519,12 @@ function ItemResult({
                   <div>
                     <p className="text-sm font-semibold text-fg">AI 스토리텔링 코치</p>
                     <p className="mt-1 text-xs leading-relaxed text-fg-subtle">최대 5개만, 전달력에 영향이 큰 것부터 봅니다.</p>
-                    {recording && <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본을 함께 보내 OpenAI 가 답변을 다시 받아씁니다. 브라우저 받아쓰기보다 정확하면 위 답변도 그 텍스트로 바뀝니다.</p>}
+                    {recording ? (
+                      <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본을 함께 보내 OpenAI 가 답변을 다시 받아씁니다. 브라우저 받아쓰기보다 정확하면 위 답변도 그 텍스트로 바뀝니다.</p>
+                    ) : (
+                      /* 돈이 나가는 버튼 바로 옆이다. 무엇을 근거로 조언이 나오는지 여기서 한 번 더 밝힌다. */
+                      <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본이 없어 <strong className="font-semibold text-fg-muted">브라우저 받아쓰기 그대로</strong> 분석합니다. 받아쓰기가 잘못 적은 곳은 조언도 그 문장을 기준으로 나옵니다.</p>
+                    )}
                     <p className="mt-1 text-xs leading-relaxed text-fg-subtle">한 번 요청할 때마다 최대 약 {formatKrw(cost.krw)}이 듭니다.</p>
                   </div>
                   <button
