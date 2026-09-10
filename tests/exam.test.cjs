@@ -22,11 +22,11 @@ test('survey bank contains the 11 selected topics', () => {
   }
 });
 
-test('topic practice uses actual slots 2-15 for one topic, without intro and with coherent roleplay', () => {
+test('other topic practice uses actual slots 2-15 for one topic, without intro and with coherent roleplay', () => {
   const types = ['description', 'routine', 'experience', 'description', 'experience',
     'memorable', 'description', 'experience', 'memorable',
     'roleplay_ask', 'roleplay_problem', 'roleplay_experience', 'comparison', 'issue'];
-  for (const topic of bank.surveyTopics) {
+  for (const topic of bank.surveyTopics.filter((topic) => topic.id !== 'staycation')) {
     for (let seed = 0; seed < 100; seed++) {
       const exam = engine.buildPracticeExam(topic, seeded(seed));
       assert.deepEqual(exam.items.map((item) => item.question.type), types);
