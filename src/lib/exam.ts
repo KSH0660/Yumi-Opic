@@ -148,6 +148,16 @@ export function selectPracticeQuestions(topic: Topic, rng: RandomSource = Math.r
 }
 
 export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random): Exam {
+  if (topic.id === "staycation") {
+    const groups = [[2, 3, 4], [5, 6, 7], [11, 12, 13], [14, 15]];
+    const items = groups.flatMap((slots) => slots.map((slot) => {
+      const question = topic.questions.find((q) => q.id === `staycation-q${slot}`);
+      if (!question) throw new Error("집에서 보내는 휴가 연습에 필요한 문항이 부족합니다.");
+      return item(slot, topic, question, `Q${slots[0]}–Q${slots[slots.length - 1]}`);
+    }));
+    return { ...base("practice"), focusTopicId: topic.id, items,
+      notices: ["Q2–Q4 / Q5–Q7 / Q11–Q13 / Q14–Q15 순서로 연습합니다. 원하는 문항만 답변할 수 있습니다."] };
+  }
   // 실제 번호에 맞는 유형에서 각각 뽑는다. 같은 질문의 중복 출제도 허용한다.
   const slotTypes: QuestionType[] = [
     "description", "routine", "experience", "description", "experience", "memorable",
