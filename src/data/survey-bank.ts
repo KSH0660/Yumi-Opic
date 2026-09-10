@@ -1,7 +1,7 @@
 import type { Question, QuestionSource, QuestionType, Topic } from "../lib/types";
 import { surveyRoleplayQuestionsByTopic } from "./survey-roleplay-bank";
 
-export const SURVEY_BANK_VERSION = "survey-roleplay-2026-09-07";
+export const SURVEY_BANK_VERSION = "survey-staycation-2026-09-10";
 
 function q(
   id: string,
@@ -111,14 +111,14 @@ export const surveyTopics: Topic[] = [
     q("gym-i1", "issue", "What problems or concerns do people often have at gyms these days, such as crowded equipment, hygiene, noise, or membership contracts? Why do these problems happen, and what do you think should be done about them?", "요즘 사람들이 헬스장에서 겪는 문제나 걱정거리는 무엇인가요? 기구 혼잡, 위생, 소음, 회원권 계약 등을 생각해 보고 왜 생기는지, 어떻게 해결해야 하는지 말해 주세요.", "adapted"),
   ]),
   topic("staycation", "집에서 보내는 휴가", "Vacation at Home", "🛋️", [
-    q("staycation-d1", "description", "Why do you like spending vacations at home? What makes a vacation at home comfortable or enjoyable for you?", "왜 집에서 휴가 보내는 것을 좋아하나요? 무엇이 집휴가를 편안하고 즐겁게 만드나요?"),
-    q("staycation-d2", "description", "When you spend a vacation at home, who do you usually see or spend time with, and what do you like to do together?", "집에서 휴가를 보낼 때 주로 누구를 만나거나 함께 시간을 보내고 무엇을 하나요?"),
-    q("staycation-r1", "routine", "Describe a typical day during a vacation at home. What do you usually do from morning until night?", "집휴가 중 전형적인 하루를 설명해 주세요. 아침부터 밤까지 보통 무엇을 하나요?"),
-    q("staycation-e1", "experience", "Tell me about the last vacation you spent at home. What did you do from the beginning of the vacation to the end?", "가장 최근에 집에서 보낸 휴가를 말해 주세요. 휴가 시작부터 끝까지 무엇을 했나요?"),
-    q("staycation-e2", "experience", "Tell me about a time when you chose to stay home instead of traveling. Why did you make that choice, and how did you spend the time?", "여행 대신 집에 머물기로 했던 경험을 말해 주세요. 왜 그렇게 했고 시간을 어떻게 보냈나요?", "adapted"),
-    q("staycation-m1", "memorable", "Describe one memorable experience you had during a vacation at home. What happened, how did you deal with it, and why do you remember it?", "집에서 보낸 휴가 중 기억에 남는 경험을 말해 주세요. 무슨 일이 있었고 어떻게 대처했으며 왜 기억하나요?"),
-    q("staycation-c1", "comparison", "How has the way people spend their vacations changed over the years? Compare what people tended to do in the past with what they do now.", "사람들이 휴가를 보내는 방식은 수년간 어떻게 변했나요? 과거와 현재를 비교해 주세요."),
-    q("staycation-i1", "issue", "Why do people need vacations? What different purposes can vacations serve, and why are rest and time away from work important?", "사람들에게 왜 휴가가 필요한가요? 휴가는 어떤 목적을 가질 수 있으며 일에서 벗어나 쉬는 시간이 왜 중요한가요?"),
+    q("staycation-q2", "description", "You indicated that you take vacations at home. Who are the people you would like to see and spend time with on your vacation?", "집에서 휴가를 보낸다고 하셨습니다. 휴가 동안 누구를 만나 함께 시간을 보내고 싶나요?"),
+    q("staycation-q3", "routine", "Describe some of the things that you would like to do with people you visit or see during your vacation.", "휴가 동안 방문하거나 만나는 사람들과 함께 하고 싶은 일들을 설명해 주세요."),
+    q("staycation-q4", "experience", "Describe exactly what you did during the last vacation that you spent at home. Give me a description of what you did from the first to the last day. Talk about all the people you saw and everything that you did.", "지난번 집에서 보낸 휴가 동안 정확히 무엇을 했는지 설명해 주세요. 첫날부터 마지막 날까지 만난 모든 사람과 했던 모든 일을 말해 주세요."),
+    q("staycation-q5", "description", "You indicated that you take vacations at home. Who are the people you would like to see and spend time with on your vacation?", "집에서 휴가를 보낸다고 하셨습니다. 휴가 동안 누구를 만나 함께 시간을 보내고 싶나요?"),
+    q("staycation-q6", "experience", "Describe exactly what you did during the last vacation that you spent at home. Give me a description of what you did from the first to the last day. Talk about all the people you saw and everything that you did.", "지난번 집에서 보낸 휴가 동안 정확히 무엇을 했는지 설명해 주세요. 첫날부터 마지막 날까지 만난 모든 사람과 했던 모든 일을 말해 주세요."),
+    q("staycation-q7", "memorable", "Could you tell me about an unusual or unexpected experience you had during a vacation you had at home? What happened? Who was involved? And why was this experience so memorable?", "집에서 휴가를 보내며 겪은 특이하거나 예상하지 못한 경험을 말해 주세요. 무슨 일이 있었고 누가 관련되어 있었나요? 왜 그렇게 기억에 남나요?"),
+    q("staycation-q14", "comparison", "You indicated in the survey that you stay at home for vacations. How do most people spend their vacation in your country? How does that compare to the way people spent their vacation when they were growing up? Are they doing things differently? How have things changed and why have things changed? Please, take a minute to discuss this topic.", "설문에서 집에서 휴가를 보낸다고 하셨습니다. 당신의 나라에서 대부분의 사람들은 휴가를 어떻게 보내나요? 그 사람들이 자라던 시절의 휴가 방식과 비교하면 어떤가요? 무엇이 어떻게, 왜 달라졌는지 이야기해 주세요."),
+    q("staycation-q15", "issue", "Experts state that vacations are important for every individual. Take a minute and report for me the important benefits of vacation time to a person's health, relationships, and personal growth.", "전문가들은 휴가가 모든 사람에게 중요하다고 합니다. 휴가가 개인의 건강, 인간관계, 개인적 성장에 주는 중요한 이점을 이야기해 주세요."),
   ]),
   topic("overseas", "해외여행", "Overseas Travel", "✈️", [
     q("overseas-d1", "description", "Tell me about a country or city abroad that you remember well. What was the place like, and what made it interesting to you?", "기억에 남는 해외 국가나 도시를 말해 주세요. 어떤 곳이었고 무엇이 흥미로웠나요?"),

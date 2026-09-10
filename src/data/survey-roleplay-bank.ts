@@ -77,9 +77,9 @@ export const surveyRoleplayQuestionsByTopic: Record<string, Question[]> = {
   ],
 
   staycation: [
-    rp("staycation-rp11", "roleplay_ask", "I'd like to give you a situation and ask you to act it out. A relative is going on vacation and has asked you to take care of the house. Call your relative and ask three or four questions to find out everything you need to know before they leave.", "친척이 휴가를 가는 동안 집을 봐달라고 부탁했습니다. 친척에게 전화해 집을 봐주기 전에 알아야 할 사항을 3~4가지 질문하세요."),
-    rp("staycation-rp12", "roleplay_problem", "I'm sorry, but there is a problem I need you to resolve. You arrive at your relative's house, but the door is locked and the key is not where it is supposed to be. Call your relative, explain the situation, and offer two or three options to solve the problem.", "친척 집에 도착했는데 문이 잠겨 있고 열쇠도 약속한 곳에 없습니다. 친척에게 전화해 상황을 설명하고 해결책 2~3가지를 제안하세요.", "verified", ["staycation-rp11"]),
-    rp("staycation-rp13", "roleplay_experience", "That's the end of the situation. Have you ever agreed to do something for a friend or family member but then could not do it as planned? Tell me what you had agreed to do, what went wrong, what you did, and how the situation was resolved.", "친구나 가족을 위해 무언가 해주기로 했다가 계획대로 하지 못했던 경험을 말하세요. 무엇을 약속했고 어떤 문제가 생겼으며 어떻게 해결했는지 설명하세요.", "verified", ["staycation-rp12"]),
+    rp("staycation-q11", "roleplay_ask", "I'd like to give you a situation and ask you to act it out. You want to get two tickets to see a performance during your vacation. Call the box office and ask three or four questions to get tickets.", "상황을 듣고 역할을 수행해 주세요. 휴가 동안 볼 공연 티켓 두 장을 구하려고 합니다. 매표소에 전화해 티켓 구매를 위한 질문을 서너 가지 하세요."),
+    rp("staycation-q12", "roleplay_problem", "I'm sorry, but there is a problem that I need you to resolve. On the day of the performance, you are very sick. Call your friend, explain the situation, and offer two different options to resolve the situation.", "해결해야 할 문제가 있습니다. 공연 당일 몸이 많이 아픕니다. 친구에게 전화해 상황을 설명하고 해결할 수 있는 서로 다른 대안 두 가지를 제안하세요.", "verified", ["staycation-q11"]),
+    rp("staycation-q13", "roleplay_experience", "That's the end of the situation. Have you ever bought concert tickets or made plans for a trip, or made plans for other things, but had to cancel at the last minute because you could not make it? When was it? What exactly happened? Tell me everything that you did to resolve the situation", "상황극이 끝났습니다. 콘서트 티켓을 사거나 여행 또는 다른 계획을 세웠지만 참석할 수 없어 직전에 취소했던 적이 있나요? 언제였고 정확히 무슨 일이 있었나요? 상황을 해결하기 위해 했던 모든 일을 말해 주세요.", "verified", ["staycation-q12"]),
   ],
 
   overseas: [
