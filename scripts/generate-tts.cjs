@@ -32,6 +32,7 @@ const USD_PER_1K_CHARS = 0.015;
 const args = new Set(process.argv.slice(2));
 const FORCE = args.has('--force');
 const DRY_RUN = args.has('--dry-run');
+const TOPIC = process.argv.find((arg) => arg.startsWith('--topic='))?.slice('--topic='.length);
 
 /* ------------------------------------------------------------------ */
 /* 설정                                                                */
@@ -91,14 +92,18 @@ function loadQuestions() {
   if (compile.status !== 0) process.exit(compile.status ?? 1);
 
   const bank = require(path.join(BUILD_DIR, 'data', 'index.js'));
+  if (TOPIC && !bank.allTopics.some((topic) => topic.id === TOPIC)) {
+    throw new Error(`Unknown topic: ${TOPIC}`);
+  }
   const byId = new Map();
   const add = (question) => {
     if (!question || !question.id || !question.en) return;
     if (!byId.has(question.id)) byId.set(question.id, question.en.trim());
   };
 
-  add(bank.introQuestion);
+  if (!TOPIC) add(bank.introQuestion);
   for (const topic of bank.allTopics) {
+    if (TOPIC && topic.id !== TOPIC) continue;
     for (const question of topic.questions) add(question);
   }
   return [...byId].map(([id, text]) => ({ id, text }));
@@ -131,7 +136,7 @@ async function synthesize(apiKey, text) {
     if (response.ok) return Buffer.from(await response.arrayBuffer());
 
     const retryable = response.status === 429 || response.status >= 500;
-    const detail = (await response.text()).slice(0, 300);
+    const detail = (await response.text()).split(apiKey).join('[REDACTED]').slice(0, 300);
     if (!retryable || attempt >= 3) {
       throw new Error(`OpenAI ${response.status}: ${detail}`);
     }
@@ -155,6 +160,9 @@ function pruneOrphans(validIds) {
 }
 
 async function main() {
+  if (TOPIC && Object.keys(config).some((key) => config[key] !== previous[key])) {
+    throw new Error('Keep the existing voice settings when generating one topic.');
+  }
   const questions = loadQuestions();
   const ids = new Set(questions.map((q) => q.id));
 
@@ -171,7 +179,11 @@ async function main() {
     console.log(`대략 $${((chars / 1000) * USD_PER_1K_CHARS).toFixed(2)} 정도 듭니다.`);
   }
 
-  const removed = pruneOrphans(ids);
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!DRY_RUN && pending.length > 0 && !apiKey) {
+    throw new Error('OPENAI_API_KEY is not set.');
+  }
+  const removed = TOPIC ? 0 : pruneOrphans(ids);
 
   if (DRY_RUN) {
     for (const q of pending) console.log(`  + ${q.id}`);
@@ -179,7 +191,6 @@ async function main() {
     return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
   if (pending.length > 0 && !apiKey) {
     console.error('OPENAI_API_KEY 가 없습니다. `OPENAI_API_KEY=... npm run tts` 로 실행하세요.');
     process.exit(1);
@@ -188,7 +199,8 @@ async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const stale = new Set(pending.map((q) => q.id));
-  const questionHashes = {};
+  const questionHashes = TOPIC ? { ...previous.questions } : {};
+  for (const q of pending) delete questionHashes[q.id];
   let made = 0;
 
   // 한 번에 하나씩 보낸다. 124문항이면 몇 분 걸리지만 속도 제한에 걸릴 일이 없다.
