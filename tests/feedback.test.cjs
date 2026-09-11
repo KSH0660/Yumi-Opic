@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   requiresFrontLoadedOpening, isOpicFeedback, readFeedbackResponse, feedbackRewrite, feedbackOutputTokenLimit,
-  tallyFeedback,
 } = require('../.test-build/lib/feedback');
 
 test('서술형 문항은 두괄식 기준으로 보고 롤플레이는 빼 준다', () => {
@@ -90,44 +89,4 @@ test('연결 표현 유형을 읽고 모르는 유형은 가려낸다', () => {
   const item = { category: 'transition', title: '결과로 넘어갈 때', message: '', example: 'As a result, young people care about balance.' };
   assert.equal(isOpicFeedback({ ...sampleFeedback, items: [item] }), true);
   assert.equal(isOpicFeedback({ ...sampleFeedback, items: [{ ...item, category: 'connector' }] }), false);
-});
-
-test('회차 집계는 문항을 세고 지적 횟수를 세지 않는다', () => {
-  const feedback = (structure, categories) => ({
-    overall: '',
-    structure: { note: '', ...structure },
-    pronunciationBasis: 'none',
-    items: categories.map((category) => ({ category, title: '', message: '', example: '' })),
-  });
-
-  const tally = tallyFeedback([
-    // 같은 문항에서 문법이 두 번 나와도 한 문항으로 센다.
-    { questionType: 'description', feedback: feedback({ topic: 'needs_work', detail: 'good', feeling: 'good' }, ['grammar', 'grammar', 'storytelling']) },
-    { questionType: 'experience', feedback: feedback({ topic: 'needs_work', detail: 'needs_work', feeling: 'good' }, ['grammar']) },
-    { questionType: 'roleplay_ask', feedback: feedback({ topic: 'good', detail: 'good', feeling: 'good' }, []) },
-  ], 2);
-
-  assert.equal(tally.analyzed, 3);
-  assert.equal(tally.pending, 2);
-
-  const flow = Object.fromEntries(tally.flow.map((row) => [row.label, row]));
-  // 롤플레이는 두괄식 분모에 들어가지 않고 자기 줄에서 센다.
-  assert.deepEqual(flow['두괄식 도입'], { label: '두괄식 도입', count: 2, total: 2 });
-  assert.deepEqual(flow['요청·문제 전달'], { label: '요청·문제 전달', count: 0, total: 1 });
-  assert.deepEqual(flow['활동·디테일'], { label: '활동·디테일', count: 1, total: 3 });
-  assert.deepEqual(flow['감정·의미'], { label: '감정·의미', count: 0, total: 3 });
-
-  // 보강이 나온 유형만, 많이 나온 순서로 준다. 분모는 분석한 문항 수다.
-  assert.deepEqual(tally.categories, [
-    { label: '문법', count: 2, total: 3 },
-    { label: '스토리텔링', count: 1, total: 3 },
-  ]);
-});
-
-test('분석한 문항이 없으면 집계 줄이 비어 있다', () => {
-  const tally = tallyFeedback([], 4);
-  assert.equal(tally.analyzed, 0);
-  assert.equal(tally.pending, 4);
-  assert.deepEqual(tally.flow, []);
-  assert.deepEqual(tally.categories, []);
 });

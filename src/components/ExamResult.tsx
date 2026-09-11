@@ -6,9 +6,7 @@ import type { Exam, ExamItem } from "@/lib/types";
 import {
   feedbackRewrite,
   readFeedbackResponse,
-  tallyFeedback,
   type FeedbackResponse,
-  type FeedbackTally,
   type OpicFeedback,
 } from "@/lib/feedback";
 import { runInPool, slotsAwaitingFeedback } from "@/lib/feedbackBatch";
@@ -355,14 +353,6 @@ export default function ExamResult({
   // 미답변 문항이 목록을 채우면 실제로 말한 답변을 다시 보기 어렵다. 기본은 답변한 문항만 보여 준다.
   const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
   const visibleItems = filterItemsByAnswer(exam.items, answerBySlot, filter);
-  // 회차 집계는 분석이 끝난 문항만으로 센다. 아직 안 받은 문항은 분모가 아니라 별도 표시다.
-  const tally = useMemo(() => tallyFeedback(
-    exam.items.flatMap((item) => {
-      const feedback = feedbackBySlot[item.slot];
-      return feedback ? [{ feedback, questionType: item.question.type }] : [];
-    }),
-    answeredSlots.filter((slot) => !feedbackBySlot[slot]).length,
-  ), [exam.items, feedbackBySlot, answeredSlots]);
   const rewrittenCount = Object.keys(rewrites.browser).length;
   const waitingSlots = slotsAwaitingFeedback(answeredSlots, feedbackBySlot, pendingSlots);
   const feedbackCount = answeredSlots.filter((slot) => feedbackBySlot[slot]).length;
@@ -384,7 +374,6 @@ export default function ExamResult({
         <p className="mt-2 text-xs text-fg-subtle">{savedStamp}{savedStamp === finishedStamp ? "" : ` 저장 · 연습 ${finishedStamp}`}</p>
         <p className="mt-3 text-sm text-fg-muted">답변 {answeredCount}문항 · 말한 시간 {formatTime(totalTime)} · 녹음 {recordingCount}개</p>
         {answeredCount > 0 && <AnswerTimeline exam={exam} answeredSlots={answeredSlots} times={times} />}
-        {tally.analyzed > 0 && <FeedbackTallyView tally={tally} />}
         {saveError && <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p>}
 
         {/* 결과를 열면 문항 피드백부터 보이게 한다. 통계와 안내는 지우지 않고 접어 둔다. */}
@@ -517,52 +506,6 @@ function AnswerTimeline({ exam, answeredSlots, times }: {
         );
       })}
     </ul>
-  );
-}
-
-/**
- * 이번 회차에서 어떤 항목에 보강이 몇 문항 나왔는지 모아 본다.
- *
- * 집계일 뿐 판정이 아니다. `오늘 고칠 것은 이것`이라고 고르지 않는다. 문항이 한
- * 개든 열다섯 개든 같은 형태로 보이고, 분모를 붙여 적은 표본을 크게 보이지 않게
- * 한다. 아직 분석하지 않은 문항은 분모에서 빼고 따로 밝힌다.
- */
-function FeedbackTallyView({ tally }: { tally: FeedbackTally }) {
-  return (
-    <section aria-label="보강이 나온 항목" className="mt-5 border-t border-line pt-5">
-      <h2 className="text-sm font-semibold text-fg">보강이 나온 항목</h2>
-      <p className="mt-1 text-xs text-fg-muted">
-        피드백을 받은 {tally.analyzed}문항 기준입니다.
-        {tally.pending > 0 && ` ${tally.pending}문항은 아직 분석하지 않았습니다.`}
-      </p>
-
-      <h3 className="mt-4 text-xs font-semibold tracking-widest text-fg-subtle">답변 흐름</h3>
-      <dl className="mt-2 space-y-2">
-        {tally.flow.map((row) => <TallyRow key={row.label} label={row.label} count={row.count} total={row.total} />)}
-      </dl>
-
-      {/* 흐름 단계와 이름이 겹치는 유형이 있어(활동·디테일, 감정·의미) 소제목으로 갈라 둔다. */}
-      <h3 className="mt-4 border-t border-line pt-4 text-xs font-semibold tracking-widest text-fg-subtle">고칠 점으로 나온 유형</h3>
-      {tally.categories.length > 0 ? (
-        <dl className="mt-2 space-y-2">
-          {tally.categories.map((row) => <TallyRow key={row.label} label={row.label} count={row.count} total={row.total} />)}
-        </dl>
-      ) : (
-        <p className="mt-2 text-xs text-fg-muted">따로 나온 항목은 없습니다.</p>
-      )}
-    </section>
-  );
-}
-
-function TallyRow({ label, count, total }: { label: string; count: number; total: number }) {
-  return (
-    <div className="flex items-center gap-3">
-      <dt className="w-24 shrink-0 truncate text-xs text-fg-muted sm:w-28">{label}</dt>
-      <dd className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="min-w-0 flex-1"><ProgressBar value={count} max={total} /></span>
-        <span className="shrink-0 text-xs tabular-nums text-fg-muted">{count}/{total}문항</span>
-      </dd>
-    </div>
   );
 }
 
