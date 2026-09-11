@@ -1,4 +1,5 @@
 import {
+  FEEDBACK_CATEGORIES,
   feedbackOutputTokenLimit,
   requiresFrontLoadedOpening,
   type FeedbackResponse,
@@ -36,17 +37,7 @@ const FEEDBACK_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          category: {
-            type: "string",
-            enum: [
-              "storytelling",
-              "detail",
-              "emotion",
-              "delivery",
-              "pronunciation",
-              "grammar",
-            ],
-          },
+          category: { type: "string", enum: FEEDBACK_CATEGORIES },
           title: { type: "string" },
           message: { type: "string" },
           example: { type: "string" },
@@ -121,14 +112,12 @@ function buildPrompt(input: {
   const wpm = input.elapsedSec > 8 ? Math.round((words / input.elapsedSec) * 60) : null;
   const frontLoaded = requiresFrontLoadedOpening(input.questionType);
 
-  // 서술형은 첫 1~2문장에서 질문에 바로 답하는 두괄식을 요구하고,
+  // 서술형은 첫 몇 문장(3문장 안팎) 안에 질문에 대한 답이 나오는 두괄식을 보고,
   // 롤플레이는 전화 대화에 가까워 도입을 강제하지 않는다.
   const structureRules = frontLoaded
     ? [
       "The preferred answer flow is: 핵심 명사/주제 → 활동·예시·구체적 디테일 → 감정·느낌·의미.",
-      "Front-loading (두괄식) is required for this question type: the first 1-2 sentences must answer the question head-on and name the core topic. A long wind-up, background, or hedging before the point is a structural problem, not a style choice.",
-      "So mark structure.topic as good ONLY when the main point lands within the first 1-2 sentences. If it arrives later, mark it needs_work, say in structure.note roughly where the point actually appeared, and give one storytelling item whose example is a short English opening line the learner can say first next time.",
-      "Short filler openers (okay, so, well, you know) are normal speech and fine on their own; they simply do not count as the main point. Mention them only when the wind-up is long enough to delay the answer.",
+      "두괄식: the core answer should come out within the first few sentences (roughly 3), not necessarily the first. A natural lead-in such as restating the question is fine. Mark structure.topic needs_work only when the point is clearly delayed; then say in structure.note where it appeared and give one storytelling item with a short line to say earlier.",
     ]
     : [
       "The preferred answer flow is: 요청·문제의 핵심 → 상황·조건의 구체적 디테일 → 마무리 요청·감정.",
@@ -142,7 +131,8 @@ function buildPrompt(input: {
     ...structureRules,
     "Evaluate the remaining stages as flow, not as a checklist. Do not force the pattern mechanically when the response is already natural.",
     "Give at most 5 feedback items total. Prefer the highest-impact issues only.",
-    "Priority order: storytelling/organization first, concrete activity-example-detail second, emotion/personal reaction third, delivery fourth, pronunciation fifth, grammar last.",
+    "Priority order: storytelling/organization (including transitions) first, concrete activity-example-detail second, emotion/personal reaction third, delivery fourth, pronunciation fifth, grammar last.",
+    "Transitions (연결 표현): notice how the learner moves between ideas, e.g. introducing a point, adding one, giving a reason or result, reacting, wrapping up. Where a shift feels abrupt or one plain connector keeps repeating, suggest a natural spoken connector that fits the spot, shown in the learner's own sentence. Skip it when the ideas already flow.",
     "Grammar rule: do NOT nitpick articles, prepositions, small tense slips, or awkward but understandable phrasing. Mention grammar only when an error seriously hurts meaning or repeats enough to disrupt communication.",
     "Pronunciation rule: never infer a pronunciation mistake from text alone. If an audio transcript is provided, compare it with the browser transcript. Only flag a concrete word/phrase when the mismatch gives a reasonable pronunciation-check signal. Phrase it cautiously: ASR can also be wrong. Do not invent a phonetic diagnosis such as a specific consonant/vowel error unless the evidence supports it.",
     "Delivery rule: use duration/WPM only as a weak signal. Do not criticize a natural pause merely because it exists.",
@@ -153,8 +143,8 @@ function buildPrompt(input: {
     "improvedAnswer is shown to the learner as a Before/After comparison with every changed word highlighted, so every change must be one they can learn from:",
     "- Start from the learner's actual words: the independent audio transcription when it is available (usually more accurate), otherwise the browser transcript.",
     "- It is NOT a new model answer. Keep the learner's story, facts, examples, order of ideas, and as many of their original words and sentences as possible.",
-    "- Change only what your feedback items call for, plus errors that genuinely block meaning. Leave every other sentence as the learner said it and do not polish small grammar slips there; the learner should be able to trace each change back to an item or to a meaning-blocking error.",
-    "- When an item adds an opening line, a detail, or a feeling, add one short sentence or phrase in the learner's own voice and level, reusing that item's English example where it fits. Do not invent major new events, people, or facts.",
+    "- Change only what your feedback items call for, plus errors that genuinely block meaning. The grammar rule applies here too, even inside a sentence you are editing, and sentences the feedback does not mention stay; the learner should be able to trace each change back to an item or to a meaning-blocking error.",
+    "- When an item adds an opening line, a connector, a detail, or a feeling, add it in the learner's own voice and level, reusing that item's English example where it fits, and keep the learner's surrounding sentences. Do not invent major new events, people, or facts.",
     "- Keep it natural spoken English, not an essay, and close to the original length (at most about 30% longer).",
     "- If there is little to fix, return the answer nearly unchanged.",
     "- Plain English text only: no markdown, labels, or Korean.",

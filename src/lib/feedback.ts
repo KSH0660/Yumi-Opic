@@ -16,17 +16,26 @@ export function requiresFrontLoadedOpening(type: string | undefined): boolean {
   return !FREE_OPENING_TYPES.has(type as QuestionType);
 }
 
-export type FeedbackCategory =
-  | "storytelling"
-  | "detail"
-  | "emotion"
-  | "delivery"
-  | "pronunciation"
-  | "grammar";
+/**
+ * 피드백 유형. 코칭 우선순위 순서다. 응답 스키마, 저장된 피드백·표현 검사가 모두 이 목록을 쓴다.
+ * transition 은 흐름이 바뀌는 곳에 넣는 연결 표현(What's really nice is…, As a result…)이다.
+ */
+export const FEEDBACK_CATEGORIES = [
+  "storytelling",
+  "transition",
+  "detail",
+  "emotion",
+  "delivery",
+  "pronunciation",
+  "grammar",
+] as const;
+
+export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
 /** 화면과 PDF 모아보기에서 함께 쓰는 유형 이름. */
 export const feedbackCategoryLabel: Record<FeedbackCategory, string> = {
   storytelling: "스토리텔링",
+  transition: "연결 표현",
   detail: "활동·디테일",
   emotion: "감정·의미",
   delivery: "전달력",
@@ -119,7 +128,7 @@ export function isOpicFeedback(value: unknown): value is OpicFeedback {
   const feedback = value as Partial<OpicFeedback>;
   const structure = feedback.structure;
   const statuses: unknown[] = ["good", "needs_work"];
-  const categories: unknown[] = ["storytelling", "detail", "emotion", "delivery", "pronunciation", "grammar"];
+  const categories: readonly unknown[] = FEEDBACK_CATEGORIES;
   const optionalText = (text: unknown) => text === undefined || typeof text === "string";
   return typeof feedback.overall === "string" && !!structure
     && optionalText(feedback.improvedAnswer) && optionalText(feedback.improvedFrom)

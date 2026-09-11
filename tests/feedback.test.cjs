@@ -84,3 +84,9 @@ test('피드백 항목은 5개까지만 읽는다', () => {
   }));
   assert.equal(readFeedbackResponse({ feedback: { ...sampleFeedback, items: many } }).feedback.items.length, 5);
 });
+
+test('연결 표현 유형을 읽고 모르는 유형은 가려낸다', () => {
+  const item = { category: 'transition', title: '결과로 넘어갈 때', message: '', example: 'As a result, young people care about balance.' };
+  assert.equal(isOpicFeedback({ ...sampleFeedback, items: [item] }), true);
+  assert.equal(isOpicFeedback({ ...sampleFeedback, items: [{ ...item, category: 'connector' }] }), false);
+});
