@@ -471,14 +471,20 @@ export default function ExamResult({
   );
 }
 
+/** 막대를 가득 채우는 시간. 회차마다 눈금이 달라지지 않도록 고정값으로 둔다. */
+const TIMELINE_FULL_SEC = 150;
+/** 눈금으로 표시하는 구간. 두 번째 눈금을 넘기면 막대 색이 바뀐다. */
+const TIMELINE_MARKS_SEC = [100, 120] as const;
+
 /**
  * 답변한 문항의 말한 시간을 순서대로 늘어놓는다.
  *
- * 막대는 이번 회차에서 가장 길게 말한 답변을 가득 찬 것으로 잡은 상대값이라,
- * 회차 사이를 비교하는 눈금이 아니다. 짧다고 경고하지 않는다. 건너뛰거나 짧게
- * 끝낸 데는 본인 사정이 있고, 판단은 사용자가 한다.
+ * 막대는 2:30 을 가득 찬 것으로 잡은 고정 눈금이다. 회차에서 가장 긴 답변을
+ * 기준으로 삼으면 같은 1분 답변이 회차마다 다른 길이로 보여 서로 견줄 수 없다.
+ * 세로 눈금은 1:40 과 2:00 이고, 2:00 을 넘긴 답변은 막대 색이 짙어진다.
  *
- * 번호는 문항 카드와 같은 값을 써서, 건너뛴 문항이 있어도 두 목록이 어긋나지 않는다.
+ * 짧다고 경고하지는 않는다. 건너뛰거나 짧게 끝낸 데는 본인 사정이 있고, 판단은
+ * 사용자가 한다. 번호는 문항 카드와 같은 값을 써서 두 목록이 어긋나지 않는다.
  */
 function AnswerTimeline({ exam, answeredSlots, times }: {
   exam: Exam;
@@ -486,26 +492,49 @@ function AnswerTimeline({ exam, answeredSlots, times }: {
   times: Record<number, number>;
 }) {
   const itemBySlot = new Map(exam.items.map((item) => [item.slot, item]));
-  const longest = answeredSlots.reduce((max, slot) => Math.max(max, times[slot] ?? 0), 0);
 
   return (
-    <ul aria-label="문항별 말한 시간" className="mt-5 space-y-3 border-t border-line pt-5">
-      {answeredSlots.map((slot) => {
-        const item = itemBySlot.get(slot);
-        if (!item) return null;
-        const elapsed = times[slot] ?? 0;
-        return (
-          <li key={slot} className="flex items-center gap-3">
-            <span className="shrink-0 rounded-md bg-surface-3 px-1.5 py-0.5 text-[11px] font-semibold text-fg-muted">{itemNumber(exam.mode, item)}</span>
-            <span className="min-w-0 flex-1">
-              <span className="mb-1.5 block truncate text-xs text-fg-muted">{item.typeLabel} · {item.emoji} {item.topicKo}</span>
-              <ProgressBar value={elapsed} max={longest} />
-            </span>
-            <span className="shrink-0 text-xs tabular-nums text-fg-muted">{formatTime(elapsed)}</span>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="mt-5 border-t border-line pt-5">
+      <ul aria-label="문항별 말한 시간" className="space-y-3">
+        {answeredSlots.map((slot) => {
+          const item = itemBySlot.get(slot);
+          if (!item) return null;
+          const elapsed = times[slot] ?? 0;
+          return (
+            <li key={slot} className="flex items-center gap-3">
+              <span className="shrink-0 rounded-md bg-surface-3 px-1.5 py-0.5 text-[11px] font-semibold text-fg-muted">{itemNumber(exam.mode, item)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="mb-1.5 block truncate text-xs text-fg-muted">{item.typeLabel} · {item.emoji} {item.topicKo}</span>
+                <AnswerTimeBar seconds={elapsed} />
+              </span>
+              <span className="shrink-0 text-xs tabular-nums text-fg-muted">{formatTime(elapsed)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">막대는 2:30 을 가득 찬 것으로 잡았고 세로 눈금은 1:40 과 2:00 입니다. 2:00 을 넘긴 구간은 연하게 이어 붙입니다.</p>
+    </div>
+  );
+}
+
+/**
+ * 고정 눈금 막대. 두 번째 눈금(2:00)을 넘긴 부분만 연하게 칠해 넘긴 만큼이
+ * 눈에 들어오게 한다. 오래 말한 것이 잘못은 아니므로 경고색은 쓰지 않는다.
+ * 눈금선은 채운 부분 위에도 보이도록 맨 위에 그린다.
+ */
+function AnswerTimeBar({ seconds }: { seconds: number }) {
+  const pct = (value: number) => (Math.max(0, value) / TIMELINE_FULL_SEC) * 100;
+  const capped = Math.min(Math.max(0, seconds), TIMELINE_FULL_SEC);
+  const withinPct = pct(Math.min(capped, TIMELINE_MARKS_SEC[1]));
+  const overPct = pct(capped - TIMELINE_MARKS_SEC[1]);
+  return (
+    <span className="relative block h-2 w-full overflow-hidden rounded-full bg-surface-3">
+      <span className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${withinPct}%` }} />
+      {overPct > 0 && <span className="absolute inset-y-0 rounded-r-full bg-primary/45" style={{ left: `${withinPct}%`, width: `${overPct}%` }} />}
+      {TIMELINE_MARKS_SEC.map((mark) => (
+        <span key={mark} aria-hidden className="absolute inset-y-0 w-px bg-canvas" style={{ left: `${pct(mark)}%` }} />
+      ))}
+    </span>
   );
 }
 
