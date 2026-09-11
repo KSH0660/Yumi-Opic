@@ -26,7 +26,7 @@ import {
 } from "@/lib/micShare";
 import { itemNumber } from "@/lib/exam";
 import { examExitLink } from "@/lib/nav";
-import { mergeTranscript } from "@/lib/transcript";
+import { joinTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
 import ExamResult, { type AnswerRecording } from "./ExamResult";
@@ -267,7 +267,7 @@ export default function ExamRunner({
         }
         setAnswers((prev) => ({
           ...prev,
-          [targetSlot]: mergeTranscript(baseRef.current, committed),
+          [targetSlot]: joinTranscript(baseRef.current, committed),
         }));
         setInterim(pending);
       },

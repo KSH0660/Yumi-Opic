@@ -8,15 +8,16 @@
  *     가깝고 기기가 달라도 같게 들려서 기본으로 쓴다.
  *  2. 그 파일이 없거나 재생이 막히면 브라우저 내장 speechSynthesis 로 읽는다.
  *
- * 받아쓰기는 SpeechRecognition (Chrome/Edge 계열) 하나뿐이다. 기기별 버그가 많아
- * `./transcript` 의 접기 로직과 짝을 이룬다. 어떤 버그를 막고 있는지는 그 파일
- * 주석에 정리해 두었다.
+ * 받아쓰기는 SpeechRecognition (Chrome/Edge 계열) 하나뿐이다. 결과를 잇는 규칙은
+ * `./transcript` 에 있고, 그 규칙이 기대하는 모양으로 결과가 오도록 인식기를 켜는
+ * 일은 아래 `startDictation` 이 맡는다.
  */
 
+import { isDesktopAgent } from "./micShare";
 import { questionAudioUrl } from "./questionAudio";
 import {
   collectTranscript,
-  mergeTranscript,
+  joinTranscript,
   type TranscriptChunk,
   type TranscriptDraft,
 } from "./transcript";
@@ -326,6 +327,24 @@ const MAX_RESTARTS = 60;
  * 소리만 받는다. 누가 마이크를 쓸지는 부르는 쪽에서 정한다. `./micShare` 참고.
  */
 
+/*
+ * continuous 는 데스크톱에서만 켠다.
+ *
+ * 안드로이드 크롬은 continuous 를 켜면 인식 중인 가설이 올 때마다 그것을 final 로
+ * 굳혀 results 에 새 칸으로 쌓는다(Chromium SpeechRecognitionImpl.handleResults).
+ * 가설은 발화 앞부분을 품은 채 자라므로 한 발화가 "I", "I like", "I like running"
+ * 세 칸의 확정 결과가 되고, 조각을 잇는 순간 같은 말이 여러 벌 쌓인다.
+ *
+ * continuous 를 끄면 가설은 interim 으로 오고 final 은 발화 끝에 한 번만 온다.
+ * 표준이 continuous 가 꺼진 세션에 final 을 하나까지만 허용하기 때문이다. 안드로이드는
+ * 켜 두어도 결과를 한 번 내면 세션을 닫으므로 끈다고 잃는 것이 없고, 끊긴 뒤 이어
+ * 받는 일은 원래부터 onend 의 재시작이 맡고 있었다. 아이폰·태블릿도 같은 방식으로
+ * 받아, 기기마다 continuous 를 어떻게 흉내 내는지에 기대지 않는다.
+ *
+ * 한 세션 안에서 발화를 겹치지 않는 조각으로 나눠 주는 데스크톱은 켜 둔다.
+ * 발화 사이에 다시 켜느라 말을 흘릴 일이 없다.
+ */
+
 export interface DictationHandlers {
   /** 세션이 시작된 뒤 지금까지 받아 적은 전체 텍스트를 매번 통째로 넘긴다. */
   onUpdate: (draft: TranscriptDraft) => void;
@@ -349,6 +368,7 @@ export interface DictationHandle {
 export function startDictation(handlers: DictationHandlers): DictationHandle | null {
   const Ctor = getRecognitionCtor();
   if (!Ctor) return null;
+  const continuous = isDesktopAgent(window.navigator);
 
   /** 사용자가 멈췄다. 더는 자동으로 다시 켜지 않는다. */
   let closing = false;
@@ -367,7 +387,7 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
   const emit = () => {
     const draft = collectTranscript(chunks);
     handlers.onUpdate({
-      committed: mergeTranscript(settled, draft.committed),
+      committed: joinTranscript(settled, draft.committed),
       interim: draft.interim,
     });
   };
@@ -375,7 +395,7 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
   /** 지금 세션의 결과를 settled 로 옮긴다. 다시 켜면 인덱스가 0 부터 시작하기 때문이다. */
   const foldRun = () => {
     const { committed } = collectTranscript(chunks);
-    settled = mergeTranscript(settled, committed);
+    settled = joinTranscript(settled, committed);
     chunks = [];
   };
 
@@ -399,7 +419,7 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
   const create = (): SpeechRecognitionLike => {
     const recognition = new Ctor();
     recognition.lang = "en-US";
-    recognition.continuous = true;
+    recognition.continuous = continuous;
     recognition.interimResults = true;
     try {
       recognition.maxAlternatives = 1;
@@ -409,10 +429,8 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
 
     recognition.onresult = (event) => {
       if (dead) return;
-      // event.resultIndex 를 믿지 않는다. 안드로이드 크롬은 이 값을 거의 늘 0 으로
-      // 주면서 results 전체를 다시 보내는데, 그 자리부터 이어 붙이면 앞 문장이
-      // 통째로 다시 쌓인다. 인덱스를 자리로 삼아 매번 통째로 다시 읽으면 같은
-      // 결과가 몇 번을 와도 같은 칸을 덮어쓴다.
+      // results 는 이 세션에서 받아 적은 전부다. resultIndex 부터 골라 이어 붙이지 않고
+      // 매번 통째로 다시 읽어 덮어쓰면, 같은 결과가 몇 번을 와도 한 번만 남는다.
       const next: TranscriptChunk[] = [];
       const results = event.results;
       for (let i = 0; i < results.length; i++) {
@@ -454,7 +472,8 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
         finish();
         return;
       }
-      // continuous 를 켜도 발화마다 끊는 기기가 있어, 사용자가 멈추기 전이면 다시 켠다.
+      // 휴대폰은 발화마다, 데스크톱도 한참 조용하면 세션이 끝난다. 사용자가 멈추기
+      // 전이면 다시 켠다.
       restarts += 1;
       restartTimer = window.setTimeout(() => {
         restartTimer = 0;
