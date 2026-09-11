@@ -90,7 +90,7 @@ export function saveEnabledTopics(topicIds: readonly string[]): Settings {
 }
 
 export interface HistoryEntry {
-  id: string; finishedAt: number; mode: "full" | "practice" | "single";
+  id: string; finishedAt: number; mode: Exam["mode"];
   label: string; answered: number; totalItems: number;
   /** 답변이나 AI 피드백을 마지막으로 저장한 시각. 저장을 한 번도 덧붙이지 않은 기록에는 없다. */
   updatedAt?: number;
@@ -108,6 +108,9 @@ export interface SavedResult {
   replays: Record<number, number>;
   feedback: Record<number, OpicFeedback>;
 }
+
+/** 저장된 기록에서 받아들이는 연습 방식. 모르는 값이 적힌 기록은 버린다. */
+const EXAM_MODES: readonly string[] = ["full", "practice", "single", "set"] satisfies Exam["mode"][];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -129,7 +132,7 @@ function readResult(value: unknown): SavedResult | undefined {
   if (!isRecord(value) || !isRecord(value.exam)) return undefined;
   const exam = value.exam;
   if (typeof exam.id !== "string" || !isCount(exam.createdAt)
-    || !["full", "practice", "single"].includes(String(exam.mode))
+    || !EXAM_MODES.includes(String(exam.mode))
     || !Array.isArray(exam.items) || exam.items.length === 0 || !exam.items.every(isExamItem)
     || new Set(exam.items.map((item) => item.slot)).size !== exam.items.length) return undefined;
   const numbers = (record: unknown): Record<number, number> => Object.fromEntries(
@@ -162,7 +165,7 @@ export function loadHistory(): HistoryEntry[] {
       if (!isRecord(entry) || typeof entry.id !== "string" || !entry.id
         || typeof entry.label !== "string" || !isCount(entry.finishedAt)
         || !isCount(entry.answered) || !isCount(entry.totalItems)
-        || !["full", "practice", "single"].includes(String(entry.mode))) return [];
+        || !EXAM_MODES.includes(String(entry.mode))) return [];
       // 이전 버전은 같은 시험을 다시 풀 때 ID를 재사용했다. 그 요약도 보존한다.
       let id = entry.id;
       while (seen.has(id)) id = `${id}:legacy:${entry.finishedAt}:${index}`;

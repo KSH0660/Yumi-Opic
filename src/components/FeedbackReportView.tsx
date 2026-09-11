@@ -12,6 +12,7 @@ import {
 } from "@/lib/report";
 import { feedbackCategoryLabel, requiresFrontLoadedOpening } from "@/lib/feedback";
 import { countEnglishWords } from "@/lib/answers";
+import { itemNumber } from "@/lib/exam";
 import { formatHistoryStamp } from "@/lib/history";
 import { loadHistory, type HistoryEntry } from "@/lib/storage";
 import { Badge, Card } from "./ui";
@@ -80,7 +81,7 @@ export default function FeedbackReportView() {
           </div>
           {section.emptyReason
             ? <p className="mt-3 text-sm text-fg-muted">{emptyReasonText[section.emptyReason]}</p>
-            : <div className="mt-4 space-y-4">{section.items.map((entry) => <ReportItemCard key={`${section.id}-${entry.item.slot}`} entry={entry} />)}</div>}
+            : <div className="mt-4 space-y-4">{section.items.map((entry) => <ReportItemCard key={`${section.id}-${entry.item.slot}`} entry={entry} number={itemNumber(section.mode, entry.item)} />)}</div>}
         </section>
       ))}
       {report.sections.length === 0 && ids.length > 0 && (
@@ -90,12 +91,12 @@ export default function FeedbackReportView() {
   </main>;
 }
 
-function ReportItemCard({ entry }: { entry: ReportItem }) {
+function ReportItemCard({ entry, number }: { entry: ReportItem; number: string }) {
   const { item, answer, browserAnswer, feedback } = entry;
   const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   return <Card className="print-block px-5 py-5">
     <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-      <span className="rounded-md bg-surface-3 px-2 py-0.5 font-semibold text-fg-muted">{item.question.number ?? item.slot}번</span>
+      <span className="rounded-md bg-surface-3 px-2 py-0.5 font-semibold text-fg-muted">{number}번</span>
       <span>{item.typeLabel}</span>
       <span>{item.emoji} {item.topicKo}</span>
     </div>

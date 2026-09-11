@@ -3,11 +3,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Exam } from "@/lib/types";
-import { allTopics, surveyTopics, topicById } from "@/data";
-import { buildFullExam, buildPracticeExam, buildSingleQuestion, EXAM_GROUPS } from "@/lib/exam";
+import { surpriseTopics, surveyTopics, topicById } from "@/data";
+import { buildFullExam, buildPracticeExam, buildRandomPractice, EXAM_GROUPS, DRAW_EXCLUDED_TOPIC_IDS, drawableSurveyTopics, parseRandomScope } from "@/lib/exam";
 import { defaultSettings, loadHistory, loadSettings, saveEnabledTopics, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
-import { examExitLink } from "@/lib/nav";
+import { examExitLink, randomPracticeLink } from "@/lib/nav";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
 import ExamResult from "./ExamResult";
@@ -53,15 +53,15 @@ function NewExamPageClient() {
   const params = useSearchParams();
   const mode = params.get("mode") ?? "full";
   const topicId = params.get("topic");
+  const scope = parseRandomScope(params.get("scope"));
   const [exam, setExam] = useState<Exam | null>(null);
   const [started, setStarted] = useState(mode !== "full");
   const [includeIntro, setIncludeIntro] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // 배경 설문 주제는 실전 모의고사 시작 화면에서 고른다. 처음에는 11개가 모두 켜져 있다.
+  // 배경 설문 주제는 실전 모의고사 시작 화면에서 고른다. 모의고사에 나오는 주제는 처음에 모두 켜져 있다.
   const [enabledIds, setEnabledIds] = useState<string[]>(defaultSettings.enabledSurveyIds);
   const { history, error: historyError, remove, removeAll, removeSelected } = usePracticeHistory();
   const fullHistory = useMemo(() => history.filter((entry) => entry.mode === "full"), [history]);
-
   const build = useCallback((withIntro: boolean) => {
     setError(null);
     try {
@@ -71,23 +71,24 @@ function NewExamPageClient() {
         setExam(buildPracticeExam(topic));
         return;
       }
-      if (mode === "single") { setExam(buildSingleQuestion(allTopics)); return; }
+      if (mode === "single" || mode === "set") { setExam(buildRandomPractice(mode, scope)); return; }
       if (mode !== "full") throw new Error("지원하지 않는 연습 방식입니다.");
       setExam(buildFullExam({ enabledSurveyIds: loadSettings().enabledSurveyIds, includeIntro: withIntro }));
     } catch (cause) {
       setExam(null);
       setError(cause instanceof Error ? cause.message : "문제를 만들지 못했습니다.");
     }
-  }, [mode, topicId]);
+  }, [mode, topicId, scope]);
 
   useEffect(() => { setEnabledIds(loadSettings().enabledSurveyIds); }, []);
   useEffect(() => { setStarted(mode !== "full"); build(true); }, [build, mode]);
 
-  const selectedCount = surveyTopics.filter((topic) => enabledIds.includes(topic.id)).length;
+  // 모의고사에 나오지 않는 주제도 목록에는 남기지만, 최소 3개를 셀 때는 넣지 않는다.
+  const selectedCount = drawableSurveyTopics.filter((topic) => enabledIds.includes(topic.id)).length;
 
   function toggleTopic(id: string) {
     const selected = enabledIds.includes(id);
-    if (selected && selectedCount <= 3) return;
+    if (selected && !DRAW_EXCLUDED_TOPIC_IDS.includes(id) && selectedCount <= 3) return;
     const next = selected ? enabledIds.filter((value) => value !== id) : [...enabledIds, id];
     setEnabledIds(saveEnabledTopics(next).enabledSurveyIds);
     build(includeIntro);
@@ -101,8 +102,8 @@ function NewExamPageClient() {
       {error && <p role="alert" className="mt-4 text-sm text-warn-ink">{error}</p>}
       {exam && <>
         <h1 className="mt-4 text-2xl font-semibold">{exam.items.length}문항이 준비됐습니다</h1>
-        <p className="mt-3 text-sm leading-relaxed text-fg-muted">선택한 주제 중 3개로 2~10번 세트를 만들고, 11~13번 롤플레이 세트와 14~15번 비교·이슈 문항을 더했습니다.</p>
-        <p className="mt-3 text-xs leading-relaxed text-fg-muted">이 모의고사는 배경 설문 주제로 구성됩니다. 돌발 7개 주제는 주제별 연습에서 풀 수 있습니다. 번호와 유형은 실제 시험에서 늘 똑같이 맞아떨어지지는 않습니다.</p>
+        <p className="mt-3 text-sm leading-relaxed text-fg-muted">선택한 주제 중 2개로 2~7번 세트를, 돌발 주제 1개로 8~10번 세트를 만들고, 11~13번 롤플레이 세트와 14~15번 비교·이슈 문항을 더했습니다.</p>
+        <p className="mt-3 text-xs leading-relaxed text-fg-muted">돌발 세트는 돌발 {surpriseTopics.length}개 주제 가운데 하나에서 무작위로 나옵니다. 번호와 유형은 실제 시험에서 늘 똑같이 맞아떨어지지는 않습니다.</p>
         <ul className="mt-5 space-y-1.5 border-t border-line pt-4 text-xs leading-relaxed text-fg-muted">
           <li>· 실제 응시 화면과 같습니다. 문항마다 <strong className="text-fg">▶ 를 눌러야</strong> 질문이 나옵니다.</li>
           <li>· 질문이 끝난 뒤 <strong className="text-fg">5초 안에</strong> 같은 버튼을 누르면 한 번 더 들을 수 있고, 재청취는 문항당 한 번뿐입니다.</li>
@@ -120,11 +121,16 @@ function NewExamPageClient() {
 
       <div className="mt-6 border-t border-line pt-5">
         <h2 className="text-sm font-semibold text-fg-muted">배경 설문 주제</h2>
-        <p className="mt-2 text-xs text-fg-muted">모의고사에 쓸 주제를 고르세요. 3개 이상 선택해야 하며, 처음에는 11개가 모두 켜져 있습니다.</p>
+        <p className="mt-2 text-xs text-fg-muted">모의고사에 쓸 주제를 고르세요. <strong className="font-medium text-fg">모의고사 제외</strong> 표시가 없는 주제를 3개 이상 선택해야 하며, 처음에는 {surveyTopics.length}개가 모두 켜져 있습니다.</p>
         <div className="mt-4 flex flex-wrap gap-2">{surveyTopics.map((topic) => {
           const on = enabledIds.includes(topic.id);
-          return <button key={topic.id} type="button" aria-pressed={on} onClick={() => toggleTopic(topic.id)} className={`rounded-xl border px-3.5 py-2 text-sm ${on ? "border-primary/50 bg-primary-tint text-primary-ink" : "border-line text-fg-muted"}`}>{topic.emoji} {topic.ko}</button>;
+          const excluded = DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id);
+          return <button key={topic.id} type="button" aria-pressed={on} onClick={() => toggleTopic(topic.id)} className={`rounded-xl border px-3.5 py-2 text-sm ${on ? "border-primary/50 bg-primary-tint text-primary-ink" : "border-line text-fg-muted"}`}>{topic.emoji} {topic.ko}{excluded && <span className="ml-1.5 text-[11px] text-fg-subtle">모의고사 제외</span>}</button>;
         })}</div>
+        <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-fg-muted">
+          <span>모의고사 제외 주제는 따로 연습할 수 있습니다.</span>
+          {surveyTopics.filter((topic) => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map((topic) => <Link key={topic.id} href={`/exam?mode=practice&topic=${encodeURIComponent(topic.id)}`} className="text-primary-ink">{topic.emoji} {topic.ko} 연습 →</Link>)}
+        </p>
       </div>
 
       <label className="mt-6 flex cursor-pointer items-center gap-3 text-sm text-fg-muted"><input type="checkbox" checked={includeIntro} onChange={(e) => { setIncludeIntro(e.target.checked); build(e.target.checked); }} />1번 자기소개 문항 포함하기</label>
@@ -138,6 +144,9 @@ function NewExamPageClient() {
   if (error) return <main className="mx-auto max-w-3xl px-5 pt-16"><p role="alert" className="text-sm text-warn-ink">{error}</p><Link href="/" className="mt-4 inline-block text-sm text-primary-ink">← 홈</Link><Link href="/topics" className="ml-6 text-sm text-primary-ink">주제별 연습 →</Link></main>;
   if (!exam) return <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-fg-muted">문제를 준비하는 중…</main>;
 
-  const title = mode === "practice" ? `주제별 연습 · ${topicById.get(exam.focusTopicId ?? "")?.ko ?? ""}` : mode === "single" ? "1문제 연습" : "실전 모의고사";
+  const topicName = topicById.get(exam.focusTopicId ?? "")?.ko ?? "";
+  const title = mode === "practice" ? `주제별 연습 · ${topicName}`
+    : mode === "set" ? `${randomPracticeLink("set", exam.randomScope).label} · ${topicName}`
+      : mode === "single" ? randomPracticeLink("single", exam.randomScope).label : "실전 모의고사";
   return <ExamRunner key={exam.id} exam={exam} title={title} onRegenerate={() => { build(includeIntro); setStarted(mode !== "full"); }} />;
 }
