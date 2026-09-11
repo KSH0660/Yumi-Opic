@@ -473,18 +473,20 @@ export default function ExamResult({
 
 /** 막대를 가득 채우는 시간. 회차마다 눈금이 달라지지 않도록 고정값으로 둔다. */
 const TIMELINE_FULL_SEC = 150;
-/** 눈금으로 표시하는 구간. 두 번째 눈금을 넘기면 막대 색이 바뀐다. */
-const TIMELINE_MARKS_SEC = [100, 120] as const;
+/** 넉넉하게 잡은 적정 답변 길이. 1:20 ~ 2:00 이며 막대에 세로 눈금으로 그린다. */
+const TIMELINE_RANGE_SEC = [80, 120] as const;
 
 /**
  * 답변한 문항의 말한 시간을 순서대로 늘어놓는다.
  *
  * 막대는 2:30 을 가득 찬 것으로 잡은 고정 눈금이다. 회차에서 가장 긴 답변을
  * 기준으로 삼으면 같은 1분 답변이 회차마다 다른 길이로 보여 서로 견줄 수 없다.
- * 세로 눈금은 1:40 과 2:00 이고, 2:00 을 넘긴 답변은 막대 색이 짙어진다.
  *
- * 짧다고 경고하지는 않는다. 건너뛰거나 짧게 끝낸 데는 본인 사정이 있고, 판단은
- * 사용자가 한다. 번호는 문항 카드와 같은 값을 써서 두 목록이 어긋나지 않는다.
+ * 적정 구간(1:20~2:00)에 들면 초록, 그보다 짧으면 연하게, 길면 진하게 칠한다.
+ * 길게 말한 것이 잘못은 아니므로 경고색은 쓰지 않는다. 짧은 쪽에도 경고 문구를
+ * 붙이지 않는다. 건너뛰거나 짧게 끝낸 데는 본인 사정이 있고 판단은 사용자가 한다.
+ *
+ * 번호는 문항 카드와 같은 값을 써서 두 목록이 어긋나지 않는다.
  */
 function AnswerTimeline({ exam, answeredSlots, times }: {
   exam: Exam;
@@ -512,27 +514,29 @@ function AnswerTimeline({ exam, answeredSlots, times }: {
           );
         })}
       </ul>
-      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">막대는 2:30 을 가득 찬 것으로 잡았고 세로 눈금은 1:40 과 2:00 입니다. 2:00 을 넘긴 구간은 연하게 이어 붙입니다.</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
+        막대는 2:30 을 가득 찬 것으로 잡았고 세로 눈금은 1:20 과 2:00 입니다.
+        그 사이면 초록, 짧으면 연한 색, 길면 진한 색입니다.
+      </p>
     </div>
   );
 }
 
-/**
- * 고정 눈금 막대. 두 번째 눈금(2:00)을 넘긴 부분만 연하게 칠해 넘긴 만큼이
- * 눈에 들어오게 한다. 오래 말한 것이 잘못은 아니므로 경고색은 쓰지 않는다.
- * 눈금선은 채운 부분 위에도 보이도록 맨 위에 그린다.
- */
+/** 말한 시간이 적정 구간의 어디에 놓이는지. */
+function timeBarTone(seconds: number): string {
+  if (seconds < TIMELINE_RANGE_SEC[0]) return "bg-primary/40";
+  if (seconds > TIMELINE_RANGE_SEC[1]) return "bg-primary-ink";
+  return "bg-success";
+}
+
+/** 고정 눈금 막대. 눈금선은 채운 부분 위에도 보이도록 맨 위에 그린다. */
 function AnswerTimeBar({ seconds }: { seconds: number }) {
-  const pct = (value: number) => (Math.max(0, value) / TIMELINE_FULL_SEC) * 100;
-  const capped = Math.min(Math.max(0, seconds), TIMELINE_FULL_SEC);
-  const withinPct = pct(Math.min(capped, TIMELINE_MARKS_SEC[1]));
-  const overPct = pct(capped - TIMELINE_MARKS_SEC[1]);
+  const filled = Math.min(100, Math.max(0, (seconds / TIMELINE_FULL_SEC) * 100));
   return (
     <span className="relative block h-2 w-full overflow-hidden rounded-full bg-surface-3">
-      <span className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: `${withinPct}%` }} />
-      {overPct > 0 && <span className="absolute inset-y-0 rounded-r-full bg-primary/45" style={{ left: `${withinPct}%`, width: `${overPct}%` }} />}
-      {TIMELINE_MARKS_SEC.map((mark) => (
-        <span key={mark} aria-hidden className="absolute inset-y-0 w-px bg-canvas" style={{ left: `${pct(mark)}%` }} />
+      <span className={`absolute inset-y-0 left-0 rounded-full ${timeBarTone(seconds)}`} style={{ width: `${filled}%` }} />
+      {TIMELINE_RANGE_SEC.map((mark) => (
+        <span key={mark} aria-hidden className="absolute inset-y-0 w-px bg-canvas" style={{ left: `${(mark / TIMELINE_FULL_SEC) * 100}%` }} />
       ))}
     </span>
   );
