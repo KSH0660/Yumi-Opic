@@ -1,8 +1,22 @@
 import { historyTopicId } from "./history";
 import type { HistoryEntry } from "./storage";
-import type { Exam } from "./types";
+import type { Exam, RandomScope } from "./types";
 
 export interface NavLink { href: string; label: string }
+
+export const RANDOM_SCOPES: readonly RandomScope[] = ["all", "survey", "surprise"];
+export const RANDOM_SCOPE_LABELS: Record<RandomScope, string> = { all: "서베이+돌발", survey: "서베이", surprise: "돌발" };
+
+/**
+ * 랜덤 연습 링크. single 은 한 문항, set 은 한 주제에서 세 문항을 고른 범위에서 뽑는다.
+ * 전체 범위는 scope 를 붙이지 않아 예전 주소(`/exam?mode=single`)가 그대로 통한다.
+ */
+export function randomPracticeLink(mode: "single" | "set", scope: RandomScope = "all"): NavLink {
+  return {
+    href: scope === "all" ? `/exam?mode=${mode}` : `/exam?mode=${mode}&scope=${scope}`,
+    label: `${mode === "single" ? "1문제" : "1토픽"} 랜덤 연습 (${RANDOM_SCOPE_LABELS[scope]})`,
+  };
+}
 
 interface TopicRef { id: string; ko: string; emoji?: string }
 
@@ -29,7 +43,8 @@ export function nextPracticeLink(mode: Exam["mode"]): NavLink {
  */
 export function repeatPracticeLink(entry: HistoryEntry, topics: readonly TopicRef[]): NavLink | undefined {
   if (entry.mode === "full") return { href: "/exam?mode=full", label: "실전 모의고사" };
-  if (entry.mode === "single") return { href: "/exam?mode=single", label: "1문제 연습" };
+  // 랜덤 연습은 같은 문제가 아니라 같은 범위에서 새로 뽑아 이어 간다.
+  if (entry.mode === "single" || entry.mode === "set") return randomPracticeLink(entry.mode, entry.result?.exam.randomScope);
   const topic = topics.find((candidate) => candidate.id === historyTopicId(entry, topics));
   if (!topic) return undefined;
   return {

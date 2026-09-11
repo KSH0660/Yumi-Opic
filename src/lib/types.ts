@@ -56,12 +56,17 @@ export interface ExamItem {
   setPosition?: number;
   setSource?: SourceReference;
 }
+/** 랜덤 연습이 문제를 뽑는 범위. */
+export type RandomScope = "all" | "survey" | "surprise";
 export interface Exam {
   id: string;
   createdAt: number;
-  mode: "full" | "practice" | "single";
+  /** single 은 1문제 랜덤 연습, set 은 한 주제에서 세 문항을 푸는 1토픽 랜덤 연습이다. */
+  mode: "full" | "practice" | "single" | "set";
   items: ExamItem[];
   focusTopicId?: string;
+  /** 랜덤 연습을 뽑은 범위. 기록에서 같은 범위로 다시 뽑을 때 쓴다. 예전 기록에는 없다. */
+  randomScope?: RandomScope;
   bank?: "textbook" | "legacy";
   bankVersion?: string;
   setIds?: string[];

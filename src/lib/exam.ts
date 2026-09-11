@@ -1,5 +1,5 @@
-import type { Exam, ExamItem, Question, QuestionType, Topic } from "./types";
-import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, allTopics, introQuestion, surveyTopics } from "../data";
+import type { Exam, ExamItem, Question, QuestionType, RandomScope, Topic } from "./types";
+import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, allTopics, introQuestion, surpriseTopics, surveyTopics } from "../data";
 
 export type RandomSource = () => number;
 
@@ -69,6 +69,14 @@ function item(slot: number, topic: Topic, question: Question, comboLabel: string
   };
 }
 
+/**
+ * 화면에 적는 문항 번호. 돌발 주제별 연습만 자료 번호를 그대로 보여 준다. 모의고사나
+ * 랜덤 연습에 섞여 들어간 돌발 문항까지 자료 번호로 적히면 순서가 어긋나 보인다.
+ */
+export function itemNumber(mode: Exam["mode"], entry: ExamItem): string {
+  return mode === "practice" ? entry.question.number ?? String(entry.slot) : String(entry.slot);
+}
+
 function introItem(): ExamItem {
   return {
     slot: 1,
@@ -98,13 +106,37 @@ export interface BuildExamOptions {
   rng?: RandomSource;
 }
 
+/** 실전 모의고사와 랜덤 연습에서는 뽑지 않는 배경 설문 주제. 주제별 연습에서만 푼다. */
+export const DRAW_EXCLUDED_TOPIC_IDS: readonly string[] = ["walking", "concert", "jogging"];
+/** 모의고사 2~7번 세트·롤플레이·비교·이슈와 랜덤 연습에서 뽑을 수 있는 배경 설문 주제. */
+export const drawableSurveyTopics = surveyTopics.filter((topic) => !DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id));
+
+const ADVANCED_TYPES: QuestionType[] = ["comparison", "issue"];
+
+/**
+ * 8~10번 돌발 세트. 늘 자료의 첫 묘사 문항으로 열고, 뒤의 두 문항은 비교·이슈를 뺀
+ * 나머지에서 자료 순서대로 고른다. 앞 문항의 답을 전제로 하는 문항은 그 앞 문항이
+ * 먼저 나온 조합에서만 낸다.
+ */
+function surpriseSet(topic: Topic, rng: RandomSource): Question[] {
+  const [first, ...rest] = topic.questions.filter((q) => !ADVANCED_TYPES.includes(q.type));
+  const sets = rest.flatMap((second, i) => rest.slice(i + 1).map((third) => [first, second, third]));
+  const coherent = sets.filter((set) => set.every((q, i) =>
+    (q.dependsOn ?? []).every((id) => set.slice(0, i).some((earlier) => earlier.id === id))));
+  return pickRandom(coherent, rng);
+}
+
 export function buildFullExam(options: BuildExamOptions = {}): Exam {
   const { includeIntro = true, rng = Math.random } = options;
   const requested = [...new Set(options.enabledSurveyIds ?? DEFAULT_SURVEY_IDS)];
-  const enabled = surveyTopics.filter((topic) => requested.includes(topic.id));
-  if (enabled.length < 3) throw new Error("실전 모의고사를 만들려면 서베이 주제를 3개 이상 선택해 주세요.");
+  const enabled = drawableSurveyTopics.filter((topic) => requested.includes(topic.id));
+  if (enabled.length < 3) {
+    const excluded = surveyTopics.filter((topic) => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map((topic) => topic.ko).join("·");
+    throw new Error(`실전 모의고사를 만들려면 서베이 주제를 3개 이상 선택해 주세요. ${excluded} 주제는 모의고사에 나오지 않아 개수에서 빠집니다.`);
+  }
 
-  const [a, b, c] = shuffle(enabled, rng).slice(0, 3);
+  const [a, b] = shuffle(enabled, rng).slice(0, 2);
+  const surprise = pickRandom(surpriseTopics, rng);
   const items: ExamItem[] = [
     item(2, a, questionOfType(a, "description", rng), "세트 1"),
     item(3, a, questionOfType(a, "routine", rng), "세트 1"),
@@ -112,9 +144,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
     item(5, b, questionOfType(b, "description", rng), "세트 2"),
     item(6, b, questionOfType(b, "experience", rng), "세트 2"),
     item(7, b, questionOfType(b, "memorable", rng), "세트 2"),
-    item(8, c, questionOfType(c, "description", rng), "세트 3"),
-    item(9, c, questionOfType(c, "experience", rng), "세트 3"),
-    item(10, c, questionOfType(c, "memorable", rng), "세트 3"),
+    ...surpriseSet(surprise, rng).map((question, i) => item(8 + i, surprise, question, "돌발 세트")),
   ];
 
   const roleplayTopic = pickRandom(enabled, rng);
@@ -132,7 +162,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
   return {
     ...base("full"),
     items,
-    notices: ["기출 복원 기반 문항을 먼저 출제하고, 선택한 주제에 그 유형의 복원 문항이 없을 때만 출제 유형 기반 문항으로 채웁니다.", "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다."],
+    notices: ["기출 복원 기반 문항을 먼저 출제하고, 선택한 주제에 그 유형의 복원 문항이 없을 때만 출제 유형 기반 문항으로 채웁니다.", "8~10번은 돌발 주제 한 개에서 제공 자료 순서대로 세 문항을 내는 돌발 세트입니다.", "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다."],
   };
 }
 
@@ -180,8 +210,46 @@ export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random)
     notices: ["선택한 주제의 문제를 실제 시험 번호인 2~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
 }
 
-export function buildSingleQuestion(topics: Topic[] = allTopics, rng: RandomSource = Math.random): Exam {
+/** 서베이 주제로 내는 세 문항 묶음. 실제 시험의 2~4번, 5~7번 세트와 같다. */
+const SURVEY_SET_TYPES: QuestionType[][] = [
+  ["description", "routine", "experience"],
+  ["description", "experience", "memorable"],
+];
+
+/**
+ * 1토픽 랜덤 연습. 서베이·돌발 주제 하나를 무작위로 골라 실제 시험처럼 세 문항 세트를 낸다.
+ * 돌발 주제는 모의고사 8~10번 돌발 세트와 같은 규칙으로 고른다.
+ */
+export function buildTopicSet(topics: readonly Topic[] = allTopics, rng: RandomSource = Math.random): Exam {
+  const topic = pickRandom(topics, rng);
+  const questions = topic.category === "surprise"
+    ? surpriseSet(topic, rng)
+    : pickRandom(SURVEY_SET_TYPES, rng).map((type) => questionOfType(topic, type, rng));
+  return { ...base("set"), focusTopicId: topic.id,
+    items: questions.map((question, i) => item(i + 1, topic, question, "1토픽 랜덤 연습")) };
+}
+
+export function buildSingleQuestion(topics: readonly Topic[] = allTopics, rng: RandomSource = Math.random): Exam {
   const candidates = topics.flatMap((topic) => singleCandidates(topic).map((question) => ({ topic, question })));
   const { topic, question } = pickRandom(candidates, rng);
   return { ...base("single"), items: [item(1, topic, question, "1문제 연습")] };
+}
+
+/** 랜덤 연습이 범위마다 뽑는 주제. 걷기·콘서트·조깅은 모의고사처럼 빠진다. */
+export const RANDOM_SCOPE_TOPICS: Record<RandomScope, readonly Topic[]> = {
+  all: [...drawableSurveyTopics, ...surpriseTopics],
+  survey: drawableSurveyTopics,
+  surprise: surpriseTopics,
+};
+
+/** 주소의 scope 값. 모르는 값이나 빈 값은 서베이와 돌발 전체로 본다. */
+export function parseRandomScope(value: string | null | undefined): RandomScope {
+  return value === "survey" || value === "surprise" ? value : "all";
+}
+
+/** 1문제·1토픽 랜덤 연습. 뽑은 범위를 시험에 적어 두어야 기록에서 같은 범위로 다시 뽑을 수 있다. */
+export function buildRandomPractice(mode: "single" | "set", scope: RandomScope = "all", rng: RandomSource = Math.random): Exam {
+  const topics = RANDOM_SCOPE_TOPICS[scope];
+  const exam = mode === "single" ? buildSingleQuestion(topics, rng) : buildTopicSet(topics, rng);
+  return { ...exam, randomScope: scope };
 }

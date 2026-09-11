@@ -22,6 +22,7 @@ import {
   summarizeAnswers,
   type ResultFilter,
 } from "@/lib/answers";
+import { itemNumber } from "@/lib/exam";
 import { formatHistoryStamp } from "@/lib/history";
 import { recordingExtension, recordingFileName, recordingToMp3 } from "@/lib/mp3";
 import { examExitLink, nextPracticeLink } from "@/lib/nav";
@@ -256,6 +257,7 @@ export default function ExamResult({
           <ItemResult
             key={item.slot}
             item={item}
+            number={itemNumber(exam.mode, item)}
             answer={answerBySlot[item.slot] ?? ""}
             browserAnswer={rewrites.browser[item.slot]}
             elapsed={times[item.slot] ?? 0}
@@ -350,6 +352,7 @@ function RecordingPlayer({ recording, slot }: { recording: AnswerRecording; slot
 
 function ItemResult({
   item,
+  number,
   answer,
   browserAnswer,
   elapsed,
@@ -364,6 +367,8 @@ function ItemResult({
   expressionError,
 }: {
   item: ExamItem;
+  /** 머리에 적는 문항 번호. 모의고사는 시험 번호, 돌발 주제별 연습은 자료 번호다. */
+  number: string;
   /** 화면에 보여 줄 답변 정본. 다시 받아쓴 문항은 OpenAI 텍스트다. */
   answer: string;
   /** 다시 받아쓰기 전의 브라우저 받아쓰기. 값이 있으면 답변이 바뀐 문항이다. */
@@ -450,7 +455,7 @@ function ItemResult({
   return (
     <Card className="overflow-hidden">
       <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-3 px-5 py-4 text-left transition hover:bg-surface-2">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-3 text-sm font-semibold text-fg-muted">{item.question.number ?? item.slot}</span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-3 text-sm font-semibold text-fg-muted">{number}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-fg">{item.typeLabel}</span>
           <span className="block truncate text-xs text-fg-subtle">{item.emoji} {item.topicKo}</span>

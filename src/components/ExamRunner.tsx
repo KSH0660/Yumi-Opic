@@ -23,6 +23,7 @@ import {
   type MicMode,
   type MicProbe,
 } from "@/lib/micShare";
+import { itemNumber } from "@/lib/exam";
 import { examExitLink } from "@/lib/nav";
 import { mergeTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
@@ -431,6 +432,8 @@ export default function ExamRunner({
 
     const used = (replays[targetSlot] ?? 0) + (isReplay ? 1 : 0);
     const startAnswering = () => {
+      // 리플레이 뒤에는 마지막 질문 청취가 끝난 시점부터 답변 시간을 잰다.
+      if (isReplay) setTimes((prev) => ({ ...prev, [targetSlot]: 0 }));
       setProgress(1);
       setPhase("answering");
       setReplayLeftSec(used < MAX_REPLAYS ? REPLAY_WINDOW_SEC : 0);
@@ -594,7 +597,16 @@ export default function ExamRunner({
 
       <div className="animate-fade-up overflow-hidden rounded-lg border border-exam-line bg-exam-frame text-exam-ink shadow-raised">
         <div className="px-4 py-5 sm:px-7 sm:py-6">
-          <h1 className="text-base font-bold">Question {index + 1} of {exam.items.length}{isSurprisePractice && <span className="ml-3 text-sm font-medium">자료 {item.question.number}번</span>}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-base font-bold">Question {index + 1} of {exam.items.length}{isSurprisePractice && <span className="ml-3 text-sm font-medium">자료 {item.question.number}번</span>}</h1>
+            <div className="flex shrink-0 items-center gap-3 rounded-lg border border-exam-line bg-exam-frame-2 px-3 py-2">
+              <div className="text-right text-[11px] leading-relaxed text-exam-ink-muted">
+                <span className="block font-semibold">답변 시간</span>
+                <span className="block">{phase === "playing" ? "질문 재생 중" : phase === "answering" ? "답변 중" : elapsed > 0 ? "일시정지" : "청취 후 시작"}</span>
+              </div>
+              <span role="timer" aria-label="답변 시간" aria-live="off" className="min-w-[5ch] text-right font-mono text-2xl font-semibold tabular-nums leading-none text-exam-ink">{formatTime(elapsed)}</span>
+            </div>
+          </div>
           <div className="mt-3 border-t border-exam-line" />
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,17rem)_auto_minmax(0,1fr)] lg:gap-6">
@@ -642,6 +654,7 @@ export default function ExamRunner({
               <div className={`mt-2 flex ${isStaycationPractice ? "flex-nowrap overflow-x-auto pb-2" : "flex-wrap"} ${isPractice ? "gap-2" : "gap-1"}`}>
                 {exam.items.map((it, i) => {
                   const answered = hasAnswerText(answers[it.slot]);
+                  const number = itemNumber(exam.mode, it);
                   const state = i === index ? "active" : (isPractice ? answered : i < index) ? "done" : "todo";
                   const startsGroup = isStaycationPractice && i > 0 && it.comboLabel !== exam.items[i - 1].comboLabel;
                   const className = `grid place-items-center border text-xs font-semibold tabular-nums ${isStaycationPractice ? "shrink-0" : ""} ${startsGroup ? "ml-4" : ""} ${isPractice ? "min-h-11 min-w-11 transition-colors hover:border-exam-accent" : "h-7 w-8 cursor-default"} ${
@@ -652,19 +665,19 @@ export default function ExamRunner({
                   if (isPractice) return (
                     <button key={it.slot} type="button" onClick={() => goToQuestion(i)}
                       aria-current={state === "active" ? "step" : undefined}
-                      aria-label={`${it.question.number ?? it.slot}번 문항 · ${answered ? "답변함" : "미답변"}`}
+                      aria-label={`${number}번 문항 · ${answered ? "답변함" : "미답변"}`}
                       title={`${it.typeLabel} · ${answered ? "답변함" : "미답변"}`} className={className}>
-                      {it.question.number ?? it.slot}
+                      {number}
                     </button>
                   );
                   return (
                     <span
-                      key={it.question.number ?? it.slot}
+                      key={it.slot}
                       aria-current={state === "active" ? "step" : undefined}
                       title={state === "done" ? "이미 지나간 문항입니다" : state === "active" ? "현재 문항" : "아직 진행하지 않은 문항입니다"}
                       className={className}
                     >
-                      {it.question.number ?? it.slot}
+                      {number}
                     </span>
                   );
                 })}

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const storage = require('../.test-build/lib/storage');
-const { buildSingleQuestion } = require('../.test-build/lib/exam');
+const { buildSingleQuestion, buildTopicSet } = require('../.test-build/lib/exam');
 const { allTopics, DEFAULT_SURVEY_IDS } = require('../.test-build/data');
 const SETTINGS_KEY = 'yumi-opic:settings';
 const KEY = 'yumi-opic:history';
@@ -101,6 +101,14 @@ test('고른 기록을 한 번에 지우고 나머지는 그대로 둔다', () =
   assert.deepEqual(storage.loadHistory().map(item => item.id), ['attempt-2']);
   assert.ok(!data.get(KEY).includes('attempt-3'));
   assert.deepEqual(storage.deleteHistoryEntries([]).map(item => item.id), ['attempt-2']);
+}));
+
+test('1토픽 랜덤 연습 기록도 상세 결과와 함께 되살린다', () => withStorage(() => {
+  const exam = buildTopicSet(allTopics, () => 0);
+  storage.pushHistory({ ...entry('topic-set', exam), label: '1토픽 랜덤 연습', totalItems: exam.items.length });
+  const saved = storage.loadHistory()[0];
+  assert.equal(saved.mode, 'set');
+  assert.deepEqual(saved.result.exam.items.map(item => item.question.id), exam.items.map(item => item.question.id));
 }));
 
 test('최근 20회만 저장한다', () => withStorage(() => {
