@@ -372,44 +372,36 @@ export default function ExamResult({
         <Badge tone="accent">{title}</Badge>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">{historyEntry ? "지난 연습 결과" : "연습 결과"}</h1>
         <p className="mt-2 text-xs text-fg-subtle">{savedStamp}{savedStamp === finishedStamp ? "" : ` 저장 · 연습 ${finishedStamp}`}</p>
-        <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-          문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. AI 코칭은 아래에서 한 번에 받거나 문항마다 따로 받을 수 있습니다.
-        </p>
-        {saveError ? <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p> : persisted && (
-          <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
-        )}
+        <p className="mt-3 text-sm text-fg-muted">답변 {answeredCount}문항 · 말한 시간 {formatTime(totalTime)} · 녹음 {recordingCount}개</p>
+        {saveError && <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p>}
 
-        <dl className="mt-6 grid grid-cols-2 gap-3 border-t border-line pt-5 text-center sm:grid-cols-3">
-          <div><dt className="text-xs text-fg-muted">답변한 문항</dt><dd className="mt-1 text-lg font-medium tabular-nums">{answeredCount}/{exam.items.length}</dd></div>
-          <div><dt className="text-xs text-fg-muted">전체 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalWords}</dd></div>
-          <div><dt className="text-xs text-fg-muted">답변당 평균 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{averageWords === null ? "—" : Number(averageWords.toFixed(1))}</dd></div>
-          <div><dt className="text-xs text-fg-muted">고유 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{uniqueWords}</dd></div>
-          <div><dt className="text-xs text-fg-muted">문장 수</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalSentences}</dd></div>
-          <div><dt className="text-xs text-fg-muted">말한 시간</dt><dd className="mt-1 text-lg font-medium tabular-nums">{formatTime(totalTime)}</dd></div>
-          <div><dt className="text-xs text-fg-muted">다시 듣기</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalReplays}회</dd></div>
-          <div><dt className="text-xs text-fg-muted">힌트 사용</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalHints}회</dd></div>
-          <div><dt className="text-xs text-fg-muted">녹음본</dt><dd className="mt-1 text-lg font-medium tabular-nums">{recordingCount}개</dd></div>
-        </dl>
+        {/* 결과를 열면 문항 피드백부터 보이게 한다. 통계와 안내는 지우지 않고 접어 둔다. */}
+        <details className="mt-5 border-t border-line pt-4">
+          <summary className="cursor-pointer text-sm font-semibold text-fg-muted">연습 통계</summary>
+          <dl className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
+            <div><dt className="text-xs text-fg-muted">답변한 문항</dt><dd className="mt-1 text-lg font-medium tabular-nums">{answeredCount}/{exam.items.length}</dd></div>
+            <div><dt className="text-xs text-fg-muted">전체 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalWords}</dd></div>
+            <div><dt className="text-xs text-fg-muted">답변당 평균 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{averageWords === null ? "—" : Number(averageWords.toFixed(1))}</dd></div>
+            <div><dt className="text-xs text-fg-muted">고유 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{uniqueWords}</dd></div>
+            <div><dt className="text-xs text-fg-muted">문장 수</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalSentences}</dd></div>
+            <div><dt className="text-xs text-fg-muted">말한 시간</dt><dd className="mt-1 text-lg font-medium tabular-nums">{formatTime(totalTime)}</dd></div>
+            <div><dt className="text-xs text-fg-muted">다시 듣기</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalReplays}회</dd></div>
+            <div><dt className="text-xs text-fg-muted">힌트 사용</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalHints}회</dd></div>
+            <div><dt className="text-xs text-fg-muted">녹음본</dt><dd className="mt-1 text-lg font-medium tabular-nums">{recordingCount}개</dd></div>
+          </dl>
+          <p className="mt-4 text-xs leading-relaxed text-fg-muted">미답변 {skippedCount}문항은 평균 단어 수를 포함한 모든 답변 통계와 AI 분석에서 제외합니다. 녹음본이 있어도 답변 텍스트가 비어 있으면 미답변으로 처리합니다.</p>
+          <p className="mt-2 text-xs leading-relaxed text-fg-muted">전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.</p>
+        </details>
 
-        <p className="mt-4 text-xs leading-relaxed text-fg-muted">미답변 {skippedCount}문항은 평균 단어 수를 포함한 모든 답변 통계와 AI 분석에서 제외합니다. 녹음본이 있어도 답변 텍스트가 비어 있으면 미답변으로 처리합니다.</p>
-
-        {rewrittenCount > 0 && <p className="mt-2 text-xs leading-relaxed text-fg-muted">AI 분석에 녹음본을 보낸 {rewrittenCount}문항은 OpenAI 가 다시 받아쓴 텍스트를 답변으로 씁니다. 위 통계도 그 텍스트 기준이며, 문항을 펼치면 원래 브라우저 받아쓰기를 보거나 되돌릴 수 있습니다.</p>}
-
-        <p className="mt-4 text-xs leading-relaxed text-fg-muted">
-          전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-fg-muted">
-          AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 몇 문장 안에 질문에 대한 답이 나오는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 꼭 첫 문장일 필요는 없습니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 생각과 생각을 자연스럽게 잇는 <strong className="font-semibold text-fg">연결 표현</strong>도 짚어 줍니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
-        </p>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          {onRetry && <button type="button" onClick={onRetry} className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted">같은 문제 다시 풀기</button>}
-          {onRegenerate && (
-            <button type="button" onClick={onRegenerate} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover">문제 다시 뽑기</button>
-          )}
-          {/* 여기까지 왔으면 다음 연습으로 가는 길이 있어야 한다. 없으면 뒤로가기가 유일한 다음 행동이 된다. */}
-          <Link href={next.href} className="inline-flex items-center rounded-xl border border-line px-4 py-2.5 text-sm text-primary-ink transition-colors hover:bg-surface-2">{next.label}</Link>
-        </div>
+        <details className="mt-3 border-t border-line pt-4">
+          <summary className="cursor-pointer text-sm font-semibold text-fg-muted">저장·분석 안내</summary>
+          <p className="mt-3 text-xs leading-relaxed text-fg-muted">문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. AI 코칭은 아래에서 한 번에 받거나 문항마다 따로 받을 수 있습니다.</p>
+          {persisted && <p className="mt-2 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>}
+          {rewrittenCount > 0 && <p className="mt-2 text-xs leading-relaxed text-fg-muted">AI 분석에 녹음본을 보낸 {rewrittenCount}문항은 OpenAI 가 다시 받아쓴 텍스트를 답변으로 씁니다. 위 통계도 그 텍스트 기준이며, 문항을 펼치면 원래 브라우저 받아쓰기를 보거나 되돌릴 수 있습니다.</p>}
+          <p className="mt-2 text-xs leading-relaxed text-fg-muted">
+            AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 몇 문장 안에 질문에 대한 답이 나오는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 꼭 첫 문장일 필요는 없습니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 생각과 생각을 자연스럽게 잇는 <strong className="font-semibold text-fg">연결 표현</strong>도 짚어 줍니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
+          </p>
+        </details>
       </Card>
 
       {answeredCount > 0 && (
@@ -464,6 +456,15 @@ export default function ExamResult({
           </Card>
         )}
       </div>
+      <div className="mt-8 flex flex-wrap gap-3">
+        {onRetry && <button type="button" onClick={onRetry} className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted">같은 문제 다시 풀기</button>}
+        {onRegenerate && (
+          <button type="button" onClick={onRegenerate} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover">문제 다시 뽑기</button>
+        )}
+        {/* 여기까지 왔으면 다음 연습으로 가는 길이 있어야 한다. 없으면 뒤로가기가 유일한 다음 행동이 된다. */}
+        <Link href={next.href} className="inline-flex items-center rounded-xl border border-line px-4 py-2.5 text-sm text-primary-ink transition-colors hover:bg-surface-2">{next.label}</Link>
+      </div>
+
       <Footer />
     </main>
   );
