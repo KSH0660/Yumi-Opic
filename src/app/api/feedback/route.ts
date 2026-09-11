@@ -1,4 +1,9 @@
-import { requiresFrontLoadedOpening, type FeedbackResponse, type OpicFeedback } from "@/lib/feedback";
+import {
+  feedbackOutputTokenLimit,
+  requiresFrontLoadedOpening,
+  type FeedbackResponse,
+  type OpicFeedback,
+} from "@/lib/feedback";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -50,8 +55,10 @@ const FEEDBACK_SCHEMA = {
         additionalProperties: false,
       },
     },
+    // 항목을 먼저 쓰고 그 항목대로 고치도록 맨 뒤에 둔다.
+    improvedAnswer: { type: "string" },
   },
-  required: ["overall", "structure", "pronunciationBasis", "items"],
+  required: ["overall", "structure", "pronunciationBasis", "items", "improvedAnswer"],
   additionalProperties: false,
 } as const;
 
@@ -139,9 +146,18 @@ function buildPrompt(input: {
     "Grammar rule: do NOT nitpick articles, prepositions, small tense slips, or awkward but understandable phrasing. Mention grammar only when an error seriously hurts meaning or repeats enough to disrupt communication.",
     "Pronunciation rule: never infer a pronunciation mistake from text alone. If an audio transcript is provided, compare it with the browser transcript. Only flag a concrete word/phrase when the mismatch gives a reasonable pronunciation-check signal. Phrase it cautiously: ASR can also be wrong. Do not invent a phonetic diagnosis such as a specific consonant/vowel error unless the evidence supports it.",
     "Delivery rule: use duration/WPM only as a weak signal. Do not criticize a natural pause merely because it exists.",
-    "Write feedback in concise Korean. English examples should be short, natural, and easy to reuse. Do not rewrite the entire answer.",
+    "Write feedback in concise Korean. Each item's English example should be one short, natural line that is easy to reuse. The full revised answer goes only in improvedAnswer.",
     "If the answer is already strong, return fewer than 5 items rather than manufacturing problems.",
     "For pronunciationBasis return audio_compare only when an audio transcript is present; browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
+    "",
+    "improvedAnswer is shown to the learner as a Before/After comparison with every changed word highlighted, so every change must be one they can learn from:",
+    "- Start from the learner's actual words: the independent audio transcription when it is available (usually more accurate), otherwise the browser transcript.",
+    "- It is NOT a new model answer. Keep the learner's story, facts, examples, order of ideas, and as many of their original words and sentences as possible.",
+    "- Change only what your feedback items call for, plus errors that genuinely block meaning. Leave every other sentence as the learner said it and do not polish small grammar slips there; the learner should be able to trace each change back to an item or to a meaning-blocking error.",
+    "- When an item adds an opening line, a detail, or a feeling, add one short sentence or phrase in the learner's own voice and level, reusing that item's English example where it fits. Do not invent major new events, people, or facts.",
+    "- Keep it natural spoken English, not an essay, and close to the original length (at most about 30% longer).",
+    "- If there is little to fix, return the answer nearly unchanged.",
+    "- Plain English text only: no markdown, labels, or Korean.",
     "",
     `[Question type] ${input.type || "unknown"} (id: ${input.questionType || "unknown"})`,
     `[Topic] ${input.topic || "unknown"}`,
@@ -196,6 +212,8 @@ export async function POST(request: Request) {
       audioTranscript = "";
     }
   }
+  // 고친 답변은 이 텍스트를 바탕으로 만들라고 지시한다. 프롬프트의 규칙과 같은 순서다.
+  const answerBasis = audioTranscript || browserTranscript;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -215,7 +233,7 @@ export async function POST(request: Request) {
         elapsedSec,
       }),
       reasoning: { effort: "low" },
-      max_output_tokens: 1_200,
+      max_output_tokens: feedbackOutputTokenLimit(answerBasis.length),
       store: false,
       text: {
         verbosity: "low",
@@ -245,9 +263,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const feedback = JSON.parse(outputText) as OpicFeedback;
-    if (!Array.isArray(feedback.items)) throw new Error("invalid feedback");
-    feedback.items = feedback.items.slice(0, 5);
+    const { improvedAnswer: rawImproved, ...parsed } = JSON.parse(outputText) as OpicFeedback;
+    if (!Array.isArray(parsed.items)) throw new Error("invalid feedback");
+    const improvedAnswer = typeof rawImproved === "string" ? rawImproved.trim() : "";
+    const feedback: OpicFeedback = {
+      ...parsed,
+      items: parsed.items.slice(0, 5),
+      // Before 는 AI 가 실제로 고친 바로 그 텍스트여야 바뀐 곳이 정확히 칠해진다.
+      ...(improvedAnswer ? { improvedAnswer, improvedFrom: answerBasis } : {}),
+    };
     // 전사는 이미 돈을 들여 받아 둔 결과다. 프롬프트에만 쓰고 버리지 않고 화면으로 돌려준다.
     const payload: FeedbackResponse = { feedback, audioTranscript };
     return Response.json(payload);

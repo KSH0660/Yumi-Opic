@@ -1,9 +1,11 @@
+import { feedbackOutputTokenLimit } from "./feedback";
+
 /**
  * AI 피드백 한 번에 드는 대략적인 비용.
  *
- * 정확한 청구액이 아니라 "이 버튼이 얼마짜리인지" 감을 주기 위한 값이다.
- * 실제로는 출력 토큰을 끝까지 쓰는 일이 드물어 여기서 나온 금액보다 적게 나온다.
- * 단가가 바뀌면 아래 RATES 만 고치면 된다.
+ * 화면에는 보여 주지 않는다. 운영하는 쪽이 문항 하나에 드는 비용을 가늠하고 README 의
+ * 금액을 맞출 때 쓰는 값이다. 실제로는 출력 토큰을 끝까지 쓰는 일이 드물어 여기서 나온
+ * 금액보다 적게 나온다. 단가가 바뀌면 아래 RATES 만 고치면 된다.
  */
 export interface CostRates {
   /** 피드백 모델 입력 100만 토큰당 USD. */
@@ -24,10 +26,11 @@ export const RATES: CostRates = {
   krwPerUsd: 1400,
 };
 
-/** route.ts 가 매번 함께 보내는 고정 지시문 분량. 두괄식 규칙이 붙어 500 → 700 으로 늘렸다. */
-const PROMPT_OVERHEAD_TOKENS = 700;
-/** route.ts 의 max_output_tokens. 추론 토큰까지 여기서 잘린다. */
-const MAX_OUTPUT_TOKENS = 1_200;
+/**
+ * route.ts 가 매번 함께 보내는 고정 지시문 분량. 두괄식 규칙이 붙어 500 → 700,
+ * 고친 답변(Before / After) 규칙이 붙어 700 → 1,000 으로 늘렸다.
+ */
+const PROMPT_OVERHEAD_TOKENS = 1_000;
 /** 영어 기준 대략 4글자에 1토큰. */
 const CHARS_PER_TOKEN = 4;
 
@@ -56,7 +59,8 @@ export function estimateFeedbackCost(input: FeedbackCostInput, rates: CostRates 
   const inputTokens = PROMPT_OVERHEAD_TOKENS + transcriptTokens;
 
   const inputUsd = (inputTokens / 1_000_000) * rates.inputPerMTok;
-  const outputUsd = (MAX_OUTPUT_TOKENS / 1_000_000) * rates.outputPerMTok;
+  // route.ts 의 max_output_tokens 와 같은 값이다. 고친 답변만큼 답변이 길수록 늘어난다.
+  const outputUsd = (feedbackOutputTokenLimit(input.transcriptChars) / 1_000_000) * rates.outputPerMTok;
   const transcribeUsd = (audioSec / 60) * rates.transcribePerMin;
 
   const modelKrw = (inputUsd + outputUsd) * rates.krwPerUsd;
@@ -69,7 +73,7 @@ export function estimateFeedbackCost(input: FeedbackCostInput, rates: CostRates 
   };
 }
 
-/** 화면에 쓸 원화 표기. 1원보다 적으면 자리수를 살려 준다. */
+/** 원화 표기. 1원보다 적으면 자리수를 살려 준다. */
 export function formatKrw(krw: number): string {
   if (!Number.isFinite(krw) || krw <= 0) return "0원";
   if (krw < 1) return `${krw.toFixed(2)}원`;

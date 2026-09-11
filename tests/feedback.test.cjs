@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { requiresFrontLoadedOpening, isOpicFeedback, readFeedbackResponse } = require('../.test-build/lib/feedback');
+const {
+  requiresFrontLoadedOpening, isOpicFeedback, readFeedbackResponse, feedbackRewrite, feedbackOutputTokenLimit,
+} = require('../.test-build/lib/feedback');
 
 test('서술형 문항은 두괄식 기준으로 보고 롤플레이는 빼 준다', () => {
   for (const type of ['description', 'routine', 'experience', 'memorable', 'comparison', 'issue', 'intro']) {
@@ -46,6 +48,34 @@ test('전사가 없거나 형식이 어긋난 응답을 가려낸다', () => {
   assert.equal(readFeedbackResponse({ error: '실패' }), null);
   assert.equal(readFeedbackResponse(sampleFeedback), null);
   assert.equal(readFeedbackResponse(null), null);
+});
+
+test('고친 답변이 붙은 피드백도, 없는 예전 피드백도 통과한다', () => {
+  const rewritten = { ...sampleFeedback, improvedAnswer: 'My favorite place is the gym.', improvedFrom: 'I go to the gym.' };
+  assert.equal(isOpicFeedback(sampleFeedback), true);
+  assert.equal(isOpicFeedback(rewritten), true);
+  assert.equal(isOpicFeedback({ ...rewritten, improvedAnswer: 3 }), false);
+  assert.equal(isOpicFeedback({ ...rewritten, improvedFrom: null }), false);
+  assert.deepEqual(readFeedbackResponse({ feedback: rewritten }).feedback, rewritten);
+});
+
+test('Before / After 는 바탕 답변과 고친 답변이 모두 있을 때만 만든다', () => {
+  assert.deepEqual(
+    feedbackRewrite({ ...sampleFeedback, improvedAnswer: ' After. ', improvedFrom: ' Before. ' }),
+    { before: 'Before.', after: 'After.' },
+  );
+  assert.equal(feedbackRewrite(sampleFeedback), null);
+  assert.equal(feedbackRewrite({ ...sampleFeedback, improvedAnswer: 'After.', improvedFrom: '  ' }), null);
+  assert.equal(feedbackRewrite({ ...sampleFeedback, improvedAnswer: '', improvedFrom: 'Before.' }), null);
+});
+
+test('출력 토큰은 고친 답변만큼 답변 길이에 맞춰 늘리되 상한을 넘지 않는다', () => {
+  const short = feedbackOutputTokenLimit(300);
+  const long = feedbackOutputTokenLimit(1500);
+  assert.ok(short >= 1_200, '피드백만 받던 예전 상한보다 작지 않다');
+  assert.ok(long > short);
+  assert.equal(feedbackOutputTokenLimit(-10), feedbackOutputTokenLimit(0));
+  assert.equal(feedbackOutputTokenLimit(1_000_000), 6_000);
 });
 
 test('피드백 항목은 5개까지만 읽는다', () => {

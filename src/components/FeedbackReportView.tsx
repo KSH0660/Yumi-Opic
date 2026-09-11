@@ -10,11 +10,11 @@ import {
   type ReportScope,
   type ReportSection,
 } from "@/lib/report";
-import { feedbackCategoryLabel, requiresFrontLoadedOpening } from "@/lib/feedback";
 import { countEnglishWords } from "@/lib/answers";
 import { itemNumber } from "@/lib/exam";
 import { formatHistoryStamp } from "@/lib/history";
 import { loadHistory, type HistoryEntry } from "@/lib/storage";
+import FeedbackDetails from "./FeedbackDetails";
 import { Badge, Card } from "./ui";
 
 function formatTime(sec: number): string {
@@ -93,7 +93,6 @@ export default function FeedbackReportView() {
 
 function ReportItemCard({ entry, number }: { entry: ReportItem; number: string }) {
   const { item, answer, browserAnswer, feedback } = entry;
-  const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   return <Card className="print-block px-5 py-5">
     <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
       <span className="rounded-md bg-surface-3 px-2 py-0.5 font-semibold text-fg-muted">{number}번</span>
@@ -114,23 +113,8 @@ function ReportItemCard({ entry, number }: { entry: ReportItem; number: string }
     </div>
 
     {feedback ? <div className="mt-4 border-t border-line pt-4">
-      <p className="text-xs font-semibold text-fg-muted">AI 스토리텔링 코치</p>
-      <ul className="mt-2 flex flex-wrap gap-2 text-[11px] text-fg-muted">
-        <li>{feedback.structure.topic === "good" ? "✓" : "△"} {frontLoaded ? "두괄식 도입" : "요청·문제 전달"}</li>
-        <li>{feedback.structure.detail === "good" ? "✓" : "△"} 활동·디테일</li>
-        <li>{feedback.structure.feeling === "good" ? "✓" : "△"} 감정·의미</li>
-      </ul>
-      <p className="mt-3 text-sm font-medium leading-relaxed text-fg">{feedback.overall}</p>
-      <p className="mt-1 text-xs leading-relaxed text-fg-muted">{feedback.structure.note}</p>
-      {feedback.items.length > 0 && <ol className="mt-3 space-y-2">
-        {feedback.items.slice(0, 5).map((detail, index) => (
-          <li key={`${detail.category}-${index}`} className="rounded-lg bg-surface-2 px-3.5 py-3">
-            <p className="text-xs font-semibold text-fg">[{feedbackCategoryLabel[detail.category]}] {detail.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-fg-muted">{detail.message}</p>
-            {detail.example && <p className="mt-2 rounded-md border border-line bg-surface px-2.5 py-2 text-xs leading-relaxed text-fg">{detail.example}</p>}
-          </li>
-        ))}
-      </ol>}
+      <p className="mb-3 text-xs font-semibold text-fg-muted">AI 스토리텔링 코치</p>
+      <FeedbackDetails feedback={feedback} questionType={item.question.type} answer={answer} />
     </div> : <p className="mt-4 text-xs text-fg-subtle">이 문항에는 AI 피드백이 없습니다.</p>}
   </Card>;
 }
