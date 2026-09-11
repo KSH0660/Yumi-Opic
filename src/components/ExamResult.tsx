@@ -373,6 +373,7 @@ export default function ExamResult({
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">{historyEntry ? "지난 연습 결과" : "연습 결과"}</h1>
         <p className="mt-2 text-xs text-fg-subtle">{savedStamp}{savedStamp === finishedStamp ? "" : ` 저장 · 연습 ${finishedStamp}`}</p>
         <p className="mt-3 text-sm text-fg-muted">답변 {answeredCount}문항 · 말한 시간 {formatTime(totalTime)} · 녹음 {recordingCount}개</p>
+        {answeredCount > 0 && <AnswerTimeline exam={exam} answeredSlots={answeredSlots} times={times} />}
         {saveError && <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p>}
 
         {/* 결과를 열면 문항 피드백부터 보이게 한다. 통계와 안내는 지우지 않고 접어 둔다. */}
@@ -467,6 +468,44 @@ export default function ExamResult({
 
       <Footer />
     </main>
+  );
+}
+
+/**
+ * 답변한 문항의 말한 시간을 순서대로 늘어놓는다.
+ *
+ * 막대는 이번 회차에서 가장 길게 말한 답변을 가득 찬 것으로 잡은 상대값이라,
+ * 회차 사이를 비교하는 눈금이 아니다. 짧다고 경고하지 않는다. 건너뛰거나 짧게
+ * 끝낸 데는 본인 사정이 있고, 판단은 사용자가 한다.
+ *
+ * 번호는 문항 카드와 같은 값을 써서, 건너뛴 문항이 있어도 두 목록이 어긋나지 않는다.
+ */
+function AnswerTimeline({ exam, answeredSlots, times }: {
+  exam: Exam;
+  answeredSlots: readonly number[];
+  times: Record<number, number>;
+}) {
+  const itemBySlot = new Map(exam.items.map((item) => [item.slot, item]));
+  const longest = answeredSlots.reduce((max, slot) => Math.max(max, times[slot] ?? 0), 0);
+
+  return (
+    <ul aria-label="문항별 말한 시간" className="mt-5 space-y-3 border-t border-line pt-5">
+      {answeredSlots.map((slot) => {
+        const item = itemBySlot.get(slot);
+        if (!item) return null;
+        const elapsed = times[slot] ?? 0;
+        return (
+          <li key={slot} className="flex items-center gap-3">
+            <span className="shrink-0 rounded-md bg-surface-3 px-1.5 py-0.5 text-[11px] font-semibold text-fg-muted">{itemNumber(exam.mode, item)}</span>
+            <span className="min-w-0 flex-1">
+              <span className="mb-1.5 block truncate text-xs text-fg-muted">{item.typeLabel} · {item.emoji} {item.topicKo}</span>
+              <ProgressBar value={elapsed} max={longest} />
+            </span>
+            <span className="shrink-0 text-xs tabular-nums text-fg-muted">{formatTime(elapsed)}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
