@@ -388,8 +388,8 @@ export default function ExamResult({
         {saveError && <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p>}
 
         {/* 결과를 열면 문항 피드백부터 보이게 한다. 통계와 안내는 지우지 않고 접어 둔다. */}
-        <details className="mt-5 border-t border-line pt-4">
-          <summary className="cursor-pointer text-sm font-semibold text-fg-muted">연습 통계</summary>
+        <details className="mt-5 border-t border-line pt-1">
+          <summary className="cursor-pointer select-none py-3 text-sm font-semibold text-fg-muted">연습 통계</summary>
           <dl className="mt-4 grid grid-cols-2 gap-3 text-center sm:grid-cols-3">
             <div><dt className="text-xs text-fg-muted">답변한 문항</dt><dd className="mt-1 text-lg font-medium tabular-nums">{answeredCount}/{exam.items.length}</dd></div>
             <div><dt className="text-xs text-fg-muted">전체 단어</dt><dd className="mt-1 text-lg font-medium tabular-nums">{totalWords}</dd></div>
@@ -405,8 +405,8 @@ export default function ExamResult({
           <p className="mt-2 text-xs leading-relaxed text-fg-muted">전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.</p>
         </details>
 
-        <details className="mt-3 border-t border-line pt-4">
-          <summary className="cursor-pointer text-sm font-semibold text-fg-muted">저장·분석 안내</summary>
+        <details className="mt-2 border-t border-line pt-1">
+          <summary className="cursor-pointer select-none py-3 text-sm font-semibold text-fg-muted">저장·분석 안내</summary>
           <p className="mt-3 text-xs leading-relaxed text-fg-muted">문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. AI 코칭은 아래에서 한 번에 받거나 문항마다 따로 받을 수 있습니다.</p>
           {persisted && <p className="mt-2 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>}
           {rewrittenCount > 0 && <p className="mt-2 text-xs leading-relaxed text-fg-muted">AI 분석에 녹음본을 보낸 {rewrittenCount}문항은 OpenAI 가 다시 받아쓴 텍스트를 답변으로 씁니다. 위 통계도 그 텍스트 기준이며, 문항을 펼치면 원래 브라우저 받아쓰기를 보거나 되돌릴 수 있습니다.</p>}
@@ -536,16 +536,19 @@ function FeedbackTallyView({ tally }: { tally: FeedbackTally }) {
         {tally.pending > 0 && ` ${tally.pending}문항은 아직 분석하지 않았습니다.`}
       </p>
 
-      <dl className="mt-3 space-y-2">
+      <h3 className="mt-4 text-xs font-semibold tracking-widest text-fg-subtle">답변 흐름</h3>
+      <dl className="mt-2 space-y-2">
         {tally.flow.map((row) => <TallyRow key={row.label} label={row.label} count={row.count} total={row.total} />)}
       </dl>
 
+      {/* 흐름 단계와 이름이 겹치는 유형이 있어(활동·디테일, 감정·의미) 소제목으로 갈라 둔다. */}
+      <h3 className="mt-4 border-t border-line pt-4 text-xs font-semibold tracking-widest text-fg-subtle">고칠 점으로 나온 유형</h3>
       {tally.categories.length > 0 ? (
-        <dl className="mt-4 space-y-2 border-t border-line pt-4">
+        <dl className="mt-2 space-y-2">
           {tally.categories.map((row) => <TallyRow key={row.label} label={row.label} count={row.count} total={row.total} />)}
         </dl>
       ) : (
-        <p className="mt-4 border-t border-line pt-4 text-xs text-fg-muted">고칠 점으로 따로 나온 항목은 없습니다.</p>
+        <p className="mt-2 text-xs text-fg-muted">따로 나온 항목은 없습니다.</p>
       )}
     </section>
   );
