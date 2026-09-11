@@ -59,6 +59,18 @@ test('JSON 저장 시 undefined는 생략하고 실제 선행 문항 배열은 �
   assert.deepEqual(storage.loadHistory()[0].result, updated);
 }));
 
+test('Before / After 로 쓸 고친 답변과 바탕 답변을 함께 저장하고 되살린다', () => withStorage(() => {
+  const original = entry();
+  const slot = original.result.exam.items[0].slot;
+  original.result.feedback[slot] = {
+    ...feedback,
+    improvedAnswer: 'My favorite trip was to Jeju. I enjoyed the trip with my friends.',
+    improvedFrom: 'I enjoyed the trip with my friends.',
+  };
+  storage.pushHistory(original);
+  assert.deepEqual(storage.loadHistory()[0].result.feedback[slot], original.result.feedback[slot]);
+}));
+
 test('같은 시험을 다시 풀어도 회차별로 남고 같은 회차 저장은 중복되지 않는다', () => withStorage(() => {
   const first = entry();
   const second = entry('attempt-2', first.result.exam);

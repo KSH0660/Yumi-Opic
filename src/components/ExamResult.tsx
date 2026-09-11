@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Exam, ExamItem } from "@/lib/types";
 import {
-  feedbackCategoryLabel,
+  feedbackRewrite,
   readFeedbackResponse,
-  requiresFrontLoadedOpening,
   type FeedbackResponse,
   type OpicFeedback,
 } from "@/lib/feedback";
+import { runInPool, slotsAwaitingFeedback } from "@/lib/feedbackBatch";
 import {
   applyAnswerRewrites,
   countEnglishSentences,
@@ -27,15 +27,10 @@ import { formatHistoryStamp } from "@/lib/history";
 import { recordingExtension, recordingFileName, recordingToMp3 } from "@/lib/mp3";
 import { examExitLink, nextPracticeLink } from "@/lib/nav";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
-import { estimateFeedbackCost, formatKrw } from "@/lib/cost";
-import {
-  draftId,
-  expressionFromFeedbackItem,
-  expressionFromOverall,
-  type ExpressionDraft,
-} from "@/lib/expressions";
-import { SaveExpressionButton, useSavedExpressions } from "./SavedExpressions";
-import { Badge, Card, SourceBadge } from "./ui";
+import type { ExpressionDraft } from "@/lib/expressions";
+import { useSavedExpressions } from "./SavedExpressions";
+import FeedbackDetails from "./FeedbackDetails";
+import { Badge, Card, ProgressBar, SourceBadge } from "./ui";
 import Footer from "./Footer";
 
 function formatTime(sec: number): string {
@@ -45,6 +40,77 @@ function formatTime(sec: number): string {
 export interface AnswerRecording {
   url: string;
   mimeType: string;
+}
+
+const FEEDBACK_ERROR = "AI 피드백을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+
+/**
+ * 한 번에 받기로 동시에 보내는 문항 수. 한 문항에 녹음 전사와 피드백 생성이 이어져
+ * 수십 초가 걸리므로 차례로만 보내면 너무 오래 기다린다. 너무 많이 겹치면 서버가 버거워한다.
+ */
+const BATCH_CONCURRENCY = 3;
+
+/** 서버에 키가 없을 때처럼 다른 문항도 똑같이 실패할 오류. 한 번에 받기는 여기서 멈춘다. */
+class FeedbackRequestError extends Error {
+  readonly stopsBatch: boolean;
+
+  constructor(message: string, stopsBatch: boolean) {
+    super(message);
+    this.stopsBatch = stopsBatch;
+  }
+}
+
+/** 한 문항을 `/api/feedback` 에 보낸다. 개별 버튼과 한 번에 받기가 모두 이 요청을 쓴다. */
+async function fetchFeedback({ item, transcript, elapsed, recording }: {
+  item: ExamItem;
+  /** 발음 점검에 쓰는 받아쓰기. 이미 다시 받아쓴 문항은 원래 브라우저 받아쓰기다. */
+  transcript: string;
+  elapsed: number;
+  recording?: AnswerRecording;
+}): Promise<FeedbackResponse> {
+  const body = new FormData();
+  body.append("question", item.question.en);
+  body.append("topic", `${item.topicKo} / ${item.topicEn}`);
+  body.append("type", item.typeLabel);
+  body.append("questionType", item.question.type);
+  body.append("transcript", transcript);
+  body.append("elapsedSec", String(elapsed));
+
+  if (recording) {
+    try {
+      const blob = await (await fetch(recording.url)).blob();
+      if (blob.size > 0) {
+        body.append("audio", blob, recordingFileName(item.slot, recordingExtension(recording.mimeType)));
+      }
+    } catch {
+      // 녹음본 전송이 실패해도 텍스트 피드백은 받을 수 있다.
+    }
+  }
+
+  const response = await fetch("/api/feedback", { method: "POST", body });
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+  const result = response.ok ? readFeedbackResponse(payload) : null;
+  // 503 은 서버에 키가 설정되지 않았다는 뜻이라 남은 문항을 보내도 소용이 없다.
+  if (!result) throw new FeedbackRequestError(payload?.error || FEEDBACK_ERROR, response.status === 503);
+  return result;
+}
+
+/** 한 문항 요청의 결과. 한 번에 받기가 진행률과 멈춤을 정하는 데 쓴다. */
+type FeedbackOutcome =
+  | { status: "done" | "skipped" }
+  | { status: "failed"; message: string; stopsBatch: boolean };
+
+/** 한 번에 받기의 진행 상황. 끝난 뒤에도 남겨 결과를 한 줄로 알린다. */
+interface FeedbackBatch {
+  total: number;
+  /** 끝난 문항 수. 받았든, 실패했든, 그 사이 개별 버튼으로 먼저 받아 건너뛰었든 모두 센다. */
+  settled: number;
+  received: number;
+  failed: number;
+  running: boolean;
+  /** 사용자가 멈췄거나, 남은 문항도 똑같이 실패할 오류를 만났을 때. */
+  stop: "user" | "fatal" | null;
+  fatalMessage?: string;
 }
 
 /**
@@ -102,6 +168,15 @@ export default function ExamResult({
   const { answeredSlots, answeredCount, skippedCount, totalWords, averageWords, totalSentences,
     uniqueWords, totalTime, totalHints, totalReplays } = summarizeAnswers(exam.items, answerBySlot, times, hintUse, replays);
   const [feedbackBySlot, setFeedbackBySlot] = useState<Record<number, OpicFeedback>>(historyEntry?.result?.feedback ?? {});
+  // 한 번에 받기가 차례를 기다리는 사이 개별 버튼으로 먼저 받은 문항을, 렌더를 기다리지 않고 알아보려고 둔다.
+  // 피드백은 이 값을 고친 뒤 그대로 상태에 넘기므로 둘은 늘 같다.
+  const feedbackRef = useRef(feedbackBySlot);
+  // 지금 서버에 요청 중인 문항. 같은 문항을 겹쳐 보내지 않도록 렌더와 상관없이 바로 읽고 쓴다.
+  const inFlight = useRef(new Set<number>());
+  const [pendingSlots, setPendingSlots] = useState<ReadonlySet<number>>(() => new Set());
+  const [feedbackErrors, setFeedbackErrors] = useState<Record<number, string>>({});
+  const [batch, setBatch] = useState<FeedbackBatch | null>(null);
+  const batchStop = useRef(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [persisted, setPersisted] = useState(!!historyEntry);
   const [savedAt, setSavedAt] = useState(() => Math.max(attempt.finishedAt, historyEntry?.updatedAt ?? 0));
@@ -150,7 +225,8 @@ export default function ExamResult({
    */
   function applyFeedback(slot: number, response: FeedbackResponse) {
     readOnly.current = false;
-    setFeedbackBySlot((current) => ({ ...current, [slot]: response.feedback }));
+    feedbackRef.current = { ...feedbackRef.current, [slot]: response.feedback };
+    setFeedbackBySlot(feedbackRef.current);
     const transcript = response.audioTranscript;
     if (!hasAnswerText(transcript)) return;
     setRewrites((current) => {
@@ -176,6 +252,100 @@ export default function ExamResult({
     });
   }
 
+  /**
+   * 한 문항의 AI 피드백을 받는다. 개별 버튼과 한 번에 받기가 모두 이 함수를 거친다.
+   * 같은 문항이 이미 요청 중이면 겹쳐 보내지 않는다. 답변은 늘 마지막으로 그린 값을 읽는다.
+   */
+  async function requestFeedback(item: ExamItem): Promise<FeedbackOutcome> {
+    const slot = item.slot;
+    const answer = latestResult.current.answers[slot] ?? "";
+    if (!hasAnswerText(answer) || inFlight.current.has(slot)) return { status: "skipped" };
+    inFlight.current.add(slot);
+    setPendingSlots(new Set(inFlight.current));
+    setFeedbackErrors((current) => {
+      if (!(slot in current)) return current;
+      const next = { ...current };
+      delete next[slot];
+      return next;
+    });
+
+    try {
+      applyFeedback(slot, await fetchFeedback({
+        item,
+        // 발음 점검은 브라우저 받아쓰기와 새 전사를 견주어 본다. 이미 바꿔 쓴 문항은
+        // 원래 받아쓰기를 보내야 두 인식 결과의 차이가 그대로 남는다.
+        transcript: latestResult.current.browserAnswers?.[slot] ?? answer,
+        elapsed: times[slot] ?? 0,
+        recording: recordings[slot],
+      }));
+      return { status: "done" };
+    } catch (error) {
+      // 연결이 끊긴 경우 브라우저의 영어 오류 문구 대신 안내 문구를 보여 준다.
+      const message = error instanceof FeedbackRequestError ? error.message : FEEDBACK_ERROR;
+      setFeedbackErrors((current) => ({ ...current, [slot]: message }));
+      return { status: "failed", message, stopsBatch: error instanceof FeedbackRequestError && error.stopsBatch };
+    } finally {
+      inFlight.current.delete(slot);
+      setPendingSlots(new Set(inFlight.current));
+    }
+  }
+
+  /** 문항 카드의 버튼. 이미 받은 문항을 다시 분석할 때만 한 번 묻는다. */
+  function requestItemFeedback(item: ExamItem) {
+    if (feedbackRef.current[item.slot] && !window.confirm(
+      "이 문항은 이미 AI 피드백을 받았습니다.\n다시 분석하면 지금 피드백과 Before / After 가 새 결과로 바뀝니다. 계속할까요?",
+    )) return;
+    void requestFeedback(item);
+  }
+
+  /**
+   * 답변한 문항 가운데 아직 피드백이 없는 것만 모아 한 번에 받는다. 문항마다 개별 버튼과
+   * 같은 요청을 보내고, 끝나는 대로 그 문항 카드에 붙는다.
+   */
+  async function requestAllFeedback() {
+    if (batch?.running) return;
+    const targets = slotsAwaitingFeedback(answeredSlots, feedbackRef.current, inFlight.current);
+    if (targets.length === 0) return;
+    const itemBySlot = new Map(exam.items.map((item) => [item.slot, item]));
+    let fatalMessage: string | undefined;
+    batchStop.current = false;
+    setBatch({ total: targets.length, settled: 0, received: 0, failed: 0, running: true, stop: null });
+
+    try {
+      await runInPool(targets, BATCH_CONCURRENCY, async (slot) => {
+        const item = itemBySlot.get(slot);
+        // 차례를 기다리는 사이 개별 버튼으로 먼저 받았거나 지금 받는 중인 문항은 건너뛴다.
+        const waiting = item && slotsAwaitingFeedback([slot], feedbackRef.current, inFlight.current).length > 0;
+        const outcome: FeedbackOutcome = waiting ? await requestFeedback(item) : { status: "skipped" };
+        if (outcome.status === "failed" && outcome.stopsBatch) {
+          batchStop.current = true;
+          fatalMessage ??= outcome.message;
+        }
+        setBatch((current) => current && {
+          ...current,
+          settled: current.settled + 1,
+          received: current.received + (outcome.status === "done" ? 1 : 0),
+          failed: current.failed + (outcome.status === "failed" ? 1 : 0),
+        });
+      }, () => batchStop.current);
+    } finally {
+      setBatch((current) => current && {
+        ...current,
+        running: false,
+        ...(fatalMessage ? { stop: "fatal" as const, fatalMessage } : {}),
+      });
+    }
+  }
+
+  /** 새 문항은 더 보내지 않는다. 이미 보낸 문항은 마저 받는다. */
+  function stopBatch() {
+    batchStop.current = true;
+    setBatch((current) => current && { ...current, stop: current.stop ?? "user" });
+  }
+
+  // 결과 화면을 떠나면 한 번에 받기가 남은 문항을 더 보내지 않는다.
+  useEffect(() => () => { batchStop.current = true; }, []);
+
   // 별표로 저장한 피드백은 회차가 아니라 문항에 붙는다. 같은 문항을 다시 풀 때 연습 도구에 나온다.
   const expressions = useSavedExpressions();
 
@@ -184,6 +354,8 @@ export default function ExamResult({
   const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
   const visibleItems = filterItemsByAnswer(exam.items, answerBySlot, filter);
   const rewrittenCount = Object.keys(rewrites.browser).length;
+  const waitingSlots = slotsAwaitingFeedback(answeredSlots, feedbackBySlot, pendingSlots);
+  const feedbackCount = answeredSlots.filter((slot) => feedbackBySlot[slot]).length;
   const exit = examExitLink(exam.mode);
   const next = nextPracticeLink(exam.mode);
   // 연습을 마친 뒤 답변이나 피드백을 덧붙였다면 언제 저장한 회차인지 함께 적는다.
@@ -201,7 +373,7 @@ export default function ExamResult({
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">{historyEntry ? "지난 연습 결과" : "연습 결과"}</h1>
         <p className="mt-2 text-xs text-fg-subtle">{savedStamp}{savedStamp === finishedStamp ? "" : ` 저장 · 연습 ${finishedStamp}`}</p>
         <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-          문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. 원하는 답변만 AI 코칭을 받을 수 있습니다.
+          문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. AI 코칭은 아래에서 한 번에 받거나 문항마다 따로 받을 수 있습니다.
         </p>
         {saveError ? <p role="alert" className="mt-3 text-xs text-warn-ink">{saveError}</p> : persisted && (
           <p className="mt-3 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>
@@ -240,6 +412,18 @@ export default function ExamResult({
         </div>
       </Card>
 
+      {answeredCount > 0 && (
+        <BatchFeedbackPanel
+          answeredCount={answeredCount}
+          feedbackCount={feedbackCount}
+          waitingCount={waitingSlots.length}
+          pendingCount={pendingSlots.size}
+          batch={batch}
+          onStart={requestAllFeedback}
+          onStop={stopBatch}
+        />
+      )}
+
       <div className="mt-10 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold tracking-widest text-fg-muted">문항별 답변 다시 보기</h2>
         {skippedCount > 0 && (
@@ -265,7 +449,9 @@ export default function ExamResult({
             replays={replays[item.slot] ?? 0}
             recording={recordings[item.slot]}
             feedback={feedbackBySlot[item.slot]}
-            onFeedback={(response) => applyFeedback(item.slot, response)}
+            feedbackLoading={pendingSlots.has(item.slot)}
+            feedbackError={feedbackErrors[item.slot] ?? null}
+            onRequestFeedback={() => requestItemFeedback(item)}
             onRevertAnswer={() => revertAnswer(item.slot)}
             savedIds={expressions.savedIds}
             onToggleExpression={expressions.toggle}
@@ -360,7 +546,9 @@ function ItemResult({
   replays,
   recording,
   feedback,
-  onFeedback,
+  feedbackLoading,
+  feedbackError,
+  onRequestFeedback,
   onRevertAnswer,
   savedIds,
   onToggleExpression,
@@ -378,7 +566,10 @@ function ItemResult({
   replays: number;
   recording?: AnswerRecording;
   feedback?: OpicFeedback;
-  onFeedback: (response: FeedbackResponse) => void;
+  /** 이 문항을 지금 분석 중인지. 개별 버튼과 한 번에 받기 어느 쪽에서 보냈든 같다. */
+  feedbackLoading: boolean;
+  feedbackError: string | null;
+  onRequestFeedback: () => void;
   onRevertAnswer: () => void;
   /** 이미 저장한 조언의 키. 별표 버튼의 켜짐/꺼짐을 정한다. */
   savedIds: ReadonlySet<string>;
@@ -386,71 +577,12 @@ function ItemResult({
   expressionError: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [showBrowserAnswer, setShowBrowserAnswer] = useState(false);
   const hasAnswer = hasAnswerText(answer);
-  const extension = recordingExtension(recording?.mimeType ?? "");
-  // 롤플레이는 전화 대화에 가까워 두괄식을 요구하지 않는다. 칩 라벨도 기준에 맞춰 바뀐다.
-  const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   const expressionContext = {
     questionId: item.question.id, questionEn: item.question.en,
     topicId: item.topicId, topicKo: item.topicKo,
   };
-  const overallDraft = feedback ? expressionFromOverall(feedback, expressionContext) : undefined;
-
-  // 버튼 한 번이 관리자 지갑에서 나가는 돈이라 누르기 전에 대략적인 금액을 알린다.
-  const cost = estimateFeedbackCost({
-    questionChars: item.question.en.length,
-    transcriptChars: answer.length,
-    audioSec: recording ? elapsed : 0,
-  });
-
-  async function requestFeedback() {
-    if (!hasAnswer || feedbackLoading) return;
-    if (!window.confirm(
-      `이 버튼을 누르면 최대 약 ${formatKrw(cost.krw)}이 관리자의 지갑에서 지출될 예정입니다.\n\n`
-      + `· 피드백 생성 ${formatKrw(cost.modelKrw)}\n`
-      + (cost.transcribeKrw > 0 ? `· 녹음본 발음 비교 ${formatKrw(cost.transcribeKrw)}\n` : "")
-      + `\n실제 청구액은 보통 이보다 적습니다. 계속할까요?`,
-    )) return;
-    setFeedbackLoading(true);
-    setFeedbackError(null);
-
-    try {
-      const body = new FormData();
-      body.append("question", item.question.en);
-      body.append("topic", `${item.topicKo} / ${item.topicEn}`);
-      body.append("type", item.typeLabel);
-      body.append("questionType", item.question.type);
-      // 발음 점검은 브라우저 받아쓰기와 새 전사를 견주어 본다. 이미 바꿔 쓴 문항은
-      // 원래 받아쓰기를 보내야 두 인식 결과의 차이가 그대로 남는다.
-      body.append("transcript", browserAnswer ?? answer);
-      body.append("elapsedSec", String(elapsed));
-
-      if (recording) {
-        try {
-          const audioResponse = await fetch(recording.url);
-          const blob = await audioResponse.blob();
-          if (blob.size > 0) {
-            body.append("audio", blob, recordingFileName(item.slot, extension));
-          }
-        } catch {
-          // 녹음본 전송이 실패해도 텍스트 피드백은 받을 수 있다.
-        }
-      }
-
-      const response = await fetch("/api/feedback", { method: "POST", body });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      const result = response.ok ? readFeedbackResponse(payload) : null;
-      if (!result) throw new Error(payload?.error || "AI 피드백을 불러오지 못했습니다.");
-      onFeedback(result);
-    } catch (error) {
-      setFeedbackError(error instanceof Error ? error.message : "AI 피드백을 불러오지 못했습니다.");
-    } finally {
-      setFeedbackLoading(false);
-    }
-  }
 
   return (
     <Card className="overflow-hidden">
@@ -460,7 +592,7 @@ function ItemResult({
           <span className="block truncate text-sm text-fg">{item.typeLabel}</span>
           <span className="block truncate text-xs text-fg-subtle">{item.emoji} {item.topicKo}</span>
         </span>
-        <span className="shrink-0 text-xs text-fg-muted">{feedback ? "피드백 있음" : hasAnswer ? "답변함" : "답변 없음"}</span>
+        <ItemStatus loading={feedbackLoading} failed={!!feedbackError} feedback={!!feedback} answered={hasAnswer} />
         <span className="shrink-0 text-fg-subtle">{open ? "▲" : "▼"}</span>
       </button>
 
@@ -523,18 +655,17 @@ function ItemResult({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-fg">AI 스토리텔링 코치</p>
-                    <p className="mt-1 text-xs leading-relaxed text-fg-subtle">최대 5개만, 전달력에 영향이 큰 것부터 봅니다.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-fg-subtle">최대 5개만, 전달력에 영향이 큰 것부터 봅니다. 내 답변에 피드백을 반영한 버전도 Before / After 로 함께 보여 줍니다.</p>
                     {recording ? (
                       <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본을 함께 보내 OpenAI 가 답변을 다시 받아씁니다. 브라우저 받아쓰기보다 정확하면 위 답변도 그 텍스트로 바뀝니다.</p>
                     ) : (
-                      /* 돈이 나가는 버튼 바로 옆이다. 무엇을 근거로 조언이 나오는지 여기서 한 번 더 밝힌다. */
+                      /* 요청 버튼 바로 옆이다. 무엇을 근거로 조언이 나오는지 여기서 한 번 더 밝힌다. */
                       <p className="mt-1 text-xs leading-relaxed text-fg-subtle">녹음본이 없어 <strong className="font-semibold text-fg-muted">브라우저 받아쓰기 그대로</strong> 분석합니다. 받아쓰기가 잘못 적은 곳은 조언도 그 문장을 기준으로 나옵니다.</p>
                     )}
-                    <p className="mt-1 text-xs leading-relaxed text-fg-subtle">한 번 요청할 때마다 최대 약 {formatKrw(cost.krw)}이 듭니다.</p>
                   </div>
                   <button
                     type="button"
-                    onClick={requestFeedback}
+                    onClick={onRequestFeedback}
                     disabled={feedbackLoading}
                     className="rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-wait disabled:opacity-60"
                   >
@@ -550,57 +681,16 @@ function ItemResult({
 
                 {feedback && (
                   <div className="mt-4 border-t border-line pt-4">
-                    <div className="flex flex-wrap gap-2">
-                      <FlowChip label={frontLoaded ? "두괄식 도입" : "요청·문제 전달"} good={feedback.structure.topic === "good"} />
-                      <FlowChip label="활동·디테일" good={feedback.structure.detail === "good"} />
-                      <FlowChip label="감정·의미" good={feedback.structure.feeling === "good"} />
-                    </div>
-                    <p className="mt-3 text-sm font-medium leading-relaxed text-fg">{feedback.overall}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-fg-muted">{feedback.structure.note}</p>
-
-                    {overallDraft && <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <SaveExpressionButton draft={overallDraft} saved={savedIds.has(draftId(overallDraft))} onToggle={onToggleExpression} />
-                      <span className="text-[11px] leading-relaxed text-fg-subtle">★ 로 저장한 조언은 같은 문항이나 같은 주제를 다시 풀 때 연습 도구에 나옵니다.</span>
-                    </div>}
-                    {expressionError && <p role="alert" className="mt-2 text-xs text-warn-ink">{expressionError}</p>}
-
-                    {feedback.pronunciationBasis === "audio_compare" ? (
+                    <FeedbackDetails
+                      feedback={feedback}
+                      questionType={item.question.type}
+                      answer={answer}
+                      expressions={{ context: expressionContext, savedIds, onToggle: onToggleExpression, error: expressionError }}
+                    />
+                    {!feedbackRewrite(feedback) && (
                       <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
-                        발음 항목은 녹음본을 별도로 재전사해 브라우저 받아쓰기와 비교한 점검 신호입니다. 두 음성인식 모두 틀릴 수 있으므로 확정 판정으로 보지는 마세요.
+                        Before / After 비교가 생기기 전에 받은 피드백입니다. <strong className="font-medium text-fg-muted">다시 분석</strong>하면 내 답변에 피드백을 반영한 버전도 볼 수 있습니다.
                       </p>
-                    ) : (
-                      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
-                        별도 녹음 재전사가 없으면 텍스트만 보고 발음 오류를 추정하지 않습니다.
-                      </p>
-                    )}
-
-                    {feedback.items.length > 0 ? (
-                      <ol className="mt-4 space-y-3">
-                        {feedback.items.slice(0, 5).map((detail, idx) => {
-                          const draft = expressionFromFeedbackItem(detail, expressionContext);
-                          return (
-                            <li key={`${detail.category}-${idx}`} className="rounded-lg bg-surface-2 px-3.5 py-3">
-                              <div className="flex items-start gap-2">
-                                <span className="mt-0.5 shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold text-fg-subtle">
-                                  {feedbackCategoryLabel[detail.category]}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-semibold text-fg">{detail.title}</p>
-                                  <p className="mt-1 text-xs leading-relaxed text-fg-muted">{detail.message}</p>
-                                  {detail.example && (
-                                    <p className="mt-2 rounded-md border border-line bg-surface px-2.5 py-2 text-xs leading-relaxed text-fg">
-                                      {detail.example}
-                                    </p>
-                                  )}
-                                </div>
-                                <SaveExpressionButton draft={draft} saved={savedIds.has(draftId(draft))} onToggle={onToggleExpression} />
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    ) : (
-                      <p className="mt-4 text-xs text-fg-muted">지금 답변에서 꼭 고칠 만한 큰 문제는 찾지 않았습니다.</p>
                     )}
                   </div>
                 )}
@@ -631,11 +721,82 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
   );
 }
 
-function FlowChip({ label, good }: { label: string; good: boolean }) {
+/** 접힌 문항 머리의 상태. 한 번에 받기가 도는 동안 어느 문항이 끝났는지 여기서 바로 보인다. */
+function ItemStatus({ loading, failed, feedback, answered }: {
+  loading: boolean;
+  failed: boolean;
+  feedback: boolean;
+  answered: boolean;
+}) {
+  const pill = "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset";
+  if (loading) return <span className={`${pill} bg-primary-tint text-primary-ink ring-primary/25 motion-safe:animate-pulse`}>분석 중…</span>;
+  if (feedback) return <span className={`${pill} bg-success-tint text-success-ink ring-success-ink/30`}>✓ 피드백</span>;
+  if (failed) return <span className={`${pill} bg-warn-tint text-warn-ink ring-warn-ink/30`}>분석 실패</span>;
+  return <span className="shrink-0 text-xs text-fg-muted">{answered ? "답변함" : "답변 없음"}</span>;
+}
+
+/**
+ * 답변한 문항 전체의 AI 피드백을 버튼 하나로 받는다. 문항마다 개별 버튼과 같은 요청을
+ * 보내며, 이미 받은 문항과 지금 분석 중인 문항은 보내지 않는다.
+ */
+function BatchFeedbackPanel({ answeredCount, feedbackCount, waitingCount, pendingCount, batch, onStart, onStop }: {
+  answeredCount: number;
+  /** 답변한 문항 가운데 이미 피드백이 있는 문항 수. */
+  feedbackCount: number;
+  /** 지금 누르면 요청할 문항 수. */
+  waitingCount: number;
+  /** 개별 버튼이나 한 번에 받기로 지금 분석 중인 문항 수. */
+  pendingCount: number;
+  batch: FeedbackBatch | null;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  const running = batch?.running ? batch : null;
+  const summary = running
+    ? `${running.settled}/${running.total}문항 분석 중… 끝난 문항부터 아래 목록에 표시됩니다.`
+    : waitingCount > 0
+      ? `답변한 ${answeredCount}문항 중 아직 피드백이 없는 ${waitingCount}문항을 한 번에 분석합니다.${feedbackCount > 0 ? ` 이미 받은 ${feedbackCount}문항은 다시 요청하지 않습니다.` : ""}`
+      : pendingCount > 0
+        ? "분석 중인 문항이 끝나면 답변한 문항 모두 피드백을 받게 됩니다."
+        : `답변한 ${answeredCount}문항 모두 AI 피드백을 받았습니다. 문항을 펼쳐 확인해 보세요.`;
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] text-fg-muted">
-      <span className="font-semibold text-fg">{good ? "✓" : "△"}</span>
-      {label} {good ? "좋음" : "보강"}
-    </span>
+    <Card className="mt-6 px-5 py-5 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-fg">AI 피드백 한 번에 받기</h2>
+          <p aria-live="polite" className="mt-1 text-xs leading-relaxed text-fg-muted">{summary}</p>
+        </div>
+        {running ? (
+          <button
+            type="button"
+            onClick={onStop}
+            disabled={running.stop !== null}
+            className="rounded-xl border border-line px-4 py-2.5 text-sm text-fg-muted transition hover:text-fg disabled:cursor-wait disabled:opacity-60"
+          >
+            {running.stop ? "멈추는 중…" : "멈추기"}
+          </button>
+        ) : waitingCount > 0 && (
+          <button
+            type="button"
+            onClick={onStart}
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-fg transition-colors hover:bg-primary-hover"
+          >
+            {feedbackCount > 0 ? `남은 ${waitingCount}문항 피드백 받기` : `전체 AI 피드백 받기 · ${waitingCount}문항`}
+          </button>
+        )}
+      </div>
+
+      {running && <div className="mt-4"><ProgressBar value={running.settled} max={running.total} /></div>}
+      {batch && !running && <p role="status" className="mt-3 border-t border-line pt-3 text-xs leading-relaxed text-fg-muted">{batchResultText(batch)}</p>}
+    </Card>
   );
+}
+
+function batchResultText(batch: FeedbackBatch): string {
+  if (batch.stop === "fatal") return `${batch.fatalMessage ?? FEEDBACK_ERROR} 그래서 남은 문항은 요청하지 않았습니다.`;
+  if (batch.stop === "user") return `멈췄습니다. ${batch.received}문항은 받았고, 남은 문항은 요청하지 않았습니다. 다시 누르면 이어서 받습니다.`;
+  if (batch.failed > 0) return `${batch.received}문항은 받았고 ${batch.failed}문항은 받지 못했습니다. 다시 누르면 받지 못한 문항만 요청합니다.`;
+  if (batch.received === 0) return "기다리는 사이 문항마다 따로 받아서 새로 요청한 문항은 없습니다.";
+  return `${batch.received}문항 분석을 마쳤습니다. 문항을 펼쳐 피드백과 Before / After 를 확인해 보세요.`;
 }

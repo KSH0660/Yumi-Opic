@@ -421,6 +421,9 @@ button:disabled {
     --success-ink: #14532d;
     --warn-tint: #fbf7ef;
     --warn-ink: #6b3f10;
+    /* Before / After 에서 뺀 말. 다크 값이 종이에 그대로 나가지 않게 함께 되돌린다. */
+    --danger-tint: #fbf1f2;
+    --danger-ink: #9f1239;
 
     --shadow-card: none;
     --shadow-raised: none;

@@ -26,6 +26,8 @@ export interface SavedExpression {
 }
 
 export type ExpressionDraft = Omit<SavedExpression, "id" | "savedAt">;
+/** 조언을 어느 문항에 붙일지. */
+export type ExpressionContext = Pick<SavedExpression, "questionId" | "questionEn" | "topicId" | "topicKo">;
 
 function normalize(text: string): string {
   return text.replace(/\s+/g, " ").trim().toLowerCase();
@@ -41,18 +43,12 @@ export function draftId(draft: ExpressionDraft): string {
 }
 
 /** AI 피드백 항목 하나를 저장용 형태로 옮긴다. */
-export function expressionFromFeedbackItem(
-  item: OpicFeedbackItem,
-  context: Pick<SavedExpression, "questionId" | "questionEn" | "topicId" | "topicKo">,
-): ExpressionDraft {
+export function expressionFromFeedbackItem(item: OpicFeedbackItem, context: ExpressionContext): ExpressionDraft {
   return { ...context, category: item.category, title: item.title, body: item.message, example: item.example };
 }
 
 /** 총평과 흐름 메모를 한 장으로 저장한다. */
-export function expressionFromOverall(
-  feedback: OpicFeedback,
-  context: Pick<SavedExpression, "questionId" | "questionEn" | "topicId" | "topicKo">,
-): ExpressionDraft {
+export function expressionFromOverall(feedback: OpicFeedback, context: ExpressionContext): ExpressionDraft {
   return {
     ...context,
     title: "총평",

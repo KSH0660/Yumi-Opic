@@ -59,6 +59,38 @@ export interface OpicFeedback {
    */
   pronunciationBasis: "audio_compare" | "browser_only" | "none";
   items: OpicFeedbackItem[];
+  /**
+   * 사용자가 실제로 말한 답변에 이번 피드백만 반영해 고친 버전. 새 모범답안이 아니라
+   * 스토리와 표현은 그대로 두고 필요한 곳만 손본 것이다. 이 기능 전에 받은 피드백에는 없다.
+   */
+  improvedAnswer?: string;
+  /**
+   * improvedAnswer 의 바탕이 된 답변. Before 로 보여 준다. 녹음본을 다시 받아쓴 문항은 그 전사다.
+   * 나중에 브라우저 받아쓰기로 되돌려도 비교가 흔들리지 않도록 함께 저장한다.
+   */
+  improvedFrom?: string;
+}
+
+/** Before / After 로 견줄 두 답변. 예전에 받은 피드백이거나 고친 답변이 비어 있으면 null. */
+export function feedbackRewrite(feedback: OpicFeedback): { before: string; after: string } | null {
+  const before = feedback.improvedFrom?.trim() ?? "";
+  const after = feedback.improvedAnswer?.trim() ?? "";
+  return before && after ? { before, after } : null;
+}
+
+/** 피드백 JSON 에 드는 출력 토큰. 추론 토큰도 여기서 함께 잘린다. */
+const FEEDBACK_OUTPUT_TOKENS = 1_400;
+/** 영어는 대략 4글자에 1토큰이다. 고친 답변이 원래보다 조금 길어질 수 있어 3글자로 넉넉히 잡는다. */
+const CHARS_PER_OUTPUT_TOKEN = 3;
+const MAX_OUTPUT_TOKENS = 6_000;
+
+/**
+ * 한 번 요청에 허용할 출력 토큰. 고친 답변은 원래 답변만큼 길어서 답변 길이에 맞춰 늘린다.
+ * 모자라면 JSON 이 중간에 잘려 피드백 전체를 잃는다. route.ts 와 cost.ts 가 함께 쓴다.
+ */
+export function feedbackOutputTokenLimit(answerChars: number): number {
+  const answerTokens = Math.ceil(Math.max(0, answerChars) / CHARS_PER_OUTPUT_TOKEN);
+  return Math.min(MAX_OUTPUT_TOKENS, FEEDBACK_OUTPUT_TOKENS + answerTokens);
 }
 
 /** `/api/feedback` 응답. 피드백과 함께 녹음본을 다시 받아쓴 결과를 돌려준다. */
@@ -88,7 +120,9 @@ export function isOpicFeedback(value: unknown): value is OpicFeedback {
   const structure = feedback.structure;
   const statuses: unknown[] = ["good", "needs_work"];
   const categories: unknown[] = ["storytelling", "detail", "emotion", "delivery", "pronunciation", "grammar"];
+  const optionalText = (text: unknown) => text === undefined || typeof text === "string";
   return typeof feedback.overall === "string" && !!structure
+    && optionalText(feedback.improvedAnswer) && optionalText(feedback.improvedFrom)
     && statuses.includes(structure.topic) && statuses.includes(structure.detail)
     && statuses.includes(structure.feeling) && typeof structure.note === "string"
     && ["audio_compare", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
