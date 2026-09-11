@@ -399,7 +399,7 @@ export default function ExamResult({
           전체 단어는 반복을 포함하고, 고유 단어는 대소문자를 무시한 중복 제거 기준입니다. 문장 수는 받아쓰기 텍스트의 문장부호를 기준으로 계산합니다.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-fg-muted">
-          AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 1~2문장에서 질문에 바로 답하는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
+          AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">핵심 주제 → 활동·예시·디테일 → 감정·의미</strong> 흐름과 전달력을 우선합니다. 답변 첫 몇 문장 안에 질문에 대한 답이 나오는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 꼭 첫 문장일 필요는 없습니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 생각과 생각을 자연스럽게 잇는 <strong className="font-semibold text-fg">연결 표현</strong>도 짚어 줍니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">

@@ -1,5 +1,5 @@
 "use client";
-import type { FeedbackCategory, OpicFeedback, OpicFeedbackItem } from "./feedback";
+import { FEEDBACK_CATEGORIES, type FeedbackCategory, type OpicFeedback, type OpicFeedbackItem } from "./feedback";
 
 const KEY = "yumi-opic:expressions";
 /** 브라우저 저장 공간을 지키기 위한 상한. 넘치면 오래된 것부터 지운다. */
@@ -60,7 +60,7 @@ export function expressionFromOverall(feedback: OpicFeedback, context: Expressio
 function isSavedExpression(value: unknown): value is SavedExpression {
   if (!value || typeof value !== "object") return false;
   const entry = value as Partial<SavedExpression>;
-  const categories: unknown[] = ["storytelling", "detail", "emotion", "delivery", "pronunciation", "grammar"];
+  const categories: readonly unknown[] = FEEDBACK_CATEGORIES;
   return [entry.id, entry.questionId, entry.questionEn, entry.topicId, entry.topicKo, entry.title, entry.body, entry.example]
     .every((field) => typeof field === "string")
     && !!entry.id

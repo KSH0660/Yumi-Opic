@@ -32,7 +32,7 @@ export interface ExpressionControls {
  * 스토리 흐름에 해당하는 유형은 강조색으로, 전달·발음·문법은 차분한 색으로 칠한다.
  * 코칭이 흐름을 먼저 보고 문법을 마지막에 본다는 우선순위를 색으로도 드러낸다.
  */
-const FLOW_CATEGORIES: ReadonlySet<FeedbackCategory> = new Set(["storytelling", "detail", "emotion"]);
+const FLOW_CATEGORIES: ReadonlySet<FeedbackCategory> = new Set(["storytelling", "transition", "detail", "emotion"]);
 
 const DELETED = "rounded-sm bg-danger-tint px-0.5 text-danger-ink line-through decoration-danger-ink/60 box-decoration-clone";
 const INSERTED = "rounded-sm bg-success-tint px-0.5 font-medium text-success-ink no-underline box-decoration-clone";
