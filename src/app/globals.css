@@ -46,6 +46,13 @@
   --danger-tint: #fff1f2;
   --danger-ink: #be123c; /* 5.7:1 on danger-tint */
 
+  /* ── 답변 시간 막대 ─────────────────────────────────────────────
+   * 결과 화면의 말한 시간 막대에서 적정 구간(1:20~2:00)을 칠하는 색이다.
+   * 막대 자체는 길이에 상관없이 브랜드색 한 가지만 쓰고, 목표 구간만 트랙에
+   * 표시한다. 길이를 색으로 판정하지 않으려는 것이다. 트랙보다 확실히 진해야
+   * 눈에 들어온다. */
+  --time-zone: #c7d2fe;
+
   /* ── 시험 화면 크롬 ─────────────────────────────────────────────
    * 실제 오픽 응시 화면을 흉내 낸 값이라 앱 팔레트와 따로 둔다. 시험 화면만
    * 실전처럼 보이고 나머지 화면은 앱 테마를 그대로 지키게 하려는 것이다.
@@ -106,6 +113,8 @@ html[data-theme="dark"] {
   --danger-tint: #2a1119;
   --danger-ink: #fda4af;
 
+  --time-zone: #2e2a52;
+
   /* 시험 화면 크롬 — 흰 키오스크를 그대로 두면 다크에서 눈이 부시다.
    * 배치와 강조색은 남기고 바탕만 어둡게 바꾼다. */
   --exam-frame: #16161f;
@@ -164,6 +173,8 @@ html[data-theme="dark"] {
 
   --color-danger-tint: var(--danger-tint);
   --color-danger-ink: var(--danger-ink);
+
+  --color-time-zone: var(--time-zone);
 
   --color-exam-frame: var(--exam-frame);
   --color-exam-frame-2: var(--exam-frame-2);

@@ -473,7 +473,7 @@ export default function ExamResult({
 
 /** 막대를 가득 채우는 시간. 회차마다 눈금이 달라지지 않도록 고정값으로 둔다. */
 const TIMELINE_FULL_SEC = 150;
-/** 넉넉하게 잡은 적정 답변 길이. 1:20 ~ 2:00 이며 막대에 세로 눈금으로 그린다. */
+/** 넉넉하게 잡은 적정 답변 길이. 1:20 ~ 2:00 이며 트랙에 음영으로 표시한다. */
 const TIMELINE_RANGE_SEC = [80, 120] as const;
 
 /**
@@ -482,9 +482,9 @@ const TIMELINE_RANGE_SEC = [80, 120] as const;
  * 막대는 2:30 을 가득 찬 것으로 잡은 고정 눈금이다. 회차에서 가장 긴 답변을
  * 기준으로 삼으면 같은 1분 답변이 회차마다 다른 길이로 보여 서로 견줄 수 없다.
  *
- * 적정 구간(1:20~2:00)에 들면 초록, 그보다 짧으면 연하게, 길면 진하게 칠한다.
- * 길게 말한 것이 잘못은 아니므로 경고색은 쓰지 않는다. 짧은 쪽에도 경고 문구를
- * 붙이지 않는다. 건너뛰거나 짧게 끝낸 데는 본인 사정이 있고 판단은 사용자가 한다.
+ * 길이를 색으로 판정하지 않는다. 막대는 언제나 브랜드색 한 가지고, 적정 구간만
+ * 트랙에 음영으로 표시해 사용자가 스스로 견주게 한다. 건너뛰거나 짧게 끝낸 데는
+ * 본인 사정이 있다.
  *
  * 번호는 문항 카드와 같은 값을 써서 두 목록이 어긋나지 않는다.
  */
@@ -514,29 +514,27 @@ function AnswerTimeline({ exam, answeredSlots, times }: {
           );
         })}
       </ul>
-      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
-        막대는 2:30 을 가득 찬 것으로 잡았고 세로 눈금은 1:20 과 2:00 입니다.
-        그 사이면 초록, 짧으면 연한 색, 길면 진한 색입니다.
-      </p>
+      <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">막대는 2:30 을 가득 찬 것으로 잡았고, 옅게 칠한 구간이 1:20 ~ 2:00 입니다.</p>
     </div>
   );
 }
 
-/** 말한 시간이 적정 구간의 어디에 놓이는지. */
-function timeBarTone(seconds: number): string {
-  if (seconds < TIMELINE_RANGE_SEC[0]) return "bg-primary/40";
-  if (seconds > TIMELINE_RANGE_SEC[1]) return "bg-primary-ink";
-  return "bg-success";
-}
-
-/** 고정 눈금 막대. 눈금선은 채운 부분 위에도 보이도록 맨 위에 그린다. */
+/**
+ * 고정 눈금 막대.
+ *
+ * 적정 구간 음영은 채운 막대에 덮이므로, 구간의 양 끝은 눈금선으로 한 번 더
+ * 그린다. 눈금선을 맨 위에 두어 막대가 길어도 목표 위치가 보이게 한다.
+ */
 function AnswerTimeBar({ seconds }: { seconds: number }) {
-  const filled = Math.min(100, Math.max(0, (seconds / TIMELINE_FULL_SEC) * 100));
+  const pct = (value: number) => (value / TIMELINE_FULL_SEC) * 100;
+  const filled = Math.min(100, Math.max(0, pct(seconds)));
+  const [rangeStart, rangeEnd] = TIMELINE_RANGE_SEC;
   return (
     <span className="relative block h-2 w-full overflow-hidden rounded-full bg-surface-3">
-      <span className={`absolute inset-y-0 left-0 rounded-full ${timeBarTone(seconds)}`} style={{ width: `${filled}%` }} />
+      <span aria-hidden className="absolute inset-y-0 block bg-time-zone" style={{ left: `${pct(rangeStart)}%`, width: `${pct(rangeEnd - rangeStart)}%` }} />
+      <span className="absolute inset-y-0 left-0 block rounded-full bg-primary" style={{ width: `${filled}%` }} />
       {TIMELINE_RANGE_SEC.map((mark) => (
-        <span key={mark} aria-hidden className="absolute inset-y-0 w-px bg-canvas" style={{ left: `${(mark / TIMELINE_FULL_SEC) * 100}%` }} />
+        <span key={mark} aria-hidden className="absolute inset-y-0 block w-px bg-canvas" style={{ left: `${pct(mark)}%` }} />
       ))}
     </span>
   );
