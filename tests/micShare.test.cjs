@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   guessMicMode,
+  isDesktopAgent,
+  loadMicMode,
   createMicProbe,
   observeMicLevel,
   observeMicResult,
@@ -28,6 +30,67 @@ test('휴대폰은 겪어 보기 전에 받아쓰기만 켠다', () => {
 
 test('데스크톱 사파리를 자처하는 아이패드도 가려낸다', () => {
   assert.equal(guessMicMode({ userAgent: MAC_SAFARI, maxTouchPoints: 5 }), 'dictation-only');
+});
+
+const WINDOWS_EDGE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0';
+const WINDOWS_WHALE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Whale/4.31.304.16 Safari/537.36';
+const CHROMEBOOK = 'Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+/** 안드로이드 태블릿 크롬이 데스크톱 사이트를 요청할 때 보내는 UA */
+const LINUX_DESKTOP = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+
+test('윈도·크롬OS·맥 노트북은 데스크톱으로 본다', () => {
+  assert.equal(isDesktopAgent({ userAgent: DESKTOP_CHROME, maxTouchPoints: 0, userAgentData: { mobile: false } }), true);
+  // 터치스크린 윈도 노트북도 윈도다
+  assert.equal(isDesktopAgent({ userAgent: WINDOWS_EDGE, maxTouchPoints: 10 }), true);
+  assert.equal(isDesktopAgent({ userAgent: WINDOWS_WHALE, maxTouchPoints: 0 }), true);
+  assert.equal(isDesktopAgent({ userAgent: CHROMEBOOK, maxTouchPoints: 10 }), true);
+  assert.equal(isDesktopAgent({ userAgent: MAC_SAFARI, maxTouchPoints: 0 }), true);
+});
+
+test('휴대폰·태블릿과 데스크톱 UA 를 흉내 낼 수 있는 리눅스는 데스크톱으로 보지 않는다', () => {
+  assert.equal(isDesktopAgent(undefined), false);
+  assert.equal(isDesktopAgent({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }), false);
+  assert.equal(isDesktopAgent({ userAgent: IPHONE_SAFARI, maxTouchPoints: 5 }), false);
+  assert.equal(isDesktopAgent({ userAgent: MAC_SAFARI, maxTouchPoints: 5 }), false);
+  assert.equal(isDesktopAgent({ userAgent: DESKTOP_CHROME, userAgentData: { mobile: true } }), false);
+  assert.equal(isDesktopAgent({ userAgent: LINUX_DESKTOP, maxTouchPoints: 5 }), false);
+});
+
+function withBrowser(navigator, saved, run) {
+  const previous = global.window;
+  const data = new Map(saved ? [['yumi-opic:mic-mode', saved]] : []);
+  global.window = { navigator, localStorage: {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: (key) => data.delete(key),
+  } };
+  try { run(); } finally {
+    if (previous === undefined) delete global.window;
+    else global.window = previous;
+  }
+}
+
+test('윈도 노트북은 예전에 받아쓰기만 켜기로 남긴 값이 있어도 녹음을 함께 켠다', () => {
+  withBrowser({ userAgent: DESKTOP_CHROME, maxTouchPoints: 0 }, 'dictation-only', () => {
+    assert.equal(loadMicMode(), 'share');
+  });
+  withBrowser({ userAgent: WINDOWS_EDGE, maxTouchPoints: 10 }, 'dictation-only', () => {
+    assert.equal(loadMicMode(), 'share');
+  });
+});
+
+test('데스크톱이 아닌 기기는 겪어 보고 남긴 값을 그대로 따른다', () => {
+  // 데스크톱 사이트를 요청한 안드로이드 태블릿: 겪어 보고 받아쓰기만 켜기로 했다
+  withBrowser({ userAgent: LINUX_DESKTOP, maxTouchPoints: 5 }, 'dictation-only', () => {
+    assert.equal(loadMicMode(), 'dictation-only');
+  });
+  // 휴대폰에서 녹음도 함께 켜보기를 눌렀다
+  withBrowser({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }, 'share', () => {
+    assert.equal(loadMicMode(), 'share');
+  });
+  withBrowser({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }, null, () => {
+    assert.equal(loadMicMode(), 'dictation-only');
+  });
 });
 
 /** rAF 한 프레임씩 흘려보낸다. `atMs` 는 계속 이어진다. */

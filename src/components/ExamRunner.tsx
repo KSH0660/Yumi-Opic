@@ -15,6 +15,7 @@ import {
 } from "@/lib/speech";
 import {
   createMicProbe,
+  isDesktopAgent,
   isMicConflict,
   loadMicMode,
   observeMicLevel,
@@ -163,7 +164,8 @@ export default function ExamRunner({
   const slot = item.slot;
   const isSurprisePractice = isPractice && item.question.source === "provided";
   const answer = answers[slot] ?? "";
-  const elapsed = times[slot] ?? 0;
+  /** 질문이 나오는 동안에는 답변 시간을 세지 않는다. 음성이 끝나면 0:00 부터 다시 센다. */
+  const elapsed = phase === "playing" ? 0 : times[slot] ?? 0;
   const words = countEnglishWords(answer);
   const replaysLeft = MAX_REPLAYS - (replays[slot] ?? 0);
   const canReplay = phase === "answering" && replayLeftSec > 0 && replaysLeft > 0;
@@ -381,8 +383,9 @@ export default function ExamRunner({
       };
 
       // 받아쓰기가 실제로 돌고 있을 때만, 정말 함께 쓸 수 있는 기기인지 지켜본다.
-      // 받아쓰기가 없는데 지켜보면 소리만 듣고 애먼 녹음을 끄게 된다.
-      probeRef.current = dictationRef.current ? createMicProbe(performance.now()) : null;
+      // 받아쓰기가 없는데 지켜보면 소리만 듣고 애먼 녹음을 끄게 된다. 데스크톱은
+      // 둘을 함께 열어 주므로 지켜보지 않는다. 그곳에서 받아쓰기가 비는 까닭은 녹음이 아니다.
+      probeRef.current = dictationRef.current && !isDesktopAgent(navigator) ? createMicProbe(performance.now()) : null;
       recorder.start(250);
       draw();
     } catch {
@@ -432,8 +435,9 @@ export default function ExamRunner({
 
     const used = (replays[targetSlot] ?? 0) + (isReplay ? 1 : 0);
     const startAnswering = () => {
-      // 리플레이 뒤에는 마지막 질문 청취가 끝난 시점부터 답변 시간을 잰다.
-      if (isReplay) setTimes((prev) => ({ ...prev, [targetSlot]: 0 }));
+      // 답변 시간은 마지막 질문 청취가 끝난 시점부터 0:00 으로 잰다. 처음 듣기·리플레이·
+      // 이미 답한 문항에 돌아와 다시 듣기 모두 같다.
+      setTimes((prev) => ({ ...prev, [targetSlot]: 0 }));
       setProgress(1);
       setPhase("answering");
       setReplayLeftSec(used < MAX_REPLAYS ? REPLAY_WINDOW_SEC : 0);

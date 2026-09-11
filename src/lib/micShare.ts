@@ -27,7 +27,8 @@ interface AgentLike {
 
 /**
  * 처음 보는 기기의 첫 판단. 휴대폰·태블릿으로 보이면 겪어 보기 전에 받아쓰기만
- * 켠다. 한 번 겪어 보고 정한 값(`loadMicMode`)이 있으면 그쪽이 먼저다.
+ * 켠다. 한 번 겪어 보고 정한 값(`loadMicMode`)이 있으면 그쪽이 먼저다. 다만
+ * 데스크톱(`isDesktopAgent`)은 그 값과 상관없이 늘 함께 켠다.
  *
  * iPadOS 사파리는 스스로를 `Macintosh` 라고 적으므로 손가락 입력 개수로 가린다.
  */
@@ -41,8 +42,27 @@ export function guessMicMode(agent: AgentLike | undefined): MicMode {
   return "share";
 }
 
+/**
+ * 받아쓰기와 녹음이 마이크를 함께 쓰는 데스크톱 OS 인지. 윈도·크롬OS 와 손가락
+ * 입력이 없는 맥이 여기에 든다. 터치스크린 윈도 노트북도 데스크톱이다.
+ *
+ * 이런 기기에서는 아래의 "겪어 보고 알아내기"를 쓰지 않고, 예전에 그렇게 남긴
+ * 값도 따르지 않는다. 데스크톱에서 받아쓰기가 한 글자도 못 내놓는 까닭은 녹음이
+ * 아니라 인식 서버 오류·인식기만 있고 받아 적지는 못하는 브라우저·주변 소음이다. 그때
+ * 녹음을 접으면 멀쩡하던 녹음본만 잃고, 그 판단이 남아 노트북을 휴대폰처럼 대한다.
+ *
+ * 리눅스는 넣지 않는다. 안드로이드 태블릿이 데스크톱 사이트를 요청하면 리눅스
+ * 데스크톱처럼 보이기 때문이다.
+ */
+export function isDesktopAgent(agent: AgentLike | undefined): boolean {
+  if (!agent || guessMicMode(agent) !== "share") return false;
+  return /Windows NT|CrOS|Macintosh/i.test(agent.userAgent ?? "");
+}
+
 export function loadMicMode(): MicMode {
   if (typeof window === "undefined") return "share";
+  // 데스크톱은 늘 함께 쓴다. 겪어 보고 잘못 남긴 값이 있어도 따르지 않는다.
+  if (isDesktopAgent(window.navigator)) return "share";
   try {
     const saved = window.localStorage.getItem(MIC_MODE_KEY);
     if (saved === "share" || saved === "dictation-only") return saved;
@@ -68,7 +88,7 @@ export function saveMicMode(mode: MicMode): void {
 /**
  * UA 만으로는 다 가릴 수 없다. 그래서 함께 켜 본 뒤 실제로 어떻게 되는지 본다.
  * 사람 목소리 크기의 입력이 한참 들어오는데 받아쓰기가 한 글자도 못 내놓으면
- * 녹음이 마이크를 쥐고 있는 것이다.
+ * 녹음이 마이크를 쥐고 있는 것이다. 데스크톱(`isDesktopAgent`)에서는 쓰지 않는다.
  */
 
 /** 목소리로 볼 만한 입력 세기(0~1). 조용한 방의 잡음은 이 아래에 머문다. */
