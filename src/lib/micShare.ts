@@ -53,6 +53,8 @@ export function guessMicMode(agent: AgentLike | undefined): MicMode {
  *
  * 리눅스는 넣지 않는다. 안드로이드 태블릿이 데스크톱 사이트를 요청하면 리눅스
  * 데스크톱처럼 보이기 때문이다.
+ *
+ * 받아쓰기의 continuous 도 이 판단을 따른다. `./speech` 참고.
  */
 export function isDesktopAgent(agent: AgentLike | undefined): boolean {
   if (!agent || guessMicMode(agent) !== "share") return false;
