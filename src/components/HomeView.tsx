@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { MIN_PRACTICE_TOPICS, surveyTopics } from "@/data";
+import { MIN_PRACTICE_TOPICS, allTopics } from "@/data";
 import { formatHistoryStamp } from "@/lib/history";
 import { loadMicMode } from "@/lib/micShare";
 import { repeatPracticeLink } from "@/lib/nav";
@@ -39,7 +39,7 @@ export default function HomeView() {
   }, [router]);
 
   const last = history[0];
-  const repeat = useMemo(() => last && repeatPracticeLink(last, surveyTopics), [last]);
+  const repeat = useMemo(() => last && repeatPracticeLink(last, allTopics), [last]);
   const recent = history.slice(0, 5);
   const practiceCount = enabledIds.length;
   const canContinue = practiceCount >= MIN_PRACTICE_TOPICS;
@@ -54,7 +54,7 @@ export default function HomeView() {
     </div>
 
     <p className="mt-5 text-2xl font-semibold leading-snug tracking-tight">오늘은 어떤 연습을 할까요?</p>
-    <p className="mt-2 text-sm leading-relaxed text-fg-muted">배경 설문에서 고른 주제를 실제 시험 번호대로 연습합니다. 돌발 주제는 아직 다루지 않습니다.</p>
+    <p className="mt-2 text-sm leading-relaxed text-fg-muted">서베이 주제와 돌발 주제를 골라 질문을 듣고 답변하는 연습을 합니다.</p>
 
     {/*
       휴대폰에서도 연습은 되지만 받아쓰기 텍스트 하나에 모든 게 걸린다. 그 텍스트가
@@ -78,7 +78,7 @@ export default function HomeView() {
     </Card>}
 
     <section className="mt-4 grid gap-4 sm:grid-cols-2">
-      <ModeButton href="/topics" title="주제별 연습" desc="한 주제를 골라 자기소개 포함 1~15번을 연습합니다." disabled={!canContinue} />
+      <ModeButton href="/topics" title="주제별 연습" desc="서베이 11개·돌발 7개 주제를 골라 연습합니다." disabled={!canContinue} />
       <ModeButton href="/exam?mode=full" title="실전 모의고사" desc="고른 주제를 섞어 실제 시험과 같은 1~15번을 봅니다." primary disabled={!canContinue} />
     </section>
 
@@ -91,7 +91,7 @@ export default function HomeView() {
       <h2 className="text-sm font-semibold text-fg-muted">배경 설문</h2>
       <p className="mt-2 text-sm leading-relaxed text-fg-muted">
         {canContinue
-          ? `연습 문제가 준비된 주제 ${practiceCount}개를 고른 상태입니다. 이 선택이 곧 출제 범위입니다.`
+          ? `연습 문제가 준비된 주제 ${practiceCount}개를 고른 상태입니다. 이 선택이 모의고사의 출제 범위입니다.`
           : `연습 문제가 준비된 주제가 ${practiceCount}개뿐입니다. ${MIN_PRACTICE_TOPICS}개 이상 골라야 연습을 시작할 수 있습니다.`}
       </p>
       <Link href="/survey" className="mt-3 inline-flex min-h-11 items-center rounded-xl border border-line px-4 text-sm text-fg-muted transition-colors hover:bg-surface-2">배경 설문 수정 →</Link>

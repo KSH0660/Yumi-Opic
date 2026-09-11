@@ -22,6 +22,8 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
+// CLI 실행에서도 로컬 .env를 읽는다. 셸에서 지정한 값이 우선한다.
+if (existsSync(path.join(ROOT, '.env'))) process.loadEnvFile(path.join(ROOT, '.env'));
 const OUT_DIR = path.join(ROOT, 'public', 'audio');
 const MANIFEST_PATH = path.join(ROOT, 'src', 'data', 'audio-manifest.json');
 const BUILD_DIR = path.join(ROOT, '.test-build');
@@ -33,6 +35,8 @@ const args = new Set(process.argv.slice(2));
 const FORCE = args.has('--force');
 const DRY_RUN = args.has('--dry-run');
 const TOPIC = process.argv.find((arg) => arg.startsWith('--topic='))?.slice('--topic='.length);
+const CATEGORY = process.argv.find((arg) => arg.startsWith('--category='))?.slice('--category='.length);
+const FILTERED = Boolean(TOPIC || CATEGORY);
 
 /* ------------------------------------------------------------------ */
 /* 설정                                                                */
@@ -95,15 +99,19 @@ function loadQuestions() {
   if (TOPIC && !bank.allTopics.some((topic) => topic.id === TOPIC)) {
     throw new Error(`Unknown topic: ${TOPIC}`);
   }
+  if (CATEGORY && !bank.allTopics.some((topic) => topic.category === CATEGORY)) {
+    throw new Error(`Unknown category: ${CATEGORY}`);
+  }
   const byId = new Map();
   const add = (question) => {
     if (!question || !question.id || !question.en) return;
     if (!byId.has(question.id)) byId.set(question.id, question.en.trim());
   };
 
-  if (!TOPIC) add(bank.introQuestion);
+  if (!FILTERED) add(bank.introQuestion);
   for (const topic of bank.allTopics) {
     if (TOPIC && topic.id !== TOPIC) continue;
+    if (CATEGORY && topic.category !== CATEGORY) continue;
     for (const question of topic.questions) add(question);
   }
   return [...byId].map(([id, text]) => ({ id, text }));
@@ -132,6 +140,7 @@ async function synthesize(apiKey, text) {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(120_000),
     });
     if (response.ok) return Buffer.from(await response.arrayBuffer());
 
@@ -160,8 +169,8 @@ function pruneOrphans(validIds) {
 }
 
 async function main() {
-  if (TOPIC && Object.keys(config).some((key) => config[key] !== previous[key])) {
-    throw new Error('Keep the existing voice settings when generating one topic.');
+  if (FILTERED && Object.keys(config).some((key) => config[key] !== previous[key])) {
+    throw new Error('Keep the existing voice settings when generating a topic or category.');
   }
   const questions = loadQuestions();
   const ids = new Set(questions.map((q) => q.id));
@@ -183,7 +192,7 @@ async function main() {
   if (!DRY_RUN && pending.length > 0 && !apiKey) {
     throw new Error('OPENAI_API_KEY is not set.');
   }
-  const removed = TOPIC ? 0 : pruneOrphans(ids);
+  const removed = FILTERED ? 0 : pruneOrphans(ids);
 
   if (DRY_RUN) {
     for (const q of pending) console.log(`  + ${q.id}`);
@@ -191,15 +200,10 @@ async function main() {
     return;
   }
 
-  if (pending.length > 0 && !apiKey) {
-    console.error('OPENAI_API_KEY 가 없습니다. `OPENAI_API_KEY=... npm run tts` 로 실행하세요.');
-    process.exit(1);
-  }
-
   mkdirSync(OUT_DIR, { recursive: true });
 
   const stale = new Set(pending.map((q) => q.id));
-  const questionHashes = TOPIC ? { ...previous.questions } : {};
+  const questionHashes = FILTERED ? { ...previous.questions } : {};
   for (const q of pending) delete questionHashes[q.id];
   let made = 0;
 

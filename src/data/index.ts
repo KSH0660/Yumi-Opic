@@ -6,6 +6,8 @@ import {
   surveyTopicById,
   surveyTopics,
 } from "./survey-bank";
+import { surpriseQuestionCount, surpriseTopics } from "./surprise-bank";
+export { surpriseQuestionCount, surpriseTopics } from "./surprise-bank";
 import {
   DEFAULT_SINGLE_CHOICE_IDS,
   DEFAULT_SURVEY_CHOICE_IDS,
@@ -37,6 +39,6 @@ export {
 };
 export type { SurveyFormChoice, SurveyFormQuestion } from "./survey-form";
 
-export const allTopics = surveyTopics;
-export const topicById = surveyTopicById;
-export const totalQuestionCount = surveyQuestionCount + 1;
+export const allTopics = [...surveyTopics, ...surpriseTopics];
+export const topicById = new Map(allTopics.map((topic) => [topic.id, topic]));
+export const totalQuestionCount = surveyQuestionCount + surpriseQuestionCount + 1;

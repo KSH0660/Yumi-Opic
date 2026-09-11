@@ -450,7 +450,7 @@ function ItemResult({
   return (
     <Card className="overflow-hidden">
       <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-3 px-5 py-4 text-left transition hover:bg-surface-2">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-3 text-sm font-semibold text-fg-muted">{item.slot}</span>
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-3 text-sm font-semibold text-fg-muted">{item.question.number ?? item.slot}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-fg">{item.typeLabel}</span>
           <span className="block truncate text-xs text-fg-subtle">{item.emoji} {item.topicKo}</span>

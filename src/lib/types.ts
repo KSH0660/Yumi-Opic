@@ -1,7 +1,7 @@
 /** Task labels describe the prompt, never a fixed position in the exam. */
 export type QuestionType = "description" | "routine" | "experience" | "memorable" | "roleplay_ask" | "roleplay_problem" | "roleplay_experience" | "issue" | "comparison" | "intro";
 export type TopicCategory = "survey" | "surprise" | "roleplay" | "advanced";
-export type QuestionSource = "textbook" | "verified" | "adapted";
+export type QuestionSource = "textbook" | "verified" | "adapted" | "provided";
 export type SetKind = "general" | "roleplay" | "advanced";
 export interface SourceReference {
   bookId: string;
@@ -13,6 +13,9 @@ export interface SourceReference {
 }
 export interface Question {
   id: string;
+  /** 자료에 적힌 번호. 답변 저장용 slot과 구분하며 5-A/5-B도 보존합니다. */
+  number?: string;
+  title?: string;
   type: QuestionType;
   source?: QuestionSource;
   en: string;

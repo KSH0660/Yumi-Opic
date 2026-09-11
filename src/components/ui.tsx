@@ -22,11 +22,13 @@ export function ProgressBar({ value, max }: { value: number; max: number }) {
 
 export function SourceBadge({ source = "adapted", sourceRef }: { source?: QuestionSource; sourceRef?: SourceReference }) {
   const labels: Record<QuestionSource, string> = {
+    provided: "제공 자료",
     textbook: "교재 데이터",
     verified: "기출 복원 기반",
     adapted: "출제 유형 기반",
   };
   const descriptions: Record<QuestionSource, string> = {
+    provided: "사용자가 제공한 돌발 주제 자료의 영어 지문과 번호를 그대로 옮긴 연습 문항입니다.",
     textbook: "예전 교재 데이터를 표시하던 값으로, 지금 문제은행에서는 쓰지 않습니다.",
     verified: "공개된 수험자 복원·기출 정리 자료에 반복해서 등장하는 질문을 연습하기 좋게 다듬은 문항입니다. 공식 원문 그대로는 아닙니다.",
     adapted: "이 주제에서 확인되는 복원 문항이 없어, 실제 시험의 출제 유형에 맞춰 새로 만든 연습 문항입니다.",

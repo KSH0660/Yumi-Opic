@@ -1,5 +1,5 @@
 import type { Exam, ExamItem, Question, QuestionType, Topic } from "./types";
-import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, introQuestion, surveyTopics } from "../data";
+import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, allTopics, introQuestion, surveyTopics } from "../data";
 
 export type RandomSource = () => number;
 
@@ -46,8 +46,8 @@ export function shuffle<T>(items: readonly T[], rng: RandomSource = Math.random)
   return result;
 }
 
-function verifiedQuestions(topic: Topic): Question[] {
-  return topic.questions.filter((q) => q.source === "verified");
+function singleCandidates(topic: Topic): Question[] {
+  return topic.questions.filter((q) => (q.source === "verified" || q.source === "provided") && !q.dependsOn?.length);
 }
 
 function questionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
@@ -64,7 +64,7 @@ function item(slot: number, topic: Topic, question: Question, comboLabel: string
     topicEn: topic.en,
     emoji: topic.emoji,
     comboLabel,
-    typeLabel: TYPE_LABELS[question.type],
+    typeLabel: topic.category === "surprise" ? TYPE_LABELS[question.type].split(" · ")[0] : TYPE_LABELS[question.type],
     question,
   };
 }
@@ -143,11 +143,18 @@ const PRACTICE_TYPES: QuestionType[] = [
 
 /** 주제 목록을 펼쳤을 때 보여 줄 유형별 예시 문항. 실제 연습은 14문항이다. */
 export function selectPracticeQuestions(topic: Topic, rng: RandomSource = Math.random): Question[] {
+  if (topic.category === "surprise") return [...topic.questions];
   return PRACTICE_TYPES.filter((type) => topic.questions.some((q) => q.type === type))
     .map((type) => questionOfType(topic, type, rng));
 }
 
 export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random): Exam {
+  if (topic.category === "surprise") {
+    if (!topic.questions.length) throw new Error("이 돌발 주제에는 연습할 문항이 없습니다.");
+    return { ...base("practice"), bankVersion: "surprise-2026-09-11", focusTopicId: topic.id,
+      items: topic.questions.map((question, index) => item(index + 1, topic, question, "돌발 주제별 연습")),
+      notices: ["제공 자료의 번호와 순서대로 모든 문항을 연습합니다. 5-A와 5-B는 각각 별도 문항입니다."] };
+  }
   if (topic.id === "staycation") {
     const groups = [[2, 3, 4], [5, 6, 7], [11, 12, 13], [14, 15]];
     const items = groups.flatMap((slots) => slots.map((slot) => {
@@ -173,8 +180,8 @@ export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random)
     notices: ["선택한 주제의 문제를 실제 시험 번호인 2~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
 }
 
-export function buildSingleQuestion(topics: Topic[] = surveyTopics, rng: RandomSource = Math.random): Exam {
-  const candidates = topics.flatMap((topic) => verifiedQuestions(topic).map((question) => ({ topic, question })));
+export function buildSingleQuestion(topics: Topic[] = allTopics, rng: RandomSource = Math.random): Exam {
+  const candidates = topics.flatMap((topic) => singleCandidates(topic).map((question) => ({ topic, question })));
   const { topic, question } = pickRandom(candidates, rng);
   return { ...base("single"), items: [item(1, topic, question, "1문제 연습")] };
 }

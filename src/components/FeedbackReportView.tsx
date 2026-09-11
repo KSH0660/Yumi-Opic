@@ -95,7 +95,7 @@ function ReportItemCard({ entry }: { entry: ReportItem }) {
   const frontLoaded = requiresFrontLoadedOpening(item.question.type);
   return <Card className="print-block px-5 py-5">
     <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-      <span className="rounded-md bg-surface-3 px-2 py-0.5 font-semibold text-fg-muted">{item.slot}번</span>
+      <span className="rounded-md bg-surface-3 px-2 py-0.5 font-semibold text-fg-muted">{item.question.number ?? item.slot}번</span>
       <span>{item.typeLabel}</span>
       <span>{item.emoji} {item.topicKo}</span>
     </div>

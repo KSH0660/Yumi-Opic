@@ -102,7 +102,7 @@ function NewExamPageClient() {
       {exam && <>
         <h1 className="mt-4 text-2xl font-semibold">{exam.items.length}문항이 준비됐습니다</h1>
         <p className="mt-3 text-sm leading-relaxed text-fg-muted">선택한 주제 중 3개로 2~10번 세트를 만들고, 11~13번 롤플레이 세트와 14~15번 비교·이슈 문항을 더했습니다.</p>
-        <p className="mt-3 text-xs leading-relaxed text-fg-muted">돌발 주제는 아직 다루지 않아 모든 문항이 배경 설문 주제에서 나옵니다. 번호와 유형은 실제 시험에서 늘 똑같이 맞아떨어지지는 않습니다.</p>
+        <p className="mt-3 text-xs leading-relaxed text-fg-muted">이 모의고사는 배경 설문 주제로 구성됩니다. 돌발 7개 주제는 주제별 연습에서 풀 수 있습니다. 번호와 유형은 실제 시험에서 늘 똑같이 맞아떨어지지는 않습니다.</p>
         <ul className="mt-5 space-y-1.5 border-t border-line pt-4 text-xs leading-relaxed text-fg-muted">
           <li>· 실제 응시 화면과 같습니다. 문항마다 <strong className="text-fg">▶ 를 눌러야</strong> 질문이 나옵니다.</li>
           <li>· 질문이 끝난 뒤 <strong className="text-fg">5초 안에</strong> 같은 버튼을 누르면 한 번 더 들을 수 있고, 재청취는 문항당 한 번뿐입니다.</li>

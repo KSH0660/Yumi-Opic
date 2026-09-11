@@ -160,6 +160,7 @@ export default function ExamRunner({
 
   const item = exam.items[index];
   const slot = item.slot;
+  const isSurprisePractice = isPractice && item.question.source === "provided";
   const answer = answers[slot] ?? "";
   const elapsed = times[slot] ?? 0;
   const words = countEnglishWords(answer);
@@ -593,7 +594,7 @@ export default function ExamRunner({
 
       <div className="animate-fade-up overflow-hidden rounded-lg border border-exam-line bg-exam-frame text-exam-ink shadow-raised">
         <div className="px-4 py-5 sm:px-7 sm:py-6">
-          <h1 className="text-base font-bold">Question {index + 1} of {exam.items.length}</h1>
+          <h1 className="text-base font-bold">Question {index + 1} of {exam.items.length}{isSurprisePractice && <span className="ml-3 text-sm font-medium">자료 {item.question.number}번</span>}</h1>
           <div className="mt-3 border-t border-exam-line" />
 
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,17rem)_auto_minmax(0,1fr)] lg:gap-6">
@@ -651,26 +652,26 @@ export default function ExamRunner({
                   if (isPractice) return (
                     <button key={it.slot} type="button" onClick={() => goToQuestion(i)}
                       aria-current={state === "active" ? "step" : undefined}
-                      aria-label={`${it.slot}번 문항 · ${answered ? "답변함" : "미답변"}`}
+                      aria-label={`${it.question.number ?? it.slot}번 문항 · ${answered ? "답변함" : "미답변"}`}
                       title={`${it.typeLabel} · ${answered ? "답변함" : "미답변"}`} className={className}>
-                      {it.slot}
+                      {it.question.number ?? it.slot}
                     </button>
                   );
                   return (
                     <span
-                      key={it.slot}
+                      key={it.question.number ?? it.slot}
                       aria-current={state === "active" ? "step" : undefined}
                       title={state === "done" ? "이미 지나간 문항입니다" : state === "active" ? "현재 문항" : "아직 진행하지 않은 문항입니다"}
                       className={className}
                     >
-                      {it.slot}
+                      {it.question.number ?? it.slot}
                     </span>
                   );
                 })}
               </div>
 
               {isPractice && (
-                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{isStaycationPractice ? "Q2–Q4 / Q5–Q7 / Q11–Q13 / Q14–Q15 순서입니다. 좁은 화면에서는 문항 번호를 가로로 스크롤할 수 있습니다." : "1번은 자기소개, 2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
+                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{isStaycationPractice ? "Q2–Q4 / Q5–Q7 / Q11–Q13 / Q14–Q15 순서입니다. 좁은 화면에서는 문항 번호를 가로로 스크롤할 수 있습니다." : isSurprisePractice ? "제공 자료의 번호와 순서대로 연습합니다. 번호는 실제 시험 번호가 아닌 자료의 문항 번호입니다." : "2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
               )}
 
               {index === 0 && (
