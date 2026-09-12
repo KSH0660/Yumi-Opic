@@ -78,8 +78,23 @@ test('random single/topic practice uses the replacement bank and preserves its e
   }
 });
 
-test('new PARK IDs cannot reuse the previous recordings; TTS remains ungenerated', () => {
-  for (const id of expectedIds) assert.equal(questionAudioUrl(id), null);
+test('all 19 PARK recordings match the approved text and current voice settings', () => {
+  const { createHash } = require('node:crypto');
+  const { readFileSync } = require('node:fs');
+  const path = require('node:path');
+  const manifest = require('../src/data/audio-manifest.json');
+  for (const q of park.questions) {
+    const seed = JSON.stringify([q.en.trim(), manifest.model, manifest.voice,
+      /^gpt-/.test(manifest.model) ? null : manifest.speed,
+      /^gpt-/.test(manifest.model) ? manifest.instructions : null]);
+    const hash = createHash('sha256').update(seed).digest('hex').slice(0, 12);
+    assert.equal(manifest.questions[q.id], hash, q.id);
+    assert.equal(questionAudioUrl(q.id), '/audio/' + q.id + '.mp3?v=' + hash);
+    const audio = readFileSync(path.join(__dirname, '..', 'public/audio', q.id + '.mp3'));
+    assert.ok(audio.length > 1000, q.id);
+    assert.ok(audio.subarray(0, 3).toString() === 'ID3' ||
+      (audio[0] === 0xff && (audio[1] & 0xe0) === 0xe0), q.id);
+  }
 });
 
 
