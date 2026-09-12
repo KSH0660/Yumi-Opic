@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { hasAnswerText, sameSpokenText } from "@/lib/answers";
 import { diffAnswers, type DiffPiece } from "@/lib/answerDiff";
 import {
   feedbackCategoryLabel,
+  feedbackItemQuotes,
   feedbackRewrite,
   requiresFrontLoadedOpening,
   type FeedbackCategory,
@@ -29,13 +30,30 @@ export interface ExpressionControls {
 }
 
 /**
+ * `report` 는 피드백 모아보기와 그 인쇄본이다. 넘겨 볼 화면이 아니라 남겨 두는 기록이라
+ * Before 를 접지 않고 다듬은 곳도 처음부터 보여 준다. 인쇄하면 접힌 내용과 버튼은
+ * 종이에 남지 않기 때문이다.
+ */
+type Variant = "screen" | "report";
+
+/**
  * 스토리 흐름에 해당하는 유형은 강조색으로, 전달·발음·문법은 차분한 색으로 칠한다.
  * 코칭이 흐름을 먼저 보고 문법을 마지막에 본다는 우선순위를 색으로도 드러낸다.
  */
 const FLOW_CATEGORIES: ReadonlySet<FeedbackCategory> = new Set(["storytelling", "transition", "detail", "emotion"]);
 
+/*
+ * 바뀐 곳의 두 등급을 칠하는 법.
+ *
+ * 색은 진한 등급(고칠 점이 요구해서 바뀐 곳)만 쓴다. 연한 등급(자연스러움만 손본 곳)은
+ * 한 답변에서 열 곳을 넘기기도 해서, 옅게라도 칠하면 답변이 다시 얼룩져 "다 틀렸다"로
+ * 읽힌다. 그래서 화면에서는 기본으로 끄고, 버튼을 누를 때만 점선으로 보여 준다.
+ */
 const DELETED = "rounded-sm bg-danger-tint px-0.5 text-danger-ink line-through decoration-danger-ink/60 box-decoration-clone";
 const INSERTED = "rounded-sm bg-success-tint px-0.5 font-medium text-success-ink no-underline box-decoration-clone";
+const SOFT_SHOWN = "text-fg-muted underline decoration-dotted decoration-line-strong underline-offset-[3px]";
+/** 끈 상태. del 의 기본 취소선까지 지워 평범한 글자로 만든다. */
+const SOFT_HIDDEN = "no-underline";
 
 /**
  * AI 피드백 한 문항 분량. 결과 화면과 피드백 모아보기가 함께 쓴다.
@@ -43,18 +61,21 @@ const INSERTED = "rounded-sm bg-success-tint px-0.5 font-medium text-success-ink
  * 총평과 흐름 점검 → 고칠 점 → Before / After 순서다. 무엇이 문제인지 먼저 읽고,
  * 그것을 내 답변에 반영하면 어디가 달라지는지 바로 아래에서 확인하게 한다.
  */
-export default function FeedbackDetails({ feedback, questionType, answer, expressions }: {
+export default function FeedbackDetails({ feedback, questionType, answer, expressions, variant = "screen" }: {
   feedback: OpicFeedback;
   /** 롤플레이는 두괄식을 요구하지 않아 첫 흐름 단계의 이름이 바뀐다. */
   questionType: string;
   /** 지금 화면에 보이는 답변. Before 가 이와 다르면(브라우저 받아쓰기로 되돌린 경우 등) 한 줄로 알린다. */
   answer?: string;
   expressions?: ExpressionControls;
+  variant?: Variant;
 }) {
   const frontLoaded = requiresFrontLoadedOpening(questionType);
   const overallDraft = expressions && expressionFromOverall(feedback, expressions.context);
   const rewrite = feedbackRewrite(feedback);
   const items = feedback.items.slice(0, 5);
+  // 고친 답변에서 번호 위에 손을 올리면 그 고칠 점이, 고칠 점 위에 올리면 그 자리가 밝아진다.
+  const [activeItem, setActiveItem] = useState<number | null>(null);
 
   return (
     <div className="space-y-6">
@@ -83,7 +104,14 @@ export default function FeedbackDetails({ feedback, questionType, answer, expres
         {items.length ? (
           <ol className="mt-2.5 space-y-2.5">
             {items.map((detail, index) => (
-              <FeedbackItem key={`${detail.category}-${index}`} detail={detail} index={index} expressions={expressions} />
+              <FeedbackItem
+                key={`${detail.category}-${index}`}
+                detail={detail}
+                index={index}
+                expressions={expressions}
+                active={activeItem === index + 1}
+                onHover={setActiveItem}
+              />
             ))}
           </ol>
         ) : (
@@ -91,7 +119,17 @@ export default function FeedbackDetails({ feedback, questionType, answer, expres
         )}
       </section>
 
-      {rewrite && <RewriteCompare before={rewrite.before} after={rewrite.after} answer={answer} />}
+      {rewrite && (
+        <RewriteCompare
+          before={rewrite.before}
+          after={rewrite.after}
+          feedback={feedback}
+          answer={answer}
+          variant={variant}
+          activeItem={activeItem}
+          onHoverItem={setActiveItem}
+        />
+      )}
 
       <div className="space-y-1 border-t border-line pt-3 text-[11px] leading-relaxed text-fg-subtle">
         <p>
@@ -117,17 +155,23 @@ function FlowStep({ label, good, arrow = false }: { label: string; good: boolean
   );
 }
 
-function FeedbackItem({ detail, index, expressions }: {
+function FeedbackItem({ detail, index, expressions, active, onHover }: {
   detail: OpicFeedbackItem;
   index: number;
   expressions?: ExpressionControls;
+  active: boolean;
+  onHover: (item: number | null) => void;
 }) {
   const draft = expressions && expressionFromFeedbackItem(detail, expressions.context);
   const flow = FLOW_CATEGORIES.has(detail.category);
   return (
-    <li className="rounded-xl bg-surface-2 px-3.5 py-3">
+    <li
+      className={`rounded-xl px-3.5 py-3 transition-colors ${active ? "bg-primary-tint-strong" : "bg-surface-2"}`}
+      onMouseEnter={() => onHover(index + 1)}
+      onMouseLeave={() => onHover(null)}
+    >
       <div className="flex items-start gap-3">
-        <span aria-hidden="true" className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface text-[11px] font-semibold tabular-nums text-fg-muted ring-1 ring-inset ring-line">
+        <span aria-hidden="true" className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface text-[11px] font-semibold tabular-nums ring-1 ring-inset ${active ? "text-primary-ink ring-primary-ink" : "text-fg-muted ring-line"}`}>
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">
@@ -152,33 +196,91 @@ function FeedbackItem({ detail, index, expressions }: {
 }
 
 /**
- * 내가 말한 답변과 피드백을 반영해 고친 답변을 나란히 두고 바뀐 단어만 칠한다.
- * Before 에는 빼거나 바꾼 말을, After 에는 새로 넣거나 바꾼 말을 표시한다.
+ * 내가 말한 답변과 고친 답변을 견준다.
+ *
+ * 소리 내어 읽을 것은 After 라서 After 를 먼저 두고 Before 는 접는다. Before 의 빨간
+ * 취소선이 화면에서 가장 무거워, 위에 두면 고친 답변보다 먼저 눈에 들어온다.
  */
-function RewriteCompare({ before, after, answer }: { before: string; after: string; answer?: string }) {
-  const diff = useMemo(() => diffAnswers(before, after), [before, after]);
+function RewriteCompare({ before, after, feedback, answer, variant, activeItem, onHoverItem }: {
+  before: string;
+  after: string;
+  feedback: OpicFeedback;
+  answer?: string;
+  variant: Variant;
+  activeItem: number | null;
+  onHoverItem: (item: number | null) => void;
+}) {
+  const diff = useMemo(() => diffAnswers(before, after, feedbackItemQuotes(feedback)), [before, after, feedback]);
+  const [showFluency, setShowFluency] = useState(variant === "report");
   const basisDiffers = answer !== undefined && hasAnswerText(answer) && !sameSpokenText(before, answer);
+
+  const summary = diff.locatedItems.length
+    ? `고칠 점 ${diff.locatedItems.length}가지 반영${diff.fluencyChanges ? ` · 다듬은 곳 ${diff.fluencyChanges}군데` : ""}`
+    : diff.changes ? `고친 곳 ${diff.changes}군데` : "고친 곳 없음";
+
+  const beforePanel = (
+    <AnswerPanel
+      label="Before"
+      caption="내가 말한 답변"
+      pieces={diff.before}
+      showFluency={showFluency}
+      activeItem={activeItem}
+      onHoverItem={onHoverItem}
+    />
+  );
 
   return (
     <section aria-label="Before / After">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className="text-sm font-semibold text-fg">Before / After</h3>
-        <p className="text-[11px] text-fg-subtle">{diff.changes ? `고친 곳 ${diff.changes}군데` : "고친 곳 없음"}</p>
+        <p className="text-[11px] text-fg-subtle">{summary}</p>
       </div>
-      <p className="mt-1 text-xs leading-relaxed text-fg-muted">내가 말한 답변에 위 피드백만 반영했습니다. 스토리와 표현은 최대한 그대로 두었습니다.</p>
+      <p className="mt-1 text-xs leading-relaxed text-fg-muted">내가 말한 답변에 위 피드백을 반영하고, 소리 내어 읽을 수 있게 문장을 다듬었습니다. 내 단어와 스토리는 그대로 두었습니다.</p>
 
       {diff.changes === 0 ? (
         <p className="mt-2.5 rounded-xl bg-surface-2 px-3.5 py-3 text-xs text-fg-muted">피드백을 반영해도 고칠 곳이 거의 없는 답변입니다.</p>
       ) : (
         <>
           <div className="mt-2.5 space-y-2">
-            <AnswerPanel label="Before" caption="내가 말한 답변" pieces={diff.before} />
-            <AnswerPanel label="After" caption="피드백 반영" pieces={diff.after} after />
+            <AnswerPanel
+              label="After"
+              caption="소리 내어 읽을 문장"
+              pieces={diff.after}
+              after
+              showFluency={showFluency}
+              activeItem={activeItem}
+              onHoverItem={onHoverItem}
+            />
+            {variant === "report" ? beforePanel : (
+              <details className="group rounded-xl border border-line bg-surface-2">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3.5 text-[11px] font-semibold text-fg-muted [&::-webkit-details-marker]:hidden">
+                  내가 말한 답변 (Before)
+                  <span aria-hidden="true" className="ml-auto font-normal text-fg-subtle group-open:hidden">펼치기</span>
+                  <span aria-hidden="true" className="ml-auto hidden font-normal text-fg-subtle group-open:inline">접기</span>
+                </summary>
+                <div className="px-2 pb-2">{beforePanel}</div>
+              </details>
+            )}
           </div>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-fg-subtle">
-            <span><del className={DELETED}>취소선</del> 빼거나 바꾼 말</span>
-            <span><ins className={INSERTED}>초록</ins> 새로 넣거나 바꾼 말</span>
-          </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-fg-subtle">
+            {diff.locatedItems.length > 0 && (
+              <span><ins className={INSERTED}>초록</ins> 고칠 점이 손댄 자리 · 번호가 위 목록과 이어집니다</span>
+            )}
+            {diff.fluencyChanges > 0 && variant === "screen" && (
+              <button
+                type="button"
+                aria-pressed={showFluency}
+                onClick={() => setShowFluency((value) => !value)}
+                className={`print-hide min-h-8 rounded-lg border px-2.5 text-[11px] font-medium transition ${showFluency ? "border-primary-ink/30 bg-primary-tint text-primary-ink" : "border-line text-fg-muted hover:text-fg"}`}
+              >
+                다듬은 곳 {diff.fluencyChanges}군데 {showFluency ? "숨기기" : "보기"}
+              </button>
+            )}
+            {diff.fluencyChanges > 0 && showFluency && (
+              <span><span className={SOFT_SHOWN}>점선</span> 자연스럽게 다듬은 곳</span>
+            )}
+          </div>
           <p className="mt-1 text-[11px] leading-relaxed text-fg-subtle">After 를 소리 내어 두세 번 읽어 본 뒤, 같은 질문에 다시 답해 보세요.</p>
         </>
       )}
@@ -190,12 +292,80 @@ function RewriteCompare({ before, after, answer }: { before: string; after: stri
   );
 }
 
-function AnswerPanel({ label, caption, pieces, after = false }: {
+/**
+ * 한 고칠 점이 여러 조각으로 갈린 것을 한 덩어리로 잇는다. After 에만 쓴다.
+ *
+ * 긴 문장을 고치면 그 안의 몇 단어가 예전 답변과 우연히 맞아 조각이 갈린다. 갈린 채로
+ * 칠하면 한 자리가 초록 세 덩이로 보여 읽기도 세기도 어렵다. 사이에 낀 것이 바뀌지 않은
+ * 말뿐일 때만 잇고, 다른 등급의 변경을 만나면 거기서 멈춘다.
+ *
+ * Before 에는 쓰지 않는다. 저쪽은 무엇을 뺐는지 보는 곳이라, 빼지 않은 말에 취소선을
+ * 그으면 거짓말이 된다.
+ */
+function itemSpans(pieces: readonly DiffPiece[]): (number | undefined)[] {
+  const spans = Array<number | undefined>(pieces.length).fill(undefined);
+  pieces.forEach((piece, start) => {
+    const number = piece.tier === "item" ? piece.itemNumber : undefined;
+    if (number === undefined || spans[start] !== undefined) return;
+    let end = start;
+    for (let index = start + 1; index < pieces.length; index++) {
+      const next = pieces[index];
+      if (next.tier === "item" && next.itemNumber === number) { end = index; continue; }
+      if (!next.changed) continue;
+      break;
+    }
+    for (let index = start; index <= end; index++) spans[index] ??= number;
+  });
+  return spans;
+}
+
+/** 고칠 점 번호. 한 자리를 여러 번 가리키지 않도록 그 항목의 첫 조각에만 붙인다. */
+function ItemBadge({ number, after }: { number: number; after?: boolean }) {
+  return (
+    <sup className={`ml-px text-[0.62em] font-bold tabular-nums ${after ? "text-success-ink" : "text-danger-ink"}`}>
+      {number}
+    </sup>
+  );
+}
+
+/** 화면에 그릴 한 덩어리. 같은 등급·같은 번호가 이어지면 한 요소로 합쳐 이음매를 없앤다. */
+interface PanelGroup {
+  text: string;
+  kind: "plain" | "item" | "fluency";
+  number?: number;
+}
+
+function panelGroups(pieces: readonly DiffPiece[], after: boolean): PanelGroup[] {
+  const spans = after ? itemSpans(pieces) : [];
+  const groups: PanelGroup[] = [];
+  pieces.forEach((piece, index) => {
+    // 이은 구간에 든 말과, 번호가 없는 예전 피드백의 바뀐 말이 진한 등급이다.
+    const number = after ? spans[index] : piece.itemNumber;
+    const item = number !== undefined || (piece.changed && piece.tier === "item");
+    const kind: PanelGroup["kind"] = item ? "item" : piece.changed ? "fluency" : "plain";
+    const last = groups[groups.length - 1];
+    if (last && last.kind === kind && last.number === number) {
+      last.text += piece.text;
+      return;
+    }
+    groups.push({ text: piece.text, kind, number });
+  });
+  return groups;
+}
+
+function AnswerPanel({ label, caption, pieces, after = false, showFluency, activeItem, onHoverItem }: {
   label: string;
   caption: string;
   pieces: readonly DiffPiece[];
   after?: boolean;
+  showFluency: boolean;
+  activeItem: number | null;
+  onHoverItem: (item: number | null) => void;
 }) {
+  const groups = panelGroups(pieces, after);
+  // 이 패널에서 이미 번호를 그린 항목. 같은 자리를 여러 번 가리키지 않는다.
+  const numbered = new Set<number>();
+
   return (
     <div className={`rounded-xl border px-3.5 py-3 ${after ? "border-success-ink/30 bg-surface" : "border-line bg-surface-2"}`}>
       <p className="text-[11px] font-semibold tracking-wide">
@@ -203,11 +373,31 @@ function AnswerPanel({ label, caption, pieces, after = false }: {
         <span className="ml-1.5 font-normal text-fg-subtle">{caption}</span>
       </p>
       <p lang="en" className={`mt-1.5 whitespace-pre-wrap text-sm leading-relaxed ${after ? "text-fg" : "text-fg-muted"}`}>
-        {pieces.map((piece, index) => !piece.changed
-          ? <span key={index}>{piece.text}</span>
-          : after
-            ? <ins key={index} className={INSERTED}>{piece.text}</ins>
-            : <del key={index} className={DELETED}>{piece.text}</del>)}
+        {groups.map((group, index) => {
+          if (group.kind === "plain") return <span key={index}>{group.text}</span>;
+
+          if (group.kind === "fluency") {
+            const className = showFluency ? SOFT_SHOWN : SOFT_HIDDEN;
+            return after
+              ? <ins key={index} className={className}>{group.text}</ins>
+              : <del key={index} className={className}>{group.text}</del>;
+          }
+
+          const number = group.number;
+          const first = number !== undefined && !numbered.has(number);
+          if (number !== undefined) numbered.add(number);
+          const active = number !== undefined && number === activeItem;
+          const className = `${after ? INSERTED : DELETED}${active ? " ring-1 ring-inset ring-fg-muted" : ""}`;
+          const hover = number === undefined ? undefined : {
+            onMouseEnter: () => onHoverItem(number),
+            onMouseLeave: () => onHoverItem(null),
+          };
+          const badge = first && number !== undefined ? <ItemBadge number={number} after={after} /> : null;
+
+          return after
+            ? <ins key={index} className={className} {...hover}>{group.text}{badge}</ins>
+            : <del key={index} className={className} {...hover}>{group.text}{badge}</del>;
+        })}
       </p>
     </div>
   );
