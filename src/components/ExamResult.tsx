@@ -24,6 +24,7 @@ import {
 } from "@/lib/answers";
 import { itemNumber } from "@/lib/exam";
 import { formatHistoryStamp } from "@/lib/history";
+import { savedReadPractices, type ReadPractice } from "@/lib/speakingActivity";
 import { recordingExtension, recordingFileName, recordingToMp3 } from "@/lib/mp3";
 import { examExitLink, nextPracticeLink } from "@/lib/nav";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
@@ -170,6 +171,7 @@ export default function ExamResult({
   const [feedbackBySlot, setFeedbackBySlot] = useState<Record<number, OpicFeedback>>(historyEntry?.result?.feedback ?? {});
   // 고친 답변을 끝까지 따라 읽은 횟수. 답변·피드백과 같은 회차에 함께 쌓인다.
   const [readCounts, setReadCounts] = useState<Record<number, number>>(historyEntry?.result?.readCounts ?? {});
+  const [readPractices, setReadPractices] = useState<ReadPractice[]>(() => historyEntry ? savedReadPractices(historyEntry) : []);
   // 한 번에 받기가 차례를 기다리는 사이 개별 버튼으로 먼저 받은 문항을, 렌더를 기다리지 않고 알아보려고 둔다.
   // 피드백은 이 값을 고친 뒤 그대로 상태에 넘기므로 둘은 늘 같다.
   const feedbackRef = useRef(feedbackBySlot);
@@ -189,6 +191,7 @@ export default function ExamResult({
     exam, answers: answerBySlot, times, hintUse, replays, feedback: feedbackBySlot,
     ...(Object.keys(rewrites.browser).length ? { browserAnswers: rewrites.browser } : {}),
     ...(Object.keys(readCounts).length ? { readCounts } : {}),
+    readPractices,
   };
 
   const persist = useCallback((result: SavedResult) => {
@@ -220,12 +223,16 @@ export default function ExamResult({
   useEffect(() => {
     if (readOnly.current) return;
     persist(latestResult.current);
-  }, [persist, answerBySlot, times, rewrites, feedbackBySlot, readCounts]);
+  }, [persist, answerBySlot, times, rewrites, feedbackBySlot, readCounts, readPractices]);
 
   /** 한 문항을 끝까지 따라 읽었다. 지난 기록을 열어 읽어도 그 회차에 쌓인다. */
   const countRead = useCallback((slot: number) => {
+    const sentences = countEnglishSentences(feedbackRef.current[slot]?.improvedAnswer ?? "");
+    if (!sentences) return;
+    const practice = { slot, completedAt: Date.now(), sentences, count: 1 };
     readOnly.current = false;
     setReadCounts((current) => ({ ...current, [slot]: (current[slot] ?? 0) + 1 }));
+    setReadPractices((current) => [...current, practice]);
   }, []);
 
   /**
