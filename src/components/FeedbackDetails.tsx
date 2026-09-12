@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { hasAnswerText, sameSpokenText } from "@/lib/answers";
 import { diffAnswers, type DiffPiece } from "@/lib/answerDiff";
 import {
@@ -15,15 +15,20 @@ import {
 import {
   clampReadWpm,
   countReadWords,
+  loadReadCheck,
   loadReadWpm,
   msPerWord,
+  readCoverage,
+  saveReadCheck,
   saveReadWpm,
   splitForReading,
+  READ_COVERAGE_PASS,
   READ_WPM_DEFAULT,
   READ_WPM_MAX,
   READ_WPM_MIN,
   READ_WPM_STEP,
 } from "@/lib/readAloud";
+import { isSpeechRecognitionSupported, startDictation, type DictationHandle } from "@/lib/speech";
 import {
   draftId,
   expressionFromFeedbackItem,
@@ -39,6 +44,13 @@ export interface ExpressionControls {
   savedIds: ReadonlySet<string>;
   onToggle: (draft: ExpressionDraft) => void;
   error: string | null;
+}
+
+/** 따라 읽기를 세어 기록에 남기는 데 필요한 것. 결과 화면만 넘긴다. */
+export interface ReadingControls {
+  /** 지금까지 끝까지 따라 읽은 횟수. */
+  reads: number;
+  onRead: () => void;
 }
 
 /**
@@ -73,13 +85,14 @@ const SOFT_HIDDEN = "no-underline";
  * 총평과 흐름 점검 → 고칠 점 → Before / After 순서다. 무엇이 문제인지 먼저 읽고,
  * 그것을 내 답변에 반영하면 어디가 달라지는지 바로 아래에서 확인하게 한다.
  */
-export default function FeedbackDetails({ feedback, questionType, answer, expressions, variant = "screen" }: {
+export default function FeedbackDetails({ feedback, questionType, answer, expressions, reading, variant = "screen" }: {
   feedback: OpicFeedback;
   /** 롤플레이는 두괄식을 요구하지 않아 첫 흐름 단계의 이름이 바뀐다. */
   questionType: string;
   /** 지금 화면에 보이는 답변. Before 가 이와 다르면(브라우저 받아쓰기로 되돌린 경우 등) 한 줄로 알린다. */
   answer?: string;
   expressions?: ExpressionControls;
+  reading?: ReadingControls;
   variant?: Variant;
 }) {
   const frontLoaded = requiresFrontLoadedOpening(questionType);
@@ -137,6 +150,7 @@ export default function FeedbackDetails({ feedback, questionType, answer, expres
           after={rewrite.after}
           feedback={feedback}
           answer={answer}
+          reading={reading}
           variant={variant}
           activeItem={activeItem}
           onHoverItem={setActiveItem}
@@ -213,11 +227,12 @@ function FeedbackItem({ detail, index, expressions, active, onHover }: {
  * 소리 내어 읽을 것은 After 라서 After 를 먼저 두고 Before 는 접는다. Before 의 빨간
  * 취소선이 화면에서 가장 무거워, 위에 두면 고친 답변보다 먼저 눈에 들어온다.
  */
-function RewriteCompare({ before, after, feedback, answer, variant, activeItem, onHoverItem }: {
+function RewriteCompare({ before, after, feedback, answer, reading: readingControls, variant, activeItem, onHoverItem }: {
   before: string;
   after: string;
   feedback: OpicFeedback;
   answer?: string;
+  reading?: ReadingControls;
   variant: Variant;
   activeItem: number | null;
   onHoverItem: (item: number | null) => void;
@@ -237,16 +252,68 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
   const [cursor, setCursor] = useState(-1);
   const speedId = useId();
 
-  // 저장된 속도는 브라우저에만 있다. 서버가 그린 첫 화면과 어긋나지 않도록 나중에 읽는다.
-  useEffect(() => { setWpm(loadReadWpm()); }, []);
+  /*
+   * 마이크로 확인하기.
+   *
+   * 정말로 소리 내어 읽었는지는 받아쓰기로만 알 수 있다. 다만 브라우저 받아쓰기는
+   * 제대로 읽어도 곧잘 틀리므로(그래서 이 앱에 녹음본 재전사가 있다) 통과 조건으로
+   * 쓰지 않는다. 끝까지 넘기면 횟수는 그대로 세고, 덜 따라왔을 때만 한 줄로 알린다.
+   */
+  const [supported, setSupported] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [coverage, setCoverage] = useState<number | null>(null);
+  const [micError, setMicError] = useState(false);
+  const heard = useRef("");
+  const micFailed = useRef(false);
+  const dictation = useRef<DictationHandle | null>(null);
+  // 프롭은 렌더마다 새 객체로 온다. 시계를 다시 걸지 않도록 여기에 담아 둔다.
+  const onRead = useRef(readingControls?.onRead);
+  onRead.current = readingControls?.onRead;
+
+  // 저장된 값은 브라우저에만 있다. 서버가 그린 첫 화면과 어긋나지 않도록 나중에 읽는다.
+  useEffect(() => {
+    setWpm(loadReadWpm());
+    setSupported(isSpeechRecognitionSupported());
+    setChecking(loadReadCheck());
+  }, []);
+
+  // 화면을 떠나면 마이크를 놓아 준다.
+  useEffect(() => () => { dictation.current?.abort(); dictation.current = null; }, []);
 
   useEffect(() => {
     if (!playing) return;
-    if (cursor >= totalWords - 1) { setPlaying(false); return; }
+    if (cursor >= totalWords - 1) {
+      setPlaying(false);
+      // stop() 은 말하던 마지막 문장까지 받아 적고 끝난다. 커버리지는 그 뒤에 센다.
+      dictation.current?.stop();
+      onRead.current?.();
+      return;
+    }
     // 낱말마다 다시 건다. 읽는 도중에 속도를 바꾸면 바로 다음 낱말부터 따른다.
     const timer = window.setTimeout(() => setCursor((value) => value + 1), msPerWord(wpm));
     return () => window.clearTimeout(timer);
   }, [playing, cursor, wpm, totalWords]);
+
+  const listen = () => {
+    heard.current = "";
+    micFailed.current = false;
+    setMicError(false);
+    dictation.current?.abort();
+    dictation.current = startDictation({
+      onUpdate: (draft) => { heard.current = [draft.committed, draft.interim].filter(Boolean).join(" "); },
+      onError: (code) => {
+        if (code !== "not-allowed" && code !== "service-not-allowed" && code !== "audio-capture") return;
+        micFailed.current = true;
+        setMicError(true);
+      },
+      onEnd: () => {
+        dictation.current = null;
+        // 마이크가 막힌 채로 끝났으면 0% 를 들이밀지 않는다. 읽지 않은 것이 아니다.
+        if (!micFailed.current) setCoverage(readCoverage(after, heard.current));
+      },
+    });
+    if (!dictation.current) setMicError(true);
+  };
 
   const reading = variant === "screen" && totalWords > 0;
   const done = cursor >= 0 && !playing && cursor >= totalWords - 1;
@@ -256,9 +323,27 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
 
   const startOrPause = () => {
     if (playing) { setPlaying(false); return; }
-    if (done || cursor < 0) setCursor(0);
+    if (done || cursor < 0) {
+      setCursor(0);
+      setCoverage(null);
+      if (checking && supported) listen();
+    }
     setPlaying(true);
   };
+
+  const toggleChecking = () => {
+    const next = !checking;
+    setChecking(next);
+    saveReadCheck(next);
+    if (next) return;
+    dictation.current?.abort();
+    dictation.current = null;
+    setCoverage(null);
+    setMicError(false);
+  };
+
+  const reads = readingControls?.reads ?? 0;
+  const percent = coverage === null ? 0 : Math.round(coverage * 100);
 
   const readControls = reading ? (
     <div className="print-hide mt-3 space-y-2 border-t border-line pt-2.5">
@@ -282,6 +367,16 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
             처음부터
           </button>
         )}
+        {supported && (
+          <button
+            type="button"
+            aria-pressed={checking}
+            onClick={toggleChecking}
+            className={`min-h-9 rounded-lg border px-2.5 text-xs transition ${checking ? "border-primary-ink/30 bg-primary-tint font-medium text-primary-ink" : "border-line text-fg-muted hover:text-fg"}`}
+          >
+            마이크로 확인
+          </button>
+        )}
         <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
           <label htmlFor={speedId} className="text-[11px] text-fg-subtle">속도</label>
           <input
@@ -301,6 +396,15 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
           <span className="w-16 text-[11px] tabular-nums text-fg-muted">분당 {wpm}</span>
         </div>
       </div>
+      {(reads > 0 || coverage !== null || micError) && (
+        <p className="text-[11px] leading-relaxed text-fg-subtle">
+          {reads > 0 && `읽음 ${reads}회`}
+          {coverage !== null && (coverage >= READ_COVERAGE_PASS
+            ? `${reads > 0 ? " · " : ""}받아쓰기가 ${percent}% 따라왔습니다`
+            : `${reads > 0 ? " · " : ""}받아쓰기가 ${percent}%만 따라왔습니다. 조금 또렷하게 읽어 보세요`)}
+          {micError && `${reads > 0 || coverage !== null ? " · " : ""}마이크를 쓸 수 없어 확인을 건너뛰었습니다`}
+        </p>
+      )}
     </div>
   ) : undefined;
 

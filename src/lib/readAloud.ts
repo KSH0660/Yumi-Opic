@@ -70,3 +70,71 @@ export function splitForReading(text: string): ReadToken[] {
 export function countReadWords(text: string): number {
   return splitForReading(text).filter((token) => token.word).length;
 }
+
+/* ------------------------------------------------------------------ */
+/* 읽었는지 확인하기                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 다 읽은 것으로 볼 커버리지.
+ *
+ * 브라우저 받아쓰기는 제대로 읽어도 곧잘 틀린다(그래서 이 앱에 녹음본 재전사가 있다).
+ * 그래서 넉넉히 잡고, 못 넘겨도 막지 않는다. 판정이 아니라 신호다.
+ */
+export const READ_COVERAGE_PASS = 0.7;
+
+const CHECK_KEY = "yumi-opic:read-check";
+/** 너무 긴 입력에서 화면이 멈추지 않게 하는 상한. */
+const MAX_COVERAGE_WORDS = 1_200;
+
+/** 마이크로 확인하며 읽을지. 한 번 정하면 다음 문항에서도 그대로 쓴다. */
+export function loadReadCheck(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(CHECK_KEY) === "on";
+  } catch {
+    /* 저장소를 막아 둔 브라우저 */
+    return false;
+  }
+}
+
+export function saveReadCheck(on: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CHECK_KEY, on ? "on" : "off");
+  } catch {
+    /* 저장소를 막아 둔 브라우저 */
+  }
+}
+
+function coverageKeys(text: string): string[] {
+  return splitForReading(text)
+    .filter((token) => token.word)
+    .slice(0, MAX_COVERAGE_WORDS)
+    .map((token) => token.text.toLowerCase().replace(/’/g, "'"));
+}
+
+/**
+ * 받아쓰기가 읽을 글을 얼마나 따라왔는지 0~1 로 돌려준다.
+ *
+ * 순서를 지킨 채 겹치는 낱말(최장 공통 부분열)을 세어 읽을 글의 낱말 수로 나눈다.
+ * 건너뛴 말은 빠지고, 받아쓰기가 끼워 넣은 엉뚱한 말은 세지 않는다. 말하기 연습이라
+ * 대소문자와 문장부호는 보지 않는다.
+ */
+export function readCoverage(target: string, heard: string): number {
+  const a = coverageKeys(target);
+  const b = coverageKeys(heard);
+  if (a.length === 0 || b.length === 0) return 0;
+
+  // lcs[j+1] 은 a 의 앞 i+1 개와 b 의 앞 j+1 개가 겹치는 최대 길이다. 한 줄만 굴린다.
+  const lcs = new Uint16Array(b.length + 1);
+  for (let i = 0; i < a.length; i++) {
+    let diagonal = 0;
+    for (let j = 0; j < b.length; j++) {
+      const previous = lcs[j + 1];
+      lcs[j + 1] = a[i] === b[j] ? diagonal + 1 : Math.max(lcs[j + 1], lcs[j]);
+      diagonal = previous;
+    }
+  }
+  return Math.min(1, lcs[b.length] / a.length);
+}

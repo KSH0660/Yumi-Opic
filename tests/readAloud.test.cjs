@@ -93,3 +93,54 @@ test('낱말 수는 문장부호를 세지 않는다', () => {
   assert.equal(countReadWords('   '), 0);
   assert.equal(countReadWords(''), 0);
 });
+
+/* ── 읽었는지 확인하기 ───────────────────────────────────────────── */
+
+const { readCoverage, READ_COVERAGE_PASS, loadReadCheck, saveReadCheck } = require('../.test-build/lib/readAloud');
+
+const TARGET = 'I go jogging about three times a week, usually in the morning before work.';
+
+test('그대로 읽으면 전부 따라온 것으로 본다', () => {
+  assert.equal(readCoverage(TARGET, TARGET), 1);
+  // 대소문자와 문장부호는 보지 않는다.
+  assert.equal(readCoverage(TARGET, 'i go jogging about three times a week usually in the morning before work'), 1);
+});
+
+test('건너뛴 만큼 커버리지가 내려간다', () => {
+  const half = 'I go jogging about three times a week';
+  const coverage = readCoverage(TARGET, half);
+  assert.ok(coverage > 0.5 && coverage < 0.7, `got ${coverage}`);
+});
+
+test('받아쓰기가 끼워 넣은 엉뚱한 말은 점수를 올리지 않는다', () => {
+  const noisy = 'I go jogging about three times a week usually in the morning before work um yeah okay so anyway';
+  assert.equal(readCoverage(TARGET, noisy), 1);
+  assert.ok(readCoverage(TARGET, 'completely different words here') < 0.3);
+});
+
+test('아무 말도 안 들리면 0이다', () => {
+  assert.equal(readCoverage(TARGET, ''), 0);
+  assert.equal(readCoverage(TARGET, '   '), 0);
+  assert.equal(readCoverage('', 'anything'), 0);
+});
+
+test('순서가 뒤집힌 말은 그만큼만 센다', () => {
+  // 뒤에서부터 읽으면 순서를 지킨 부분만 겹친다.
+  const reversed = TARGET.split(' ').reverse().join(' ');
+  assert.ok(readCoverage(TARGET, reversed) < READ_COVERAGE_PASS);
+});
+
+test('마이크 확인 설정을 저장하고 다시 읽어 온다', () => {
+  const store = {};
+  withWindow(store, () => {
+    assert.equal(loadReadCheck(), false);
+    saveReadCheck(true);
+    assert.equal(loadReadCheck(), true);
+    saveReadCheck(false);
+    assert.equal(loadReadCheck(), false);
+  });
+  withWindow({}, () => {
+    assert.equal(loadReadCheck(), false);
+    assert.doesNotThrow(() => saveReadCheck(true));
+  }, { throws: true });
+});
