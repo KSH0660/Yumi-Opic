@@ -274,6 +274,98 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       {"slot":19,"displayNumber":"15","questionId":"park-advanced2-q15"},
     ] },
   ],
+  workplaces: [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "workplaces-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "workplaces-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "workplaces-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "workplaces-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "workplaces-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "workplaces-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "workplaces-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "workplaces-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "workplaces-combo3-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 10, displayNumber: "11", questionId: "workplaces-roleplay1-q11" },
+      { slot: 11, displayNumber: "12", questionId: "workplaces-roleplay1-q12" },
+      { slot: 12, displayNumber: "13", questionId: "workplaces-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 13, displayNumber: "11", questionId: "workplaces-roleplay2-q11" },
+      { slot: 14, displayNumber: "12", questionId: "workplaces-roleplay2-q12" },
+      { slot: 15, displayNumber: "13", questionId: "workplaces-roleplay2-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 16, displayNumber: "14", questionId: "workplaces-advanced1-q14" },
+      { slot: 17, displayNumber: "15", questionId: "workplaces-advanced1-q15" },
+    ] },
+  ],
+  doctors: [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "doctors-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "doctors-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "doctors-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "doctors-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "doctors-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "doctors-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "doctors-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "doctors-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "doctors-combo3-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 10, displayNumber: "11", questionId: "doctors-roleplay1-q11" },
+      { slot: 11, displayNumber: "12", questionId: "doctors-roleplay1-q12" },
+      { slot: 12, displayNumber: "13", questionId: "doctors-roleplay1-q13" },
+    ] },
+  ],
+  appointments: [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "appointments-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "appointments-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "appointments-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "appointments-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "appointments-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "appointments-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "appointments-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "appointments-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "appointments-combo3-q10" },
+    ] },
+  ],
+  "hair-salons": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "hair-salons-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "hair-salons-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "hair-salons-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "hair-salons-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "hair-salons-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "hair-salons-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "hair-salons-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "hair-salons-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "hair-salons-combo3-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 10, displayNumber: "11", questionId: "hair-salons-roleplay1-q11" },
+      { slot: 11, displayNumber: "12", questionId: "hair-salons-roleplay1-q12" },
+      { slot: 12, displayNumber: "13", questionId: "hair-salons-roleplay1-q13" },
+    ] },
+  ],
   recycling: [
     { label: "COMBO 1", items: [
       { slot: 1, displayNumber: "2", questionId: "recycling-combo1-q2" },
