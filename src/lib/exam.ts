@@ -70,11 +70,11 @@ function item(slot: number, topic: Topic, question: Question, comboLabel: string
 }
 
 /**
- * 화면에 적는 문항 번호. 돌발 주제별 연습만 자료 번호를 그대로 보여 준다. 모의고사나
- * 랜덤 연습에 섞여 들어간 돌발 문항까지 자료 번호로 적히면 순서가 어긋나 보인다.
+ * 주제별 연습은 문항별 표시 번호, 자료 번호, 내부 slot 순으로 표시한다.
+ * 모의고사와 랜덤 연습은 항상 기존 slot 번호를 표시한다.
  */
 export function itemNumber(mode: Exam["mode"], entry: ExamItem): string {
-  return mode === "practice" ? entry.question.number ?? String(entry.slot) : String(entry.slot);
+  return mode === "practice" ? entry.displayNumber ?? entry.question.number ?? String(entry.slot) : String(entry.slot);
 }
 
 function introItem(): ExamItem {
@@ -113,56 +113,85 @@ export const drawableSurveyTopics = surveyTopics.filter((topic) => !DRAW_EXCLUDE
 
 const ADVANCED_TYPES: QuestionType[] = ["comparison", "issue"];
 
-/**
- * 8~10번 돌발 세트. 늘 자료의 첫 묘사 문항으로 열고, 뒤의 두 문항은 비교·이슈를 뺀
- * 나머지에서 자료 순서대로 고른다. 앞 문항의 답을 전제로 하는 문항은 그 앞 문항이
- * 먼저 나온 조합에서만 낸다.
- */
-function surpriseSet(topic: Topic, rng: RandomSource): Question[] {
-  const [first, ...rest] = topic.questions.filter((q) => !ADVANCED_TYPES.includes(q.type));
-  const sets = rest.flatMap((second, i) => rest.slice(i + 1).map((third) => [first, second, third]));
-  const coherent = sets.filter((set) => set.every((q, i) =>
-    (q.dependsOn ?? []).every((id) => set.slice(0, i).some((earlier) => earlier.id === id))));
-  return pickRandom(coherent, rng);
+const GENERAL_TYPES: QuestionType[][] = [
+  ["description", "routine", "experience"],
+  ["description", "experience", "memorable"],
+];
+const ROLEPLAY_TYPES: QuestionType[] = ["roleplay_ask", "roleplay_problem", "roleplay_experience"];
+export const MIN_FULL_EXAM_SURVEY_TOPICS = 4;
+
+function coherentSet(questions: readonly Question[]): boolean {
+  return new Set(questions.map(q => q.id)).size === questions.length && questions.every((q, i) =>
+    (q.dependsOn ?? []).every(id => questions.slice(0, i).some(earlier => earlier.id === id)));
+}
+
+/** Resolve declared sets intact. Legacy banks enumerate complete eligible bundles before any draw. */
+export function completeQuestionSets(topic: Topic, types?: readonly QuestionType[]): Question[][] {
+  let sets: Question[][];
+  if (topic.fixedPracticeSets) {
+    sets = topic.fixedPracticeSets.map(group => group.items.map(({ questionId }) => {
+      const question = topic.questions.find(q => q.id === questionId);
+      if (!question) throw new Error(`${topic.id}: missing set question ${questionId}`);
+      return question;
+    }));
+  } else if (topic.category === "surprise") {
+    // Start with the first source question; retain source order and exclude advanced types.
+    const [first, ...rest] = topic.questions.filter(q => !ADVANCED_TYPES.includes(q.type));
+    sets = first ? rest.flatMap((second, i) => rest.slice(i + 1).map(third => [first, second, third])) : [];
+  } else {
+    sets = [[]];
+    for (const type of types ?? []) {
+      const typed = topic.questions.filter(q => q.type === type);
+      const verified = typed.filter(q => q.source === "verified");
+      sets = sets.flatMap(set => (verified.length ? verified : typed).map(q => [...set, q]));
+    }
+  }
+  return sets.filter(set => set.length > 0 && coherentSet(set) && (!types ||
+    (set.length === types.length && set.every((q, i) => q.type === types[i]))));
 }
 
 export function buildFullExam(options: BuildExamOptions = {}): Exam {
   const { includeIntro = true, rng = Math.random } = options;
-  const requested = [...new Set(options.enabledSurveyIds ?? DEFAULT_SURVEY_IDS)];
-  const enabled = drawableSurveyTopics.filter((topic) => requested.includes(topic.id));
-  if (enabled.length < 3) {
-    const excluded = surveyTopics.filter((topic) => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map((topic) => topic.ko).join("·");
-    throw new Error(`실전 모의고사를 만들려면 서베이 주제를 3개 이상 선택해 주세요. ${excluded} 주제는 모의고사에 나오지 않아 개수에서 빠집니다.`);
+  const requested = new Set(options.enabledSurveyIds ?? DEFAULT_SURVEY_IDS);
+  const enabled = drawableSurveyTopics.filter(topic => requested.has(topic.id));
+  if (enabled.length < MIN_FULL_EXAM_SURVEY_TOPICS) {
+    const excluded = surveyTopics.filter(topic => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map(topic => topic.ko).join("·");
+    throw new Error(`실전 모의고사를 만들려면 서베이 주제를 ${MIN_FULL_EXAM_SURVEY_TOPICS}개 이상 선택해 주세요. ${excluded} 주제는 모의고사에 나오지 않아 개수에서 빠집니다.`);
   }
-
-  const [a, b] = shuffle(enabled, rng).slice(0, 2);
-  const surprise = pickRandom(surpriseTopics, rng);
-  const items: ExamItem[] = [
-    item(2, a, questionOfType(a, "description", rng), "세트 1"),
-    item(3, a, questionOfType(a, "routine", rng), "세트 1"),
-    item(4, a, questionOfType(a, "experience", rng), "세트 1"),
-    item(5, b, questionOfType(b, "description", rng), "세트 2"),
-    item(6, b, questionOfType(b, "experience", rng), "세트 2"),
-    item(7, b, questionOfType(b, "memorable", rng), "세트 2"),
-    ...surpriseSet(surprise, rng).map((question, i) => item(8 + i, surprise, question, "돌발 세트")),
+  const sections = [
+    { slot: 2, label: "세트 1", topics: enabled, types: GENERAL_TYPES[0] },
+    { slot: 5, label: "세트 2", topics: enabled, types: GENERAL_TYPES[1] },
+    { slot: 8, label: "돌발 세트", topics: surpriseTopics, types: undefined },
+    { slot: 11, label: "롤플레이 세트", topics: enabled, types: ROLEPLAY_TYPES },
+    { slot: 14, label: "어드밴스", topics: enabled, types: ADVANCED_TYPES },
   ];
-
-  const roleplayTopic = pickRandom(enabled, rng);
-  items.push(item(11, roleplayTopic, questionOfType(roleplayTopic, "roleplay_ask", rng), "롤플레이 세트"));
-  items.push(item(12, roleplayTopic, questionOfType(roleplayTopic, "roleplay_problem", rng), "롤플레이 세트"));
-  items.push(item(13, roleplayTopic, questionOfType(roleplayTopic, "roleplay_experience", rng), "롤플레이 세트"));
-
-  const comparisonTopic = pickRandom(enabled, rng);
-  const issueTopic = pickRandom(enabled, rng);
-  items.push(item(14, comparisonTopic, questionOfType(comparisonTopic, "comparison", rng), "어드밴스"));
-  items.push(item(15, issueTopic, questionOfType(issueTopic, "issue", rng), "어드밴스"));
-
+  const pools = sections.map(section => shuffle(section.topics.map(topic => ({
+    topic, sets: completeQuestionSets(topic, section.types),
+  })).filter(candidate => candidate.sets.length > 0), rng));
+  type Candidate = (typeof pools)[number][number];
+  const usedTopicIds = new Set<string>();
+  // Backtrack when a later section needs a topic selected for an earlier section.
+  function assign(index: number): Candidate[] | undefined {
+    if (index === pools.length) return [];
+    for (const candidate of pools[index]) {
+      if (usedTopicIds.has(candidate.topic.id)) continue;
+      usedTopicIds.add(candidate.topic.id);
+      const rest = assign(index + 1);
+      if (rest) return [candidate, ...rest];
+      usedTopicIds.delete(candidate.topic.id);
+    }
+    return undefined;
+  }
+  const selected = assign(0);
+  if (!selected) throw new Error("선택한 주제의 완성된 세트로 주제 중복 없는 모의고사를 구성할 수 없습니다. 다른 서베이 주제를 추가해 주세요.");
+  const items = selected.flatMap(({ topic, sets }, index) => {
+    const section = sections[index];
+    return pickRandom(sets, rng).map((question, i) => item(section.slot + i, topic, question, section.label));
+  });
   if (includeIntro) items.unshift(introItem());
-
   return {
-    ...base("full"),
-    items,
-    notices: ["기출 복원 기반 문항을 먼저 출제하고, 선택한 주제에 그 유형의 복원 문항이 없을 때만 출제 유형 기반 문항으로 채웁니다.", "8~10번은 돌발 주제 한 개에서 제공 자료 순서대로 세 문항을 내는 돌발 세트입니다.", "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다."],
+    ...base("full"), items,
+    notices: ["각 구간은 한 주제의 완성된 세트로 출제하며, 같은 주제는 한 회차에 한 번만 나옵니다.", "8~10번은 돌발 주제 한 개에서 제공 자료 순서대로 세 문항을 내는 돌발 세트입니다.", "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다."],
   };
 }
 
@@ -185,15 +214,26 @@ export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random)
       items: topic.questions.map((question, index) => item(index + 1, topic, question, "돌발 주제별 연습")),
       notices: ["제공 자료의 번호와 순서대로 모든 문항을 연습합니다. 5-A와 5-B는 각각 별도 문항입니다."] };
   }
-  if (topic.id === "staycation") {
-    const groups = [[2, 3, 4], [5, 6, 7], [11, 12, 13], [14, 15]];
-    const items = groups.flatMap((slots) => slots.map((slot) => {
-      const question = topic.questions.find((q) => q.id === `staycation-q${slot}`);
-      if (!question) throw new Error("집에서 보내는 휴가 연습에 필요한 문항이 부족합니다.");
-      return item(slot, topic, question, `Q${slots[0]}–Q${slots[slots.length - 1]}`);
+  if (topic.category === "survey" && topic.fixedPracticeSets) {
+    const groups = topic.fixedPracticeSets;
+    if (!groups.length || groups.some((group) => !group.items.length)) {
+      throw new Error(`${topic.ko} 연습에 필요한 문항이 부족합니다.`);
+    }
+    const usedSlots = new Set<number>();
+    const items = groups.flatMap((group) => group.items.map(({ slot, questionId, displayNumber }) => {
+      if (!Number.isInteger(slot) || slot < 1 || usedSlots.has(slot)) {
+        throw new Error(`${topic.ko} 연습의 고정 문항 번호가 올바르지 않습니다.`);
+      }
+      usedSlots.add(slot);
+      if (displayNumber !== undefined && (typeof displayNumber !== "string" || !displayNumber.trim())) {
+        throw new Error(`${topic.ko} 연습의 표시 번호가 올바르지 않습니다.`);
+      }
+      const question = topic.questions.find((q) => q.id === questionId);
+      if (!question) throw new Error(`${topic.ko} 연습에 필요한 문항이 부족합니다.`);
+      return { ...item(slot, topic, question, group.label), displayNumber: displayNumber ?? String(slot) };
     }));
     return { ...base("practice"), focusTopicId: topic.id, items,
-      notices: ["Q2–Q4 / Q5–Q7 / Q11–Q13 / Q14–Q15 순서로 연습합니다. 원하는 문항만 답변할 수 있습니다."] };
+      notices: [`${groups.map((group) => group.label).join(" / ")} 순서로 연습합니다. 원하는 문항만 답변할 수 있습니다.`] };
   }
   // 실제 번호에 맞는 유형에서 각각 뽑는다. 같은 질문의 중복 출제도 허용한다.
   const slotTypes: QuestionType[] = [
@@ -210,21 +250,14 @@ export function buildPracticeExam(topic: Topic, rng: RandomSource = Math.random)
     notices: ["선택한 주제의 문제를 실제 시험 번호인 2~15번에 배정합니다. 같은 유형은 중복 출제될 수 있으며 원하는 문항만 답변할 수 있습니다."] };
 }
 
-/** 서베이 주제로 내는 세 문항 묶음. 실제 시험의 2~4번, 5~7번 세트와 같다. */
-const SURVEY_SET_TYPES: QuestionType[][] = [
-  ["description", "routine", "experience"],
-  ["description", "experience", "memorable"],
-];
-
-/**
- * 1토픽 랜덤 연습. 서베이·돌발 주제 하나를 무작위로 골라 실제 시험처럼 세 문항 세트를 낸다.
- * 돌발 주제는 모의고사 8~10번 돌발 세트와 같은 규칙으로 고른다.
- */
+/** Random topic practice selects an intact general set using the full-exam eligibility rules. */
 export function buildTopicSet(topics: readonly Topic[] = allTopics, rng: RandomSource = Math.random): Exam {
-  const topic = pickRandom(topics, rng);
-  const questions = topic.category === "surprise"
-    ? surpriseSet(topic, rng)
-    : pickRandom(SURVEY_SET_TYPES, rng).map((type) => questionOfType(topic, type, rng));
+  const candidates = topics.map(topic => ({ topic, sets: topic.category === "surprise"
+    ? completeQuestionSets(topic)
+    : GENERAL_TYPES.flatMap(types => completeQuestionSets(topic, types)),
+  })).filter(candidate => candidate.sets.length > 0);
+  const { topic, sets } = pickRandom(candidates, rng);
+  const questions = pickRandom(sets, rng);
   return { ...base("set"), focusTopicId: topic.id,
     items: questions.map((question, i) => item(i + 1, topic, question, "1토픽 랜덤 연습")) };
 }

@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Exam } from "@/lib/types";
 import { surpriseTopics, surveyTopics, topicById } from "@/data";
-import { buildFullExam, buildPracticeExam, buildRandomPractice, EXAM_GROUPS, DRAW_EXCLUDED_TOPIC_IDS, drawableSurveyTopics, parseRandomScope } from "@/lib/exam";
+import { buildFullExam, buildPracticeExam, buildRandomPractice, EXAM_GROUPS, MIN_FULL_EXAM_SURVEY_TOPICS, DRAW_EXCLUDED_TOPIC_IDS, drawableSurveyTopics, parseRandomScope } from "@/lib/exam";
 import { defaultSettings, loadHistory, loadSettings, saveEnabledTopics, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
 import { examExitLink, randomPracticeLink } from "@/lib/nav";
@@ -83,12 +83,12 @@ function NewExamPageClient() {
   useEffect(() => { setEnabledIds(loadSettings().enabledSurveyIds); }, []);
   useEffect(() => { setStarted(mode !== "full"); build(true); }, [build, mode]);
 
-  // 모의고사에 나오지 않는 주제도 목록에는 남기지만, 최소 3개를 셀 때는 넣지 않는다.
+  // 모의고사에 나오지 않는 주제도 목록에는 남기지만, 최소 선택 개수를 셀 때는 넣지 않는다.
   const selectedCount = drawableSurveyTopics.filter((topic) => enabledIds.includes(topic.id)).length;
 
   function toggleTopic(id: string) {
     const selected = enabledIds.includes(id);
-    if (selected && !DRAW_EXCLUDED_TOPIC_IDS.includes(id) && selectedCount <= 3) return;
+    if (selected && !DRAW_EXCLUDED_TOPIC_IDS.includes(id) && selectedCount <= MIN_FULL_EXAM_SURVEY_TOPICS) return;
     const next = selected ? enabledIds.filter((value) => value !== id) : [...enabledIds, id];
     setEnabledIds(saveEnabledTopics(next).enabledSurveyIds);
     build(includeIntro);
@@ -121,7 +121,7 @@ function NewExamPageClient() {
 
       <div className="mt-6 border-t border-line pt-5">
         <h2 className="text-sm font-semibold text-fg-muted">배경 설문 주제</h2>
-        <p className="mt-2 text-xs text-fg-muted">모의고사에 쓸 주제를 고르세요. <strong className="font-medium text-fg">모의고사 제외</strong> 표시가 없는 주제를 3개 이상 선택해야 하며, 처음에는 {surveyTopics.length}개가 모두 켜져 있습니다.</p>
+        <p className="mt-2 text-xs text-fg-muted">모의고사에 쓸 주제를 고르세요. <strong className="font-medium text-fg">모의고사 제외</strong> 표시가 없는 주제를 {MIN_FULL_EXAM_SURVEY_TOPICS}개 이상 선택해야 하며, 처음에는 {surveyTopics.length}개가 모두 켜져 있습니다.</p>
         <div className="mt-4 flex flex-wrap gap-2">{surveyTopics.map((topic) => {
           const on = enabledIds.includes(topic.id);
           const excluded = DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id);

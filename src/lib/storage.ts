@@ -123,6 +123,7 @@ function isCount(value: unknown): value is number {
 function isExamItem(value: unknown): value is ExamItem {
   if (!isRecord(value) || !isRecord(value.question)) return false;
   return Number.isInteger(value.slot) && isCount(value.slot) && value.slot > 0
+    && (value.displayNumber === undefined || typeof value.displayNumber === "string")
     && [value.topicId, value.topicKo, value.topicEn, value.emoji, value.comboLabel, value.typeLabel,
       value.question.id, value.question.type, value.question.en, value.question.ko]
       .every((field) => typeof field === "string");

@@ -19,7 +19,7 @@ test('survey bank contains the 11 selected topics', () => {
   assert.deepEqual(bank.DEFAULT_SURVEY_IDS, ['home','music','beach','park','concert','shopping','jogging','walking','gym','staycation','overseas']);
   for (const topic of bank.surveyTopics) {
     assert.equal(topic.category, 'survey');
-    assert.ok(topic.questions.some((q) => q.source === 'verified'));
+    assert.ok(topic.questions.some((q) => q.source === 'verified' || q.source === 'provided'));
   }
 });
 
@@ -27,7 +27,7 @@ test('other topic practice uses actual slots 2-15 for one topic, without intro a
   const types = ['description', 'routine', 'experience', 'description', 'experience',
     'memorable', 'description', 'experience', 'memorable',
     'roleplay_ask', 'roleplay_problem', 'roleplay_experience', 'comparison', 'issue'];
-  for (const topic of bank.surveyTopics.filter((topic) => topic.id !== 'staycation')) {
+  for (const topic of bank.surveyTopics.filter((topic) => !topic.fixedPracticeSets)) {
     for (let seed = 0; seed < 100; seed++) {
       const exam = engine.buildPracticeExam(topic, seeded(seed));
       assert.deepEqual(exam.items.map((item) => item.question.type), types);
@@ -70,7 +70,7 @@ test('topic practice rejects incomplete topics instead of renumbering slots', ()
 
 const EXCLUDED = ['walking', 'concert', 'jogging'];
 
-test('full exam uses two survey sets, a surprise set in 8-10 and a coherent roleplay set in 11-13', () => {
+test('full exam uses two survey sets, a surprise set in 8-10 and intact roleplay and advanced sets with five distinct topics', () => {
   const surpriseById = new Map(data.surpriseTopics.map((t) => [t.id, t]));
   for (let seed = 0; seed < 1000; seed++) {
     const exam = engine.buildFullExam({ enabledSurveyIds: bank.DEFAULT_SURVEY_IDS, rng: seeded(seed) });
@@ -105,23 +105,35 @@ test('full exam uses two survey sets, a surprise set in 8-10 and a coherent role
     const roleplay = exam.items.filter((i) => [11,12,13].includes(i.slot));
     assert.deepEqual(roleplay.map((i) => i.question.type), ['roleplay_ask','roleplay_problem','roleplay_experience']);
     assert.equal(new Set(roleplay.map((i) => i.topicId)).size, 1);
-    assert.deepEqual(roleplay[1].question.dependsOn, [roleplay[0].question.id]);
-    assert.deepEqual(roleplay[2].question.dependsOn, [roleplay[1].question.id]);
+    for (let i = 1; i < roleplay.length; i++) {
+      assert.deepEqual(roleplay[i].question.dependsOn, [roleplay[i - 1].question.id]);
+    }
+    const advanced = exam.items.filter(i => [14,15].includes(i.slot));
+    assert.equal(new Set(advanced.map(i => i.topicId)).size, 1);
+    assert.equal(new Set([setA, setB, surprise, roleplay, advanced].map(set => set[0].topicId)).size, 5);
+    for (const group of [setA, setB, roleplay, advanced]) {
+      const topic = bank.surveyTopicById.get(group[0].topicId);
+      if (topic.fixedPracticeSets) {
+        assert.ok(topic.fixedPracticeSets.some(set =>
+          JSON.stringify(set.items.map(i => i.questionId)) === JSON.stringify(ids(group))));
+      }
+    }
 
     assert.equal(exam.items.find((i) => i.slot === 14).question.type, 'comparison');
     assert.equal(exam.items.find((i) => i.slot === 15).question.type, 'issue');
   }
 });
 
-test('full exam never substitutes unselected survey topics and requires at least three valid topics', () => {
+test('full exam never substitutes unselected survey topics and requires at least four valid topics', () => {
   const surpriseIds = data.surpriseTopics.map((t) => t.id);
   assert.throws(() => engine.buildFullExam({ enabledSurveyIds: [] }));
+  assert.throws(() => engine.buildFullExam({ enabledSurveyIds: ['home','music','park','home','unknown'] }), /4개 이상/);
   assert.throws(() => engine.buildFullExam({ enabledSurveyIds: ['home','music'] }));
   for (let seed = 0; seed < 100; seed++) {
-    const exam = engine.buildFullExam({ enabledSurveyIds: ['home','music','park'], includeIntro: false, rng: seeded(seed) });
+    const exam = engine.buildFullExam({ enabledSurveyIds: ['home','music','park','beach'], includeIntro: false, rng: seeded(seed) });
     assert.deepEqual(exam.items.map((i) => i.slot), [2,3,4,5,6,7,8,9,10,11,12,13,14,15]);
     for (const item of exam.items) {
-      const allowed = [8,9,10].includes(item.slot) ? surpriseIds : ['home','music','park'];
+      const allowed = [8,9,10].includes(item.slot) ? surpriseIds : ['home','music','park','beach'];
       assert.ok(allowed.includes(item.topicId), `slot ${item.slot}: ${item.topicId}`);
     }
   }
@@ -130,9 +142,9 @@ test('full exam never substitutes unselected survey topics and requires at least
 test('walking, concert and jogging never appear in the full exam even when selected', () => {
   assert.deepEqual(engine.drawableSurveyTopics.map((t) => t.id), bank.DEFAULT_SURVEY_IDS.filter((id) => !EXCLUDED.includes(id)));
   // 제외 주제만 남으면 세트를 만들 주제가 모자라 모의고사를 만들지 않는다.
-  assert.throws(() => engine.buildFullExam({ enabledSurveyIds: [...EXCLUDED, 'home', 'music'] }), /3개 이상/);
+  assert.throws(() => engine.buildFullExam({ enabledSurveyIds: [...EXCLUDED, 'home', 'music'] }), /4개 이상/);
   for (let seed = 0; seed < 300; seed++) {
-    const exam = engine.buildFullExam({ enabledSurveyIds: [...EXCLUDED, 'home', 'music', 'park'], rng: seeded(seed) });
+    const exam = engine.buildFullExam({ enabledSurveyIds: [...EXCLUDED, 'home', 'music', 'park', 'beach'], rng: seeded(seed) });
     assert.ok(exam.items.every((i) => !EXCLUDED.includes(i.topicId)));
   }
   // 주제별 연습에는 그대로 남는다.
@@ -223,13 +235,68 @@ test('random practice draws only from the chosen scope and records it on the exa
   for (const value of [null, undefined, '', 'all', 'SURVEY', 'roleplay']) assert.equal(engine.parseRandomScope(value), 'all');
 });
 
-test('single question mode reaches only publicly reconstructed survey questions', () => {
-  const allowed = new Set(bank.surveyTopics.flatMap((t) => t.questions.filter((q) => q.source === 'verified').map((q) => q.id)));
+test('single question mode reaches only eligible verified or provided survey questions', () => {
+  const allowed = new Set(bank.surveyTopics.flatMap((t) => t.questions.filter((q) =>
+    (q.source === 'verified' || q.source === 'provided') && !q.dependsOn?.length).map((q) => q.id)));
   for (let seed = 0; seed < 500; seed++) {
     const exam = engine.buildSingleQuestion(bank.surveyTopics, seeded(seed));
     assert.equal(exam.items.length, 1);
     assert.ok(allowed.has(exam.items[0].question.id));
-    assert.equal(exam.items[0].question.source, 'verified');
+    assert.ok(['verified', 'provided'].includes(exam.items[0].question.source));
   }
   assert.throws(() => engine.buildSingleQuestion([]));
+});
+
+
+test('common selection honors arbitrary declared sets and rejects cross-set dependencies', () => {
+  const types = ['roleplay_ask', 'roleplay_problem', 'roleplay_experience'];
+  const questions = ['a','b'].flatMap(prefix => types.map((type, index) => ({
+    id: `${prefix}${index}`, type, source: 'provided', en: 'fixture', ko: 'fixture',
+    dependsOn: index ? [`${prefix}${index - 1}`] : [],
+  })));
+  const topic = { id: 'arbitrary', category: 'survey', questions,
+    fixedPracticeSets: ['a','b'].map(prefix => ({ label: prefix,
+      items: types.map((_, i) => ({ slot: i + 1, questionId: `${prefix}${i}` })),
+    })),
+  };
+  assert.deepEqual(engine.completeQuestionSets(topic, types).map(set => set.map(q => q.id)),
+    [['a0','a1','a2'], ['b0','b1','b2']]);
+  topic.fixedPracticeSets[0].items[1].questionId = 'b1';
+  assert.deepEqual(engine.completeQuestionSets(topic, types).map(set => set.map(q => q.id)), [['b0','b1','b2']]);
+  // Legacy dependency-linked questions also form complete chains before selection.
+  delete topic.fixedPracticeSets;
+  assert.deepEqual(engine.completeQuestionSets(topic, types).map(set => set.map(q => q.id)),
+    [['a0','a1','a2'], ['b0','b1','b2']]);
+});
+
+test('unique-topic assignment backtracks for scarce eligible sets and rejects impossible exams', () => {
+  const topics = ['home','music','beach','shopping'].map(id => bank.surveyTopicById.get(id));
+  const previous = topics.map(t => t.fixedPracticeSets);
+  const patterns = [
+    ['description','routine','experience'],
+    ['description','experience','memorable'],
+    ['roleplay_ask','roleplay_problem','roleplay_experience'],
+    ['comparison','issue'],
+  ];
+  const group = (topic, pattern) => ({ label: 'fixture', items: pattern.map((type, i) => ({
+    slot: i + 1, questionId: topic.questions.find(q => q.type === type).id,
+  })) });
+  try {
+    // First topic can fill every section; later topics cannot fill advanced.
+    topics.forEach((topic, i) => {
+      topic.fixedPracticeSets = (i === 0 ? patterns : [patterns[i - 1]]).map(pattern => group(topic, pattern));
+    });
+    for (const rng of [() => 0, () => 0.999]) {
+      const exam = engine.buildFullExam({ enabledSurveyIds: topics.map(t => t.id), rng });
+      assert.equal(exam.items.find(i => i.slot === 14).topicId, 'home');
+      assert.equal(new Set(exam.items.filter(i => [2,5,11,14].includes(i.slot)).map(i => i.topicId)).size, 4);
+    }
+    topics[0].fixedPracticeSets = [group(topics[0], patterns[0])];
+    assert.throws(() => engine.buildFullExam({ enabledSurveyIds: topics.map(t => t.id), rng: () => 0 }), /완성된 세트/);
+  } finally {
+    topics.forEach((topic, i) => {
+      if (previous[i] === undefined) delete topic.fixedPracticeSets;
+      else topic.fixedPracticeSets = previous[i];
+    });
+  }
 });

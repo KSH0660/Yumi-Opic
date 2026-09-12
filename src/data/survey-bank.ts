@@ -1,5 +1,6 @@
 import type { Question, QuestionSource, QuestionType, Topic } from "../lib/types";
 import { surveyRoleplayQuestionsByTopic } from "./survey-roleplay-bank";
+import { surveyPracticeSets } from "./survey-practice-sets";
 
 export const SURVEY_BANK_VERSION = "survey-staycation-2026-09-10";
 
@@ -14,7 +15,8 @@ function q(
 }
 
 function topic(id: string, ko: string, en: string, emoji: string, questions: Question[]): Topic {
-  return { id, category: "survey", ko, en, emoji, questions: [...questions, ...(surveyRoleplayQuestionsByTopic[id] ?? [])] };
+  return { id, category: "survey", ko, en, emoji, questions: [...questions, ...(surveyRoleplayQuestionsByTopic[id] ?? [])],
+    ...(surveyPracticeSets[id] ? { fixedPracticeSets: surveyPracticeSets[id] } : {}) };
 }
 
 export const surveyTopics: Topic[] = [
@@ -51,14 +53,19 @@ export const surveyTopics: Topic[] = [
     q("beach-i1", "issue", "What problems do popular beaches face, such as litter, crowding, or safety concerns? What do you think should be done about them?", "인기 해변이 겪는 쓰레기, 혼잡, 안전 같은 문제는 무엇인가요? 어떻게 해결해야 한다고 생각하나요?", "adapted"),
   ]),
   topic("park", "공원", "Parks", "🌳", [
-    q("park-d1", "description", "Tell me about a park you often visit. Where is it, what does it look like, and why do you like going there?", "자주 가는 공원을 말해 주세요. 어디에 있고 어떻게 생겼으며 왜 좋아하나요?"),
-    q("park-d2", "description", "Describe the main features of a park you know well. What facilities are there, and what do people usually do there?", "잘 아는 공원의 주요 특징을 설명해 주세요. 어떤 시설이 있고 사람들은 주로 무엇을 하나요?"),
-    q("park-r1", "routine", "What do you normally do when you go to a park? Tell me about your typical visit from beginning to end.", "공원에 가면 보통 무엇을 하나요? 평소 방문을 처음부터 끝까지 말해 주세요."),
-    q("park-e1", "experience", "Tell me about the last time you went to a park. Which park did you visit, who were you with, and what did you do?", "마지막으로 공원에 갔던 경험을 말해 주세요. 어느 공원이었고 누구와 무엇을 했나요?"),
-    q("park-e2", "experience", "How did you first get interested in going to parks? Tell me about when that interest began and how it has developed.", "처음 공원 가기에 관심을 갖게 된 계기는 무엇인가요? 언제 시작됐고 관심이 어떻게 발전했나요?"),
-    q("park-m1", "memorable", "Tell me about a memorable incident that happened at a park. What exactly happened, how did you react, and why do you still remember it?", "공원에서 있었던 기억에 남는 사건을 말해 주세요. 무슨 일이 있었고 어떻게 대처했으며 왜 아직 기억하나요?"),
-    q("park-c1", "comparison", "Pick two parks you know and compare them. What are their similarities and differences, and which one do you prefer?", "알고 있는 두 공원을 골라 비교해 주세요. 공통점과 차이점은 무엇이며 어느 곳을 더 좋아하나요?"),
-    q("park-i1", "issue", "What issues do parks in your area face these days? Think about maintenance, litter, facilities, or how crowded they are, and suggest possible improvements.", "요즘 지역 공원이 겪는 문제는 무엇인가요? 관리, 쓰레기, 시설, 혼잡 등을 생각해 보고 개선 방법을 말해 주세요.", "adapted"),
+    q("park-set1-q2", "description", "You indicated in the survey that you go to parks with adults. Tell me about the kinds of parks that you like to visit. What do parks look like?", "설문에서 어른들과 공원에 간다고 하셨네요. 어떤 종류의 공원을 방문하는 것을 좋아하나요? 공원은 어떻게 생겼나요?", "provided"),
+    q("park-set1-q3", "routine", "What kind of activities do you usually do at the park? Do you take walks or exercise at the park? Do you prefer to go there with others, or do you prefer to go alone? Please describe a typical day at the park.", "공원에서 보통 어떤 활동을 하나요? 산책이나 운동을 하나요? 다른 사람들과 함께 가는 것을 좋아하나요, 아니면 혼자 가는 것을 좋아하나요? 공원에서 보내는 평소의 하루를 설명해 주세요.", "provided"),
+    q("park-set1-q4", "experience", "Tell me about the last time you went to a park. Which park was it? When was it that you went? Tell me everything you did from the moment you arrived at the park to the time you left.", "가장 최근에 공원에 갔던 경험을 이야기해 주세요. 어느 공원이었나요? 언제 갔나요? 공원에 도착한 순간부터 떠날 때까지 했던 모든 일을 말해 주세요.", "provided"),
+    q("park-set2-q5", "description", "You indicated in the survey that you go to parks with adults. Tell me about the kinds of parks that you like to visit. What do parks look like?", "설문에서 어른들과 공원에 간다고 하셨네요. 어떤 종류의 공원을 방문하는 것을 좋아하나요? 공원은 어떻게 생겼나요?", "provided"),
+    q("park-set2-q6", "experience", "Tell me about the last time you went to a park. Which park was it? When was it that you went? Tell me everything you did from the moment you arrived at the park to the time you left.", "가장 최근에 공원에 갔던 경험을 이야기해 주세요. 어느 공원이었나요? 언제 갔나요? 공원에 도착한 순간부터 떠날 때까지 했던 모든 일을 말해 주세요.", "provided"),
+    q("park-set2-q7", "memorable", "Tell me about a memorable experience you had at a park. Maybe there was a special event, or maybe something unexpected happened. Begin by giving me some background about when and where it was. And then, give me all the details about what happened.", "공원에서 겪은 기억에 남는 경험을 이야기해 주세요. 특별한 행사가 있었거나 예상하지 못한 일이 생겼을 수도 있겠네요. 언제 어디에서 있었던 일인지 배경부터 설명하고, 무슨 일이 있었는지 자세히 말해 주세요.", "provided"),
+    q("park-set3-q8", "description", "You indicated in the survey that you go to parks with adults. Tell me about the kinds of parks that you like to visit. What do parks look like?", "설문에서 어른들과 공원에 간다고 하셨네요. 어떤 종류의 공원을 방문하는 것을 좋아하나요? 공원은 어떻게 생겼나요?", "provided"),
+    q("park-set3-q9", "experience", "Tell me about the last time you went to a park. Which park was it? When was it that you went? Tell me everything you did from the moment you arrived at the park to the time you left.", "가장 최근에 공원에 갔던 경험을 이야기해 주세요. 어느 공원이었나요? 언제 갔나요? 공원에 도착한 순간부터 떠날 때까지 했던 모든 일을 말해 주세요.", "provided"),
+    q("park-set3-q10", "memorable", "Tell me about a memorable experience you had at a park. Maybe there was a special event, or maybe something unexpected happened. Begin by giving me some background about when and where it was. And then, give me all the details about what happened.", "공원에서 겪은 기억에 남는 경험을 이야기해 주세요. 특별한 행사가 있었거나 예상하지 못한 일이 생겼을 수도 있겠네요. 언제 어디에서 있었던 일인지 배경부터 설명하고, 무슨 일이 있었는지 자세히 말해 주세요.", "provided"),
+    q("park-advanced1-q14", "comparison", "Compare the activities that children do at parks with those that adults do while they are there. What are the differences? How are the facilities at parks for children and adults different?", "아이들이 공원에서 하는 활동과 어른들이 공원에서 하는 활동을 비교해 주세요. 어떤 차이가 있나요? 공원에서 어린이를 위한 시설과 어른을 위한 시설은 어떻게 다른가요?", "provided"),
+    q("park-advanced1-q15", "issue", "I'd like to know about one of the issues today's parks are faced with. What are the challenges public parks are facing these days? Discuss what has caused these concerns. What kinds of steps need to be taken to address those issues?", "오늘날 공원이 겪는 문제 중 하나에 대해 알고 싶습니다. 요즘 공공 공원은 어떤 어려움을 겪고 있나요? 이런 우려가 생긴 원인을 이야기해 주세요. 이러한 문제를 해결하려면 어떤 조치를 취해야 할까요?", "provided"),
+    q("park-advanced2-q14", "comparison", "Pick two popular parks that you know of, and tell me about their similarities and differences. Which one do you prefer and why?", "알고 있는 인기 있는 공원 두 곳을 골라 공통점과 차이점을 설명해 주세요. 어느 공원을 더 좋아하며, 그 이유는 무엇인가요?", "provided"),
+    q("park-advanced2-q15", "issue", "I'd like to know about one of the issues today's parks are faced with. What are the challenges public parks are facing these days? Discuss what has caused these concerns. What kinds of steps need to be taken to address those issues?", "오늘날 공원이 겪는 문제 중 하나에 대해 알고 싶습니다. 요즘 공공 공원은 어떤 어려움을 겪고 있나요? 이런 우려가 생긴 원인을 이야기해 주세요. 이러한 문제를 해결하려면 어떤 조치를 취해야 할까요?", "provided"),
   ]),
   topic("concert", "콘서트", "Concerts", "🎤", [
     q("concert-d1", "description", "What kinds of concerts or live performances do you enjoy? Explain what you like about those performances.", "어떤 종류의 콘서트나 라이브 공연을 좋아하나요? 그런 공연의 어떤 점이 좋은지 설명해 주세요."),

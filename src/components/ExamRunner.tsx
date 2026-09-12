@@ -25,6 +25,7 @@ import {
   type MicProbe,
 } from "@/lib/micShare";
 import { itemNumber } from "@/lib/exam";
+import { topicById } from "@/data";
 import { examExitLink } from "@/lib/nav";
 import { joinTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
@@ -32,6 +33,7 @@ import MicLevelMeter from "./MicLevelMeter";
 import ExamResult, { type AnswerRecording } from "./ExamResult";
 import { SavedExpressionsPanel } from "./SavedExpressions";
 import { SourceBadge } from "./ui";
+import FixedPracticeNavigation from "./FixedPracticeNavigation";
 
 /** 실전에 가까운 낭독 속도. */
 const SPEECH_RATE = 0.92;
@@ -118,7 +120,8 @@ export default function ExamRunner({
   onRegenerate?: () => void;
 }) {
   const isPractice = exam.mode === "practice";
-  const isStaycationPractice = isPractice && exam.focusTopicId === "staycation";
+  const fixedPracticeSets = isPractice ? topicById.get(exam.focusTopicId ?? "")?.fixedPracticeSets : undefined;
+  const isFixedPractice = !!fixedPracticeSets;
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [times, setTimes] = useState<Record<number, number>>({});
@@ -589,7 +592,7 @@ export default function ExamRunner({
   const replayIconVisible = phase === "answering";
 
   return (
-    <main className={`mx-auto w-full ${isStaycationPractice ? "max-w-6xl" : "max-w-5xl"} px-4 pb-28 pt-6 sm:px-6`}>
+    <main className={`mx-auto w-full ${isFixedPractice ? "max-w-6xl" : "max-w-5xl"} px-4 pb-28 pt-6 sm:px-6`}>
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
         <Link
           href={exit.href}
@@ -655,13 +658,13 @@ export default function ExamRunner({
 
             <div className="min-w-0">
               <p className="text-xs font-semibold text-exam-ink-muted">{isPractice ? "문항 선택:" : "문항 진행:"}</p>
-              <div className={`mt-2 flex ${isStaycationPractice ? "flex-nowrap overflow-x-auto pb-2" : "flex-wrap"} ${isPractice ? "gap-2" : "gap-1"}`}>
+              {fixedPracticeSets ? <FixedPracticeNavigation items={exam.items} sets={fixedPracticeSets}
+                currentSlot={slot} answers={answers} onSelect={goToQuestion} /> : <div className={`mt-2 flex flex-wrap ${isPractice ? "gap-2" : "gap-1"}`}>
                 {exam.items.map((it, i) => {
                   const answered = hasAnswerText(answers[it.slot]);
                   const number = itemNumber(exam.mode, it);
                   const state = i === index ? "active" : (isPractice ? answered : i < index) ? "done" : "todo";
-                  const startsGroup = isStaycationPractice && i > 0 && it.comboLabel !== exam.items[i - 1].comboLabel;
-                  const className = `grid place-items-center border text-xs font-semibold tabular-nums ${isStaycationPractice ? "shrink-0" : ""} ${startsGroup ? "ml-4" : ""} ${isPractice ? "min-h-11 min-w-11 transition-colors hover:border-exam-accent" : "h-7 w-8 cursor-default"} ${
+                  const className = `grid place-items-center border text-xs font-semibold tabular-nums ${isPractice ? "min-h-11 min-w-11 transition-colors hover:border-exam-accent" : "h-7 w-8 cursor-default"} ${
                     state === "active" ? "border-exam-slot-active bg-exam-slot-active text-exam-slot-active-fg"
                       : state === "done" ? "exam-slot-done border-exam-line text-exam-ink-muted"
                         : "border-exam-line bg-exam-slot text-exam-slot-fg"
@@ -685,10 +688,10 @@ export default function ExamRunner({
                     </span>
                   );
                 })}
-              </div>
+              </div>}
 
               {isPractice && (
-                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{isStaycationPractice ? "Q2–Q4 / Q5–Q7 / Q11–Q13 / Q14–Q15 순서입니다. 좁은 화면에서는 문항 번호를 가로로 스크롤할 수 있습니다." : isSurprisePractice ? "제공 자료의 번호와 순서대로 연습합니다. 번호는 실제 시험 번호가 아닌 자료의 문항 번호입니다." : "2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
+                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{fixedPracticeSets ? `${fixedPracticeSets.map((set) => set.label).join(" / ")} 순서입니다. 좁은 화면에서는 각 줄의 문항 번호를 가로로 스크롤할 수 있습니다.` : isSurprisePractice ? "제공 자료의 번호와 순서대로 연습합니다. 번호는 실제 시험 번호가 아닌 자료의 문항 번호입니다." : "2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
               )}
 
               {index === 0 && (

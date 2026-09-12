@@ -34,6 +34,11 @@ export interface QuestionSet {
   sourceRef: SourceReference;
   note?: string;
 }
+/** 주제별 연습의 고정 순서. 저장 키와 표시 번호는 독립적이며 표시 번호는 중복 가능하다. */
+export interface FixedPracticeSet {
+  label: string;
+  items: readonly { slot: number; questionId: string; displayNumber?: string }[];
+}
 export interface Topic {
   id: string;
   category: TopicCategory;
@@ -42,9 +47,14 @@ export interface Topic {
   emoji: string;
   questions: Question[];
   sets?: QuestionSet[];
+  /** 주제별 연습의 표시 순서이며, 모의고사·랜덤 세트 연습에서도 이 묶음을 그대로 선택한다. */
+  fixedPracticeSets?: readonly FixedPracticeSet[];
 }
 export interface ExamItem {
+  /** 회차 안에서 고유한 저장 키. 화면에 같은 번호가 보여도 이 값은 중복할 수 없다. */
   slot: number;
+  /** 고정 주제별 연습의 표시 번호. 없는 예전 기록은 기존 번호 표시로 돌아간다. */
+  displayNumber?: string;
   topicId: string;
   topicKo: string;
   topicEn: string;
