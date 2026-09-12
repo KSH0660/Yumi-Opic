@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { hasAnswerText, sameSpokenText } from "@/lib/answers";
 import { diffAnswers, type DiffPiece } from "@/lib/answerDiff";
 import {
@@ -12,6 +12,18 @@ import {
   type OpicFeedback,
   type OpicFeedbackItem,
 } from "@/lib/feedback";
+import {
+  clampReadWpm,
+  countReadWords,
+  loadReadWpm,
+  msPerWord,
+  saveReadWpm,
+  splitForReading,
+  READ_WPM_DEFAULT,
+  READ_WPM_MAX,
+  READ_WPM_MIN,
+  READ_WPM_STEP,
+} from "@/lib/readAloud";
 import {
   draftId,
   expressionFromFeedbackItem,
@@ -214,6 +226,84 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
   const [showFluency, setShowFluency] = useState(variant === "report");
   const basisDiffers = answer !== undefined && hasAnswerText(answer) && !sameSpokenText(before, answer);
 
+  /*
+   * 따라 읽기. 글자가 정해진 속도로 흘러가면 눈으로 훑고 넘어가기 어려워 입이 따라온다.
+   * 모아보기·인쇄본은 읽는 화면이 아니라 남겨 두는 기록이라 재생기를 그리지 않는다.
+   */
+  const totalWords = useMemo(() => countReadWords(after), [after]);
+  const [wpm, setWpm] = useState(READ_WPM_DEFAULT);
+  const [playing, setPlaying] = useState(false);
+  /** 지금 가리키는 낱말. -1 은 아직 시작하지 않은 상태다. */
+  const [cursor, setCursor] = useState(-1);
+  const speedId = useId();
+
+  // 저장된 속도는 브라우저에만 있다. 서버가 그린 첫 화면과 어긋나지 않도록 나중에 읽는다.
+  useEffect(() => { setWpm(loadReadWpm()); }, []);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (cursor >= totalWords - 1) { setPlaying(false); return; }
+    // 낱말마다 다시 건다. 읽는 도중에 속도를 바꾸면 바로 다음 낱말부터 따른다.
+    const timer = window.setTimeout(() => setCursor((value) => value + 1), msPerWord(wpm));
+    return () => window.clearTimeout(timer);
+  }, [playing, cursor, wpm, totalWords]);
+
+  const reading = variant === "screen" && totalWords > 0;
+  const done = cursor >= 0 && !playing && cursor >= totalWords - 1;
+  // 다 읽고 나면 표시를 거둔다. 멈춘 동안에는 남겨 두어야 읽던 자리를 찾는다.
+  const currentWord = reading && !done ? cursor : null;
+  const progress = totalWords > 0 ? Math.min(100, Math.max(0, ((cursor + 1) / totalWords) * 100)) : 0;
+
+  const startOrPause = () => {
+    if (playing) { setPlaying(false); return; }
+    if (done || cursor < 0) setCursor(0);
+    setPlaying(true);
+  };
+
+  const readControls = reading ? (
+    <div className="print-hide mt-3 space-y-2 border-t border-line pt-2.5">
+      <div className="h-1 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
+        <div className="h-full rounded-full bg-primary motion-safe:transition-[width] motion-safe:duration-150" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <button
+          type="button"
+          onClick={startOrPause}
+          className="min-h-9 rounded-lg bg-primary px-3.5 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover"
+        >
+          {playing ? "멈춤" : done ? "다시 읽기" : cursor < 0 ? "따라 읽기" : "이어 읽기"}
+        </button>
+        {cursor >= 0 && !done && (
+          <button
+            type="button"
+            onClick={() => setCursor(0)}
+            className="min-h-9 rounded-lg border border-line px-2.5 text-xs text-fg-muted transition hover:text-fg"
+          >
+            처음부터
+          </button>
+        )}
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          <label htmlFor={speedId} className="text-[11px] text-fg-subtle">속도</label>
+          <input
+            id={speedId}
+            type="range"
+            min={READ_WPM_MIN}
+            max={READ_WPM_MAX}
+            step={READ_WPM_STEP}
+            value={wpm}
+            onChange={(event) => {
+              const next = clampReadWpm(Number(event.target.value));
+              setWpm(next);
+              saveReadWpm(next);
+            }}
+            className="h-9 w-24 accent-primary"
+          />
+          <span className="w-16 text-[11px] tabular-nums text-fg-muted">분당 {wpm}</span>
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
   const summary = diff.locatedItems.length
     ? `고칠 점 ${diff.locatedItems.length}가지 반영${diff.fluencyChanges ? ` · 다듬은 곳 ${diff.fluencyChanges}군데` : ""}`
     : diff.changes ? `고친 곳 ${diff.changes}군데` : "고친 곳 없음";
@@ -250,6 +340,8 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
               showFluency={showFluency}
               activeItem={activeItem}
               onHoverItem={onHoverItem}
+              currentWord={currentWord}
+              footer={readControls}
             />
             {variant === "report" ? beforePanel : (
               <details className="group rounded-xl border border-line bg-surface-2">
@@ -281,7 +373,11 @@ function RewriteCompare({ before, after, feedback, answer, variant, activeItem, 
               <span><span className={SOFT_SHOWN}>점선</span> 자연스럽게 다듬은 곳</span>
             )}
           </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-fg-subtle">After 를 소리 내어 두세 번 읽어 본 뒤, 같은 질문에 다시 답해 보세요.</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-fg-subtle">
+            {reading
+              ? "따라 읽기를 누르면 글자가 흐릅니다. 그 속도에 맞춰 소리 내어 읽고, 한 번 읽은 뒤 같은 질문에 다시 답해 보세요."
+              : "After 를 소리 내어 두세 번 읽어 본 뒤, 같은 질문에 다시 답해 보세요."}
+          </p>
         </>
       )}
 
@@ -353,7 +449,12 @@ function panelGroups(pieces: readonly DiffPiece[], after: boolean): PanelGroup[]
   return groups;
 }
 
-function AnswerPanel({ label, caption, pieces, after = false, showFluency, activeItem, onHoverItem }: {
+/** 지금 읽을 낱말이 화면 밖이면 끌어온다. 이미 보이면 아무것도 하지 않는다. */
+function keepInView(node: HTMLElement | null) {
+  node?.scrollIntoView({ block: "nearest" });
+}
+
+function AnswerPanel({ label, caption, pieces, after = false, showFluency, activeItem, onHoverItem, currentWord = null, footer }: {
   label: string;
   caption: string;
   pieces: readonly DiffPiece[];
@@ -361,10 +462,27 @@ function AnswerPanel({ label, caption, pieces, after = false, showFluency, activ
   showFluency: boolean;
   activeItem: number | null;
   onHoverItem: (item: number | null) => void;
+  /** 따라 읽기가 지금 가리키는 낱말. 안 읽는 중이면 null. */
+  currentWord?: number | null;
+  footer?: React.ReactNode;
 }) {
   const groups = panelGroups(pieces, after);
   // 이 패널에서 이미 번호를 그린 항목. 같은 자리를 여러 번 가리키지 않는다.
   const numbered = new Set<number>();
+  // 패널을 통틀어 낱말마다 붙는 번호. 조각을 그리는 차례대로 센다.
+  let word = -1;
+
+  /*
+   * 낱말 하나하나를 조각으로 두고 지금 읽을 것만 칠한다. 색은 배경과 글자색만
+   * 바꾼다. 여기에 안팎 여백을 주면 표시가 옮겨 갈 때마다 글자가 밀려 읽던 자리를
+   * 잃는다.
+   */
+  const readable = (text: string) => splitForReading(text).map((token, index) => {
+    if (!token.word) return <span key={index}>{token.text}</span>;
+    word += 1;
+    if (word !== currentWord) return <span key={index}>{token.text}</span>;
+    return <span key={index} ref={keepInView} className="rounded-sm bg-primary text-primary-fg">{token.text}</span>;
+  });
 
   return (
     <div className={`rounded-xl border px-3.5 py-3 ${after ? "border-success-ink/30 bg-surface" : "border-line bg-surface-2"}`}>
@@ -374,13 +492,13 @@ function AnswerPanel({ label, caption, pieces, after = false, showFluency, activ
       </p>
       <p lang="en" className={`mt-1.5 whitespace-pre-wrap text-sm leading-relaxed ${after ? "text-fg" : "text-fg-muted"}`}>
         {groups.map((group, index) => {
-          if (group.kind === "plain") return <span key={index}>{group.text}</span>;
+          if (group.kind === "plain") return <span key={index}>{readable(group.text)}</span>;
 
           if (group.kind === "fluency") {
             const className = showFluency ? SOFT_SHOWN : SOFT_HIDDEN;
             return after
-              ? <ins key={index} className={className}>{group.text}</ins>
-              : <del key={index} className={className}>{group.text}</del>;
+              ? <ins key={index} className={className}>{readable(group.text)}</ins>
+              : <del key={index} className={className}>{readable(group.text)}</del>;
           }
 
           const number = group.number;
@@ -395,10 +513,11 @@ function AnswerPanel({ label, caption, pieces, after = false, showFluency, activ
           const badge = first && number !== undefined ? <ItemBadge number={number} after={after} /> : null;
 
           return after
-            ? <ins key={index} className={className} {...hover}>{group.text}{badge}</ins>
-            : <del key={index} className={className} {...hover}>{group.text}{badge}</del>;
+            ? <ins key={index} className={className} {...hover}>{readable(group.text)}{badge}</ins>
+            : <del key={index} className={className} {...hover}>{readable(group.text)}{badge}</del>;
         })}
       </p>
+      {footer}
     </div>
   );
 }
