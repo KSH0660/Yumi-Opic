@@ -51,6 +51,15 @@ export interface OpicFeedbackItem {
   message: string;
   /** 짧은 영어 개선 예시. 예시가 필요 없으면 빈 문자열이다. */
   example: string;
+  /**
+   * 이 항목이 고친 답변(`improvedAnswer`)에서 손댄 자리를 그대로 인용한 것.
+   *
+   * Before / After 는 이 자리만 진하게 칠하고 항목 번호를 붙인다. 고친 답변은 고칠 점을
+   * 반영하면서 자연스러움까지 손보기 때문에, 이 인용문이 없으면 어디가 조언이고 어디가
+   * 다듬은 것인지 가릴 수 없다. 텍스트를 바꾸지 않은 항목은 빈 문자열이고, 이 필드가
+   * 생기기 전에 받은 피드백에는 아예 없다.
+   */
+  afterQuote?: string;
 }
 
 export interface OpicFeedback {
@@ -87,8 +96,26 @@ export function feedbackRewrite(feedback: OpicFeedback): { before: string; after
   return before && after ? { before, after } : null;
 }
 
-/** 피드백 JSON 에 드는 출력 토큰. 추론 토큰도 여기서 함께 잘린다. */
-const FEEDBACK_OUTPUT_TOKENS = 1_400;
+/**
+ * 고친 답변에서 고칠 점마다 손댄 자리. 순서는 `items` 와 같아 배열 위치가 곧 항목 번호
+ * (1부터)이고, 텍스트를 바꾸지 않은 항목은 빈 문자열이다. `diffAnswers` 에 그대로 넘긴다.
+ *
+ * 인용문을 가진 항목이 하나도 없으면 `undefined` 를 돌려준다. 그런 피드백은 이 필드가
+ * 생기기 전에 받은 최소 수정본이라 바뀐 곳이 모두 고칠 점에서 나온 것이고, 예전처럼 다
+ * 진하게 칠하는 것이 맞다. 고칠 점이 아예 없는 피드백은 그럴 일이 없으니 빈 목록을 준다.
+ */
+export function feedbackItemQuotes(feedback: OpicFeedback): string[] | undefined {
+  const versioned = feedback.items.length === 0
+    || feedback.items.some((item) => item.afterQuote !== undefined);
+  return versioned ? feedback.items.map((item) => item.afterQuote?.trim() ?? "") : undefined;
+}
+
+/**
+ * 피드백 JSON 에 드는 출력 토큰. 추론 토큰도 여기서 함께 잘린다. 고칠 점마다 고친
+ * 답변의 한 조각을 인용하는 `itemQuotes` 가 붙어 1,400 → 1,550 으로 올렸다. 인용문은
+ * 맨 뒤에 오므로 여기가 모자라면 인용문만 잘려 나가 등급을 가릴 수 없게 된다.
+ */
+const FEEDBACK_OUTPUT_TOKENS = 1_550;
 /** 영어는 대략 4글자에 1토큰이다. 고친 답변이 원래보다 조금 길어질 수 있어 3글자로 넉넉히 잡는다. */
 const CHARS_PER_OUTPUT_TOKEN = 3;
 const MAX_OUTPUT_TOKENS = 6_000;
@@ -137,5 +164,6 @@ export function isOpicFeedback(value: unknown): value is OpicFeedback {
     && ["audio_compare", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
     && Array.isArray(feedback.items) && feedback.items.every((item) => item
       && categories.includes(item.category) && typeof item.title === "string"
-      && typeof item.message === "string" && typeof item.example === "string");
+      && typeof item.message === "string" && typeof item.example === "string"
+      && optionalText(item.afterQuote));
 }
