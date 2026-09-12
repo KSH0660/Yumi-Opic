@@ -98,8 +98,8 @@ test('all 19 PARK recordings match the approved text and current voice settings'
 });
 
 
-test('PARK random topic practice draws only its three complete declared general sets', () => {
-  const expected = park.fixedPracticeSets.slice(0, 3).map(set => set.items.map(i => i.questionId));
+test('PARK random topic practice draws all seven declared sets intact across the expanded patterns', () => {
+  const expected = park.fixedPracticeSets.map(set => set.items.map(i => i.questionId));
   const reached = new Set();
   for (let seed = 0; seed < 200; seed++) {
     const actual = buildTopicSet([park], seeded(seed)).items.map(i => i.question.id);
@@ -107,5 +107,5 @@ test('PARK random topic practice draws only its three complete declared general 
     assert.notEqual(index, -1);
     reached.add(index);
   }
-  assert.equal(reached.size, 3);
+  assert.equal(reached.size, 7);
 });

@@ -48,8 +48,10 @@ const FEEDBACK_SCHEMA = {
     },
     // 항목을 먼저 쓰고 그 항목대로 고치도록 맨 뒤에 둔다.
     improvedAnswer: { type: "string" },
+    // 인용문은 고친 답변에서 그대로 떠 오는 것이라 그 뒤에 둔다. 순서는 items 와 같다.
+    itemQuotes: { type: "array", maxItems: 5, items: { type: "string" } },
   },
-  required: ["overall", "structure", "pronunciationBasis", "items", "improvedAnswer"],
+  required: ["overall", "structure", "pronunciationBasis", "items", "improvedAnswer", "itemQuotes"],
   additionalProperties: false,
 } as const;
 
@@ -154,11 +156,20 @@ function buildPrompt(input: {
     "If the answer is already strong, return fewer than 5 items rather than manufacturing problems.",
     "For pronunciationBasis return audio_compare only when an audio transcript is present; browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
     "",
-    "improvedAnswer must be identical to the source answer except for the minimum text changes explicitly required by your feedback items:",
+    "improvedAnswer is the learner's own answer rewritten so it is worth reading out loud. It is a revision of their answer, NOT a new model answer:",
     "- The source answer is the independent audio transcription when available, otherwise the browser transcript.",
-    "- Each feedback item permits only its requested change at the location it identifies. All other text must remain verbatim, including surrounding words in edited sentences and unmentioned occurrences elsewhere.",
-    "- If a change is not clearly required by a feedback item, preserve the original. If no item requires a text change, improvedAnswer must equal the source answer exactly.",
+    "- Apply every text change your feedback items ask for, at the place each item identifies.",
+    "- Beyond those, you may smooth wording, sentence structure and transitions so the whole answer sounds like natural spoken English. The learner will read this aloud to practice, so leaving an awkward sentence untouched is worse than fixing it.",
+    "- Keep their content: their own words, examples, opinions and order of ideas. Do not add ideas, facts or feelings they did not express, and do not drop any they did.",
+    "- Keep it sayable by this learner. Do not reach for vocabulary or structures noticeably above the level of the source answer.",
+    "- Stay within roughly 10% of the source answer's length.",
     "- Plain English text only: no markdown, labels, or Korean.",
+    "",
+    "itemQuotes ties each feedback item to its place in improvedAnswer so the screen can mark that spot and number it. One entry per feedback item, in the same order as items:",
+    "- Copy the span of improvedAnswer that this item produced, verbatim and contiguous, so an exact text search finds it. Keep it to the changed span plus only as much context as it takes to be unambiguous.",
+    "- Quote from improvedAnswer only, never from the source answer, and never text you did not write there.",
+    "- Do NOT quote a span you changed only for fluency. Those are not tied to a feedback item and are marked differently on screen.",
+    "- Use an empty string for an item that required no text change at all.",
     "",
     `[Question type] ${input.type || "unknown"} (id: ${input.questionType || "unknown"})`,
     `[Topic] ${input.topic || "unknown"}`,
@@ -264,12 +275,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { improvedAnswer: rawImproved, ...parsed } = JSON.parse(outputText) as OpicFeedback;
+    const { improvedAnswer: rawImproved, itemQuotes: rawQuotes, ...parsed } =
+      JSON.parse(outputText) as OpicFeedback & { itemQuotes?: unknown };
     if (!Array.isArray(parsed.items)) throw new Error("invalid feedback");
     const improvedAnswer = typeof rawImproved === "string" ? rawImproved.trim() : "";
+    // 인용문은 자리만 알려 주는 값이라 항목 안으로 옮겨 저장한다. 모델이 빠뜨린 자리는
+    // 빈 문자열이 되고, 그 항목의 변경은 화면에서 연한 등급으로 남는다.
+    const quotes: unknown[] = Array.isArray(rawQuotes) ? rawQuotes : [];
     const feedback: OpicFeedback = {
       ...parsed,
-      items: parsed.items.slice(0, 5),
+      items: parsed.items.slice(0, 5).map((item, index) => {
+        const quote = quotes[index];
+        return { ...item, afterQuote: typeof quote === "string" ? quote.trim() : "" };
+      }),
       // Before 는 AI 가 실제로 고친 바로 그 텍스트여야 바뀐 곳이 정확히 칠해진다.
       ...(improvedAnswer ? { improvedAnswer, improvedFrom: answerBasis } : {}),
     };

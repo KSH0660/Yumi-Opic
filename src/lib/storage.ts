@@ -107,6 +107,8 @@ export interface SavedResult {
   hintUse: Record<number, number>;
   replays: Record<number, number>;
   feedback: Record<number, OpicFeedback>;
+  /** 문항별로 고친 답변을 따라 읽은 횟수. 한 번도 읽지 않은 기록에는 없다. */
+  readCounts?: Record<number, number>;
 }
 
 /** 저장된 기록에서 받아들이는 연습 방식. 모르는 값이 적힌 기록은 버린다. */
@@ -144,10 +146,13 @@ function readResult(value: unknown): SavedResult | undefined {
   ) as Record<number, string>;
   // 원본 받아쓰기는 OpenAI 로 다시 받아쓴 문항에만 있다. 없는 기록에 빈 값을 만들지 않는다.
   const browserAnswers = texts(value.browserAnswers);
+  // 읽은 횟수도 없는 기록에 빈 값을 만들지 않는다. 이 기능 전에 쌓인 기록이 그렇다.
+  const readCounts = numbers(value.readCounts);
   return {
     exam: exam as unknown as Exam,
     answers: texts(value.answers),
     ...(Object.keys(browserAnswers).length ? { browserAnswers } : {}),
+    ...(Object.keys(readCounts).length ? { readCounts } : {}),
     times: numbers(value.times), hintUse: numbers(value.hintUse), replays: numbers(value.replays),
     feedback: Object.fromEntries(Object.entries(isRecord(value.feedback) ? value.feedback : {})
       .filter(([, feedback]) => isOpicFeedback(feedback))) as Record<number, OpicFeedback>,
