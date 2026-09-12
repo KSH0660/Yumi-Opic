@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { hasAnswerText, sameSpokenText } from "@/lib/answers";
 import { diffAnswers, type DiffPiece } from "@/lib/answerDiff";
 import {
@@ -13,20 +13,11 @@ import {
   type OpicFeedbackItem,
 } from "@/lib/feedback";
 import {
-  clampReadWpm,
   countReadWords,
-  loadReadCheck,
-  loadReadWpm,
-  msPerWord,
-  readCoverage,
-  saveReadCheck,
-  saveReadWpm,
+  coverageRatio,
+  markReadWords,
   splitForReading,
   READ_COVERAGE_PASS,
-  READ_WPM_DEFAULT,
-  READ_WPM_MAX,
-  READ_WPM_MIN,
-  READ_WPM_STEP,
 } from "@/lib/readAloud";
 import { isSpeechRecognitionSupported, startDictation, type DictationHandle } from "@/lib/speech";
 import {
@@ -48,7 +39,7 @@ export interface ExpressionControls {
 
 /** 따라 읽기를 세어 기록에 남기는 데 필요한 것. 결과 화면만 넘긴다. */
 export interface ReadingControls {
-  /** 지금까지 끝까지 따라 읽은 횟수. */
+  /** 받아쓰기로 확인된 따라 읽기 횟수. */
   reads: number;
   onRead: () => void;
 }
@@ -76,6 +67,8 @@ const FLOW_CATEGORIES: ReadonlySet<FeedbackCategory> = new Set(["storytelling", 
 const DELETED = "rounded-sm bg-danger-tint px-0.5 text-danger-ink line-through decoration-danger-ink/60 box-decoration-clone";
 const INSERTED = "rounded-sm bg-success-tint px-0.5 font-medium text-success-ink no-underline box-decoration-clone";
 const SOFT_SHOWN = "text-fg-muted underline decoration-dotted decoration-line-strong underline-offset-[3px]";
+/** 따라 읽기에서 아직 받아쓰기가 따라오지 않은 낱말. */
+const UNREAD = "opacity-50 motion-safe:transition-opacity";
 /** 끈 상태. del 의 기본 취소선까지 지워 평범한 글자로 만든다. */
 const SOFT_HIDDEN = "no-underline";
 
@@ -242,167 +235,127 @@ function RewriteCompare({ before, after, feedback, answer, reading: readingContr
   const basisDiffers = answer !== undefined && hasAnswerText(answer) && !sameSpokenText(before, answer);
 
   /*
-   * 따라 읽기. 글자가 정해진 속도로 흘러가면 눈으로 훑고 넘어가기 어려워 입이 따라온다.
-   * 모아보기·인쇄본은 읽는 화면이 아니라 남겨 두는 기록이라 재생기를 그리지 않는다.
+   * 따라 읽기.
+   *
+   * 읽는 박자는 사람이 만든다. 글자를 정해진 속도로 흘려보내면 낱말마다 같은 시간이
+   * 걸려 어차피 사람이 읽는 결과 어긋나고, 무엇보다 입을 떼지 않아도 끝까지 흘러가
+   * 읽었다는 근거가 남지 않는다. 그래서 받아쓰기가 따라온 낱말만 또렷해지게 하고,
+   * 어디까지 왔는지도 그 표시에서 읽는다.
+   *
+   * 받아쓰기가 없는 브라우저에서는 재생기를 아예 그리지 않는다. 읽었는지 알 길이
+   * 없는데 단추만 두면 눌러도 아무 일이 일어나지 않는다. 모아보기·인쇄본도 읽는
+   * 화면이 아니라 남겨 두는 기록이라 그리지 않는다.
    */
   const totalWords = useMemo(() => countReadWords(after), [after]);
-  const [wpm, setWpm] = useState(READ_WPM_DEFAULT);
-  const [playing, setPlaying] = useState(false);
-  /** 지금 가리키는 낱말. -1 은 아직 시작하지 않은 상태다. */
-  const [cursor, setCursor] = useState(-1);
-  const speedId = useId();
+  /** 받아쓰기가 따라온 낱말. null 은 아직 한 번도 읽지 않은 상태다. */
+  const [marks, setMarks] = useState<boolean[] | null>(null);
+  const [listening, setListening] = useState(false);
+  const [supported, setSupported] = useState(false);
+  const [micError, setMicError] = useState(false);
 
   /*
-   * 마이크로 확인하기.
-   *
-   * 정말로 소리 내어 읽었는지는 받아쓰기로만 알 수 있다. 다만 브라우저 받아쓰기는
-   * 제대로 읽어도 곧잘 틀리므로(그래서 이 앱에 녹음본 재전사가 있다) 통과 조건으로
-   * 쓰지 않는다. 끝까지 넘기면 횟수는 그대로 세고, 덜 따라왔을 때만 한 줄로 알린다.
+   * 인식 결과는 콜백으로 오고, 인식 중인 임시 문장은 확정되기 전까지 통째로 다시
+   * 쓰인다. 그래서 앞의 표시를 여기에 들고 있다가 다음 결과에 넘겨, 한 번 읽은 낱말이
+   * 깜빡이며 사라지지 않게 한다.
    */
-  const [supported, setSupported] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [coverage, setCoverage] = useState<number | null>(null);
-  const [micError, setMicError] = useState(false);
-  const heard = useRef("");
-  const micFailed = useRef(false);
+  const readSoFar = useRef<boolean[] | null>(null);
+  /** 이번 읽기에서 횟수를 이미 셌는지. 통과선을 넘는 순간 한 번만 센다. */
+  const counted = useRef(false);
   const dictation = useRef<DictationHandle | null>(null);
-  // 프롭은 렌더마다 새 객체로 온다. 시계를 다시 걸지 않도록 여기에 담아 둔다.
+  // 프롭은 렌더마다 새 객체로 온다. 콜백이 낡은 값을 잡지 않도록 여기에 담아 둔다.
   const onRead = useRef(readingControls?.onRead);
   onRead.current = readingControls?.onRead;
+  const target = useRef(after);
+  target.current = after;
 
-  // 저장된 값은 브라우저에만 있다. 서버가 그린 첫 화면과 어긋나지 않도록 나중에 읽는다.
-  useEffect(() => {
-    setWpm(loadReadWpm());
-    setSupported(isSpeechRecognitionSupported());
-    setChecking(loadReadCheck());
-  }, []);
+  // 브라우저에만 있는 값이라 서버가 그린 첫 화면과 어긋나지 않도록 나중에 읽는다.
+  useEffect(() => { setSupported(isSpeechRecognitionSupported()); }, []);
 
   // 화면을 떠나면 마이크를 놓아 준다.
   useEffect(() => () => { dictation.current?.abort(); dictation.current = null; }, []);
 
-  useEffect(() => {
-    if (!playing) return;
-    if (cursor >= totalWords - 1) {
-      setPlaying(false);
-      // stop() 은 말하던 마지막 문장까지 받아 적고 끝난다. 커버리지는 그 뒤에 센다.
-      dictation.current?.stop();
-      onRead.current?.();
-      return;
-    }
-    // 낱말마다 다시 건다. 읽는 도중에 속도를 바꾸면 바로 다음 낱말부터 따른다.
-    const timer = window.setTimeout(() => setCursor((value) => value + 1), msPerWord(wpm));
-    return () => window.clearTimeout(timer);
-  }, [playing, cursor, wpm, totalWords]);
+  const stopReading = () => {
+    setListening(false);
+    // stop() 은 말하던 마지막 문장까지 받아 적고 끝난다.
+    dictation.current?.stop();
+  };
 
-  const listen = () => {
-    heard.current = "";
-    micFailed.current = false;
+  const startReading = () => {
+    readSoFar.current = null;
+    counted.current = false;
+    setMarks(null);
     setMicError(false);
     dictation.current?.abort();
     dictation.current = startDictation({
-      onUpdate: (draft) => { heard.current = [draft.committed, draft.interim].filter(Boolean).join(" "); },
+      onUpdate: (draft) => {
+        const said = [draft.committed, draft.interim].filter(Boolean).join(" ");
+        const next = markReadWords(target.current, said, readSoFar.current ?? undefined);
+        readSoFar.current = next;
+        setMarks(next);
+        /*
+         * 읽은 횟수는 여기서만 센다. 통과선을 넘은 순간 한 번 세고 마이크는 그대로
+         * 열어 둔다. 남은 대목을 마저 읽으려는 사람을 끊을 이유가 없다.
+         */
+        if (!counted.current && coverageRatio(next) >= READ_COVERAGE_PASS) {
+          counted.current = true;
+          onRead.current?.();
+        }
+      },
       onError: (code) => {
         if (code !== "not-allowed" && code !== "service-not-allowed" && code !== "audio-capture") return;
-        micFailed.current = true;
         setMicError(true);
+        setListening(false);
       },
       onEnd: () => {
         dictation.current = null;
-        // 마이크가 막힌 채로 끝났으면 0% 를 들이밀지 않는다. 읽지 않은 것이 아니다.
-        if (!micFailed.current) setCoverage(readCoverage(after, heard.current));
+        setListening(false);
       },
     });
-    if (!dictation.current) setMicError(true);
+    if (!dictation.current) { setMicError(true); return; }
+    setListening(true);
   };
 
-  const reading = variant === "screen" && totalWords > 0;
-  const done = cursor >= 0 && !playing && cursor >= totalWords - 1;
-  // 다 읽고 나면 표시를 거둔다. 멈춘 동안에는 남겨 두어야 읽던 자리를 찾는다.
-  const currentWord = reading && !done ? cursor : null;
-  const progress = totalWords > 0 ? Math.min(100, Math.max(0, ((cursor + 1) / totalWords) * 100)) : 0;
-
-  const startOrPause = () => {
-    if (playing) { setPlaying(false); return; }
-    if (done || cursor < 0) {
-      setCursor(0);
-      setCoverage(null);
-      if (checking && supported) listen();
-    }
-    setPlaying(true);
-  };
-
-  const toggleChecking = () => {
-    const next = !checking;
-    setChecking(next);
-    saveReadCheck(next);
-    if (next) return;
-    dictation.current?.abort();
-    dictation.current = null;
-    setCoverage(null);
-    setMicError(false);
-  };
-
+  const reading = variant === "screen" && totalWords > 0 && supported;
+  const covered = marks ? marks.filter(Boolean).length : 0;
+  const percent = totalWords > 0 ? Math.round((covered / totalWords) * 100) : 0;
+  const missing = totalWords - covered;
+  const passed = marks !== null && coverageRatio(marks) >= READ_COVERAGE_PASS;
   const reads = readingControls?.reads ?? 0;
-  const percent = coverage === null ? 0 : Math.round(coverage * 100);
 
   const readControls = reading ? (
     <div className="print-hide mt-3 space-y-2 border-t border-line pt-2.5">
-      <div className="h-1 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
-        <div className="h-full rounded-full bg-primary motion-safe:transition-[width] motion-safe:duration-150" style={{ width: `${progress}%` }} />
+      <div
+        className="h-1 overflow-hidden rounded-full bg-surface-3"
+        role="progressbar"
+        aria-label="읽은 부분"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div className="h-full rounded-full bg-primary motion-safe:transition-[width] motion-safe:duration-150" style={{ width: `${percent}%` }} />
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <button
           type="button"
-          onClick={startOrPause}
+          onClick={listening ? stopReading : startReading}
           className="min-h-9 rounded-lg bg-primary px-3.5 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover"
         >
-          {playing ? "멈춤" : done ? "다시 읽기" : cursor < 0 ? "따라 읽기" : "이어 읽기"}
+          {listening ? "멈춤" : marks === null ? "따라 읽기" : "다시 읽기"}
         </button>
-        {cursor >= 0 && !done && (
-          <button
-            type="button"
-            onClick={() => setCursor(0)}
-            className="min-h-9 rounded-lg border border-line px-2.5 text-xs text-fg-muted transition hover:text-fg"
-          >
-            처음부터
-          </button>
-        )}
-        {supported && (
-          <button
-            type="button"
-            aria-pressed={checking}
-            onClick={toggleChecking}
-            className={`min-h-9 rounded-lg border px-2.5 text-xs transition ${checking ? "border-primary-ink/30 bg-primary-tint font-medium text-primary-ink" : "border-line text-fg-muted hover:text-fg"}`}
-          >
-            마이크로 확인
-          </button>
-        )}
-        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
-          <label htmlFor={speedId} className="text-[11px] text-fg-subtle">속도</label>
-          <input
-            id={speedId}
-            type="range"
-            min={READ_WPM_MIN}
-            max={READ_WPM_MAX}
-            step={READ_WPM_STEP}
-            value={wpm}
-            onChange={(event) => {
-              const next = clampReadWpm(Number(event.target.value));
-              setWpm(next);
-              saveReadWpm(next);
-            }}
-            className="h-9 w-24 accent-primary"
-          />
-          <span className="w-16 text-[11px] tabular-nums text-fg-muted">분당 {wpm}</span>
-        </div>
+        <p className="min-w-0 flex-1 text-[11px] leading-relaxed text-fg-subtle">
+          {listening
+            ? `소리 내어 읽으세요. 따라온 낱말이 또렷해집니다 · ${percent}%`
+            : marks === null
+              ? "누르고 소리 내어 읽으세요. 같은 곳을 여러 번 읽거나 앞으로 되돌아가도 됩니다."
+              : passed
+                ? `다 읽었습니다 · ${percent}%`
+                : `${missing}개 낱말이 확인되지 않았습니다. 받아쓰기가 놓쳤을 수도 있습니다.`}
+        </p>
       </div>
-      {(reads > 0 || coverage !== null || micError) && (
+      {(reads > 0 || micError) && (
         <p className="text-[11px] leading-relaxed text-fg-subtle">
           {reads > 0 && `읽음 ${reads}회`}
-          {coverage !== null && (coverage >= READ_COVERAGE_PASS
-            ? `${reads > 0 ? " · " : ""}받아쓰기가 ${percent}% 따라왔습니다`
-            : `${reads > 0 ? " · " : ""}받아쓰기가 ${percent}%만 따라왔습니다. 조금 또렷하게 읽어 보세요`)}
-          {micError && `${reads > 0 || coverage !== null ? " · " : ""}마이크를 쓸 수 없어 확인을 건너뛰었습니다`}
+          {micError && `${reads > 0 ? " · " : ""}마이크를 쓸 수 없어 읽은 곳을 확인하지 못했습니다`}
         </p>
       )}
     </div>
@@ -444,7 +397,7 @@ function RewriteCompare({ before, after, feedback, answer, reading: readingContr
               showFluency={showFluency}
               activeItem={activeItem}
               onHoverItem={onHoverItem}
-              currentWord={currentWord}
+              readMarks={reading ? marks : null}
               footer={readControls}
             />
             {variant === "report" ? beforePanel : (
@@ -479,7 +432,7 @@ function RewriteCompare({ before, after, feedback, answer, reading: readingContr
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-fg-subtle">
             {reading
-              ? "따라 읽기를 누르면 글자가 흐릅니다. 그 속도에 맞춰 소리 내어 읽고, 한 번 읽은 뒤 같은 질문에 다시 답해 보세요."
+              ? "소리 내어 읽으면 받아쓰기가 따라온 낱말이 또렷해집니다. 한 번 읽은 뒤 같은 질문에 다시 답해 보세요."
               : "After 를 소리 내어 두세 번 읽어 본 뒤, 같은 질문에 다시 답해 보세요."}
           </p>
         </>
@@ -553,12 +506,7 @@ function panelGroups(pieces: readonly DiffPiece[], after: boolean): PanelGroup[]
   return groups;
 }
 
-/** 지금 읽을 낱말이 화면 밖이면 끌어온다. 이미 보이면 아무것도 하지 않는다. */
-function keepInView(node: HTMLElement | null) {
-  node?.scrollIntoView({ block: "nearest" });
-}
-
-function AnswerPanel({ label, caption, pieces, after = false, showFluency, activeItem, onHoverItem, currentWord = null, footer }: {
+function AnswerPanel({ label, caption, pieces, after = false, showFluency, activeItem, onHoverItem, readMarks = null, footer }: {
   label: string;
   caption: string;
   pieces: readonly DiffPiece[];
@@ -566,8 +514,8 @@ function AnswerPanel({ label, caption, pieces, after = false, showFluency, activ
   showFluency: boolean;
   activeItem: number | null;
   onHoverItem: (item: number | null) => void;
-  /** 따라 읽기가 지금 가리키는 낱말. 안 읽는 중이면 null. */
-  currentWord?: number | null;
+  /** 따라 읽기에서 받아쓰기가 따라온 낱말. 아직 읽지 않았으면 null. */
+  readMarks?: readonly boolean[] | null;
   footer?: React.ReactNode;
 }) {
   const groups = panelGroups(pieces, after);
@@ -577,15 +525,18 @@ function AnswerPanel({ label, caption, pieces, after = false, showFluency, activ
   let word = -1;
 
   /*
-   * 낱말 하나하나를 조각으로 두고 지금 읽을 것만 칠한다. 색은 배경과 글자색만
-   * 바꾼다. 여기에 안팎 여백을 주면 표시가 옮겨 갈 때마다 글자가 밀려 읽던 자리를
-   * 잃는다.
+   * 아직 받아쓰기가 따라오지 않은 낱말을 흐리게 두어, 읽은 쪽이 또렷하게 남게 한다.
+   * 읽은 쪽에 색을 덧칠하지 않는 이유는 이 글에 이미 초록(고칠 점이 손댄 자리)과
+   * 점선(다듬은 곳)이 얹혀 있어서다. 그 위에 배경색을 더 깔면 정작 봐야 할 표시가
+   * 묻힌다. 흐리게 하는 것은 색을 빼앗지 않아 두 표시가 함께 남는다.
+   *
+   * 안팎 여백은 주지 않는다. 표시가 바뀔 때마다 글자가 밀려 읽던 자리를 잃는다.
    */
   const readable = (text: string) => splitForReading(text).map((token, index) => {
     if (!token.word) return <span key={index}>{token.text}</span>;
     word += 1;
-    if (word !== currentWord) return <span key={index}>{token.text}</span>;
-    return <span key={index} ref={keepInView} className="rounded-sm bg-primary text-primary-fg">{token.text}</span>;
+    if (!readMarks || readMarks[word]) return <span key={index}>{token.text}</span>;
+    return <span key={index} className={UNREAD}>{token.text}</span>;
   });
 
   return (
