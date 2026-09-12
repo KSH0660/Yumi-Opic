@@ -114,7 +114,7 @@ function ReportItemCard({ entry, number }: { entry: ReportItem; number: string }
 
     {feedback ? <div className="mt-4 border-t border-line pt-4">
       <p className="mb-3 text-xs font-semibold text-fg-muted">AI 스토리텔링 코치</p>
-      <FeedbackDetails feedback={feedback} questionType={item.question.type} answer={answer} />
+      <FeedbackDetails feedback={feedback} questionType={item.question.type} answer={answer} variant="report" />
     </div> : <p className="mt-4 text-xs text-fg-subtle">이 문항에는 AI 피드백이 없습니다.</p>}
   </Card>;
 }

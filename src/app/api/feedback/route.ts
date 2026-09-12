@@ -48,8 +48,10 @@ const FEEDBACK_SCHEMA = {
     },
     // 항목을 먼저 쓰고 그 항목대로 고치도록 맨 뒤에 둔다.
     improvedAnswer: { type: "string" },
+    // 인용문은 고친 답변에서 그대로 떠 오는 것이라 그 뒤에 둔다. 순서는 items 와 같다.
+    itemQuotes: { type: "array", maxItems: 5, items: { type: "string" } },
   },
-  required: ["overall", "structure", "pronunciationBasis", "items", "improvedAnswer"],
+  required: ["overall", "structure", "pronunciationBasis", "items", "improvedAnswer", "itemQuotes"],
   additionalProperties: false,
 } as const;
 
@@ -132,7 +134,21 @@ function buildPrompt(input: {
     "Evaluate the remaining stages as flow, not as a checklist. Do not force the pattern mechanically when the response is already natural.",
     "Give at most 5 feedback items total. Prefer the highest-impact issues only.",
     "Priority order: storytelling/organization (including transitions) first, concrete activity-example-detail second, emotion/personal reaction third, delivery fourth, pronunciation fifth, grammar last.",
-    "Transitions (연결 표현): notice how the learner moves between ideas, e.g. introducing a point, adding one, giving a reason or result, reacting, wrapping up. Where a shift feels abrupt or one plain connector keeps repeating, suggest a natural spoken connector that fits the spot, shown in the learner's own sentence. Skip it when the ideas already flow.",
+    // 연결 표현은 OPIc 에서 아이디어 사이의 관계를 드러내는 축이라 기능별 목록을 그대로 준다.
+    // 목록이 없으면 모델이 "연결 표현을 더 쓰세요" 같은 두루뭉술한 조언을 내놓는다.
+    "Discourse markers (연결 표현) carry a lot of weight in OPIc: they show how ideas relate and keep the answer moving. Coach them with this function-to-expression map.",
+    "- 이유 (reason): because / because of + noun / since / the reason is (that) ~ / mainly because / that's partly because",
+    "- 결과 (result): so / as a result / because of that / that's why / which means / in the end",
+    "- 추가 (adding): also / and also / on top of that / besides that / another thing is (that) ~ / plus / what's more",
+    "- 전환 (topic shift): anyway / speaking of that / when it comes to ~ / as for ~ / talking about ~ / by the way / moving on to ~",
+    "- 강조·포인트 (highlighting the point): the thing is ~ / what's really nice is ~ / what I like most is ~ / the best part is ~ / what really matters is ~ / to be honest / actually",
+    "- 예시 (example): for example / for instance / like / such as / things like ~ / say, ~ / let me give you an example",
+    "- 대조 (contrast): but / however / on the other hand / although / even though / still / at the same time / then again",
+    "- 시간·순서 (sequence): first (of all) / then / after that / at first / while I was ~ing / later on / finally",
+    "- 마무리 (wrapping up): so that's pretty much it / overall / all in all / that's why I ~ / anyway, that's about it / in short",
+    "- 의견·태도 (stance): I think / I'd say / for me / personally / if you ask me / I feel like / in my opinion",
+    "Repetition rule: learners lean on one marker, most often 'so'. Read the answer and judge the repetition yourself. When one marker carries most of the transitions, quote the learner's own repeated sentences and replace some of them with other expressions FROM THE SAME FUNCTION row above, so the meaning stays the same. Never swap a marker for one from a different function.",
+    "Missing-marker rule: when a relation is clearly there but unmarked (a reason, a result, a contrast) and the sentences land abruptly, add the marker at that exact spot in the learner's own sentence. Do NOT tell the learner to use more connectors in general, and do NOT ask them to cover functions their answer had no reason to use. Skip this entirely when the ideas already flow.",
     "Grammar rule: do NOT nitpick articles, prepositions, small tense slips, or awkward but understandable phrasing. Mention grammar only when an error seriously hurts meaning or repeats enough to disrupt communication.",
     "Pronunciation rule: never infer a pronunciation mistake from text alone. If an audio transcript is provided, compare it with the browser transcript. Only flag a concrete word/phrase when the mismatch gives a reasonable pronunciation-check signal. Phrase it cautiously: ASR can also be wrong. Do not invent a phonetic diagnosis such as a specific consonant/vowel error unless the evidence supports it.",
     "Delivery rule: use duration/WPM only as a weak signal. Do not criticize a natural pause merely because it exists.",
@@ -140,11 +156,20 @@ function buildPrompt(input: {
     "If the answer is already strong, return fewer than 5 items rather than manufacturing problems.",
     "For pronunciationBasis return audio_compare only when an audio transcript is present; browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
     "",
-    "improvedAnswer must be identical to the source answer except for the minimum text changes explicitly required by your feedback items:",
+    "improvedAnswer is the learner's own answer rewritten so it is worth reading out loud. It is a revision of their answer, NOT a new model answer:",
     "- The source answer is the independent audio transcription when available, otherwise the browser transcript.",
-    "- Each feedback item permits only its requested change at the location it identifies. All other text must remain verbatim, including surrounding words in edited sentences and unmentioned occurrences elsewhere.",
-    "- If a change is not clearly required by a feedback item, preserve the original. If no item requires a text change, improvedAnswer must equal the source answer exactly.",
+    "- Apply every text change your feedback items ask for, at the place each item identifies.",
+    "- Beyond those, you may smooth wording, sentence structure and transitions so the whole answer sounds like natural spoken English. The learner will read this aloud to practice, so leaving an awkward sentence untouched is worse than fixing it.",
+    "- Keep their content: their own words, examples, opinions and order of ideas. Do not add ideas, facts or feelings they did not express, and do not drop any they did.",
+    "- Keep it sayable by this learner. Do not reach for vocabulary or structures noticeably above the level of the source answer.",
+    "- Stay within roughly 10% of the source answer's length.",
     "- Plain English text only: no markdown, labels, or Korean.",
+    "",
+    "itemQuotes ties each feedback item to its place in improvedAnswer so the screen can mark that spot and number it. One entry per feedback item, in the same order as items:",
+    "- Copy the span of improvedAnswer that this item produced, verbatim and contiguous, so an exact text search finds it. Keep it to the changed span plus only as much context as it takes to be unambiguous.",
+    "- Quote from improvedAnswer only, never from the source answer, and never text you did not write there.",
+    "- Do NOT quote a span you changed only for fluency. Those are not tied to a feedback item and are marked differently on screen.",
+    "- Use an empty string for an item that required no text change at all.",
     "",
     `[Question type] ${input.type || "unknown"} (id: ${input.questionType || "unknown"})`,
     `[Topic] ${input.topic || "unknown"}`,
@@ -250,12 +275,19 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { improvedAnswer: rawImproved, ...parsed } = JSON.parse(outputText) as OpicFeedback;
+    const { improvedAnswer: rawImproved, itemQuotes: rawQuotes, ...parsed } =
+      JSON.parse(outputText) as OpicFeedback & { itemQuotes?: unknown };
     if (!Array.isArray(parsed.items)) throw new Error("invalid feedback");
     const improvedAnswer = typeof rawImproved === "string" ? rawImproved.trim() : "";
+    // 인용문은 자리만 알려 주는 값이라 항목 안으로 옮겨 저장한다. 모델이 빠뜨린 자리는
+    // 빈 문자열이 되고, 그 항목의 변경은 화면에서 연한 등급으로 남는다.
+    const quotes: unknown[] = Array.isArray(rawQuotes) ? rawQuotes : [];
     const feedback: OpicFeedback = {
       ...parsed,
-      items: parsed.items.slice(0, 5),
+      items: parsed.items.slice(0, 5).map((item, index) => {
+        const quote = quotes[index];
+        return { ...item, afterQuote: typeof quote === "string" ? quote.trim() : "" };
+      }),
       // Before 는 AI 가 실제로 고친 바로 그 텍스트여야 바뀐 곳이 정확히 칠해진다.
       ...(improvedAnswer ? { improvedAnswer, improvedFrom: answerBasis } : {}),
     };
