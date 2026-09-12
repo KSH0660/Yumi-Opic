@@ -28,9 +28,11 @@ export const RATES: CostRates = {
 
 /**
  * route.ts 가 매번 함께 보내는 고정 지시문 분량. 두괄식 규칙이 붙어 500 → 700,
- * 고친 답변(Before / After) 규칙이 붙어 700 → 1,000 으로 늘렸다.
+ * 고친 답변(Before / After) 규칙이 붙어 700 → 1,000, 연결 표현 10기능 목록이
+ * 붙어 1,000 → 1,500 으로 늘렸다. 지시문 본문만 세면 약 1,250 토큰이고 유형별
+ * 분기와 라벨이 더 붙으므로 여유를 두고 올려 잡는다.
  */
-const PROMPT_OVERHEAD_TOKENS = 1_000;
+const PROMPT_OVERHEAD_TOKENS = 1_500;
 /** 영어 기준 대략 4글자에 1토큰. */
 const CHARS_PER_TOKEN = 4;
 
