@@ -168,6 +168,8 @@ export default function ExamResult({
   const { answeredSlots, answeredCount, skippedCount, totalWords, averageWords, totalSentences,
     uniqueWords, totalTime, totalHints, totalReplays } = summarizeAnswers(exam.items, answerBySlot, times, hintUse, replays);
   const [feedbackBySlot, setFeedbackBySlot] = useState<Record<number, OpicFeedback>>(historyEntry?.result?.feedback ?? {});
+  // 고친 답변을 끝까지 따라 읽은 횟수. 답변·피드백과 같은 회차에 함께 쌓인다.
+  const [readCounts, setReadCounts] = useState<Record<number, number>>(historyEntry?.result?.readCounts ?? {});
   // 한 번에 받기가 차례를 기다리는 사이 개별 버튼으로 먼저 받은 문항을, 렌더를 기다리지 않고 알아보려고 둔다.
   // 피드백은 이 값을 고친 뒤 그대로 상태에 넘기므로 둘은 늘 같다.
   const feedbackRef = useRef(feedbackBySlot);
@@ -186,6 +188,7 @@ export default function ExamResult({
   latestResult.current = {
     exam, answers: answerBySlot, times, hintUse, replays, feedback: feedbackBySlot,
     ...(Object.keys(rewrites.browser).length ? { browserAnswers: rewrites.browser } : {}),
+    ...(Object.keys(readCounts).length ? { readCounts } : {}),
   };
 
   const persist = useCallback((result: SavedResult) => {
@@ -217,7 +220,13 @@ export default function ExamResult({
   useEffect(() => {
     if (readOnly.current) return;
     persist(latestResult.current);
-  }, [persist, answerBySlot, times, rewrites, feedbackBySlot]);
+  }, [persist, answerBySlot, times, rewrites, feedbackBySlot, readCounts]);
+
+  /** 한 문항을 끝까지 따라 읽었다. 지난 기록을 열어 읽어도 그 회차에 쌓인다. */
+  const countRead = useCallback((slot: number) => {
+    readOnly.current = false;
+    setReadCounts((current) => ({ ...current, [slot]: (current[slot] ?? 0) + 1 }));
+  }, []);
 
   /**
    * AI 분석 결과를 반영한다. 녹음본 전사가 오면 답변 정본도 그 텍스트로 바꾼다.
@@ -446,6 +455,8 @@ export default function ExamResult({
             feedbackError={feedbackErrors[item.slot] ?? null}
             onRequestFeedback={() => requestItemFeedback(item)}
             onRevertAnswer={() => revertAnswer(item.slot)}
+            reads={readCounts[item.slot] ?? 0}
+            onRead={() => countRead(item.slot)}
             savedIds={expressions.savedIds}
             onToggleExpression={expressions.toggle}
             expressionError={expressions.error}
@@ -621,6 +632,8 @@ function ItemResult({
   feedbackError,
   onRequestFeedback,
   onRevertAnswer,
+  reads,
+  onRead,
   savedIds,
   onToggleExpression,
   expressionError,
@@ -642,6 +655,9 @@ function ItemResult({
   feedbackError: string | null;
   onRequestFeedback: () => void;
   onRevertAnswer: () => void;
+  /** 고친 답변을 끝까지 따라 읽은 횟수. */
+  reads: number;
+  onRead: () => void;
   /** 이미 저장한 조언의 키. 별표 버튼의 켜짐/꺼짐을 정한다. */
   savedIds: ReadonlySet<string>;
   onToggleExpression: (draft: ExpressionDraft) => void;
@@ -757,6 +773,7 @@ function ItemResult({
                       questionType={item.question.type}
                       answer={answer}
                       expressions={{ context: expressionContext, savedIds, onToggle: onToggleExpression, error: expressionError }}
+                      reading={{ reads, onRead }}
                     />
                     {!feedbackRewrite(feedback) && (
                       <p className="mt-3 text-[11px] leading-relaxed text-fg-subtle">
