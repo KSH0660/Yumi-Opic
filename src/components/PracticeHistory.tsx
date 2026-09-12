@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { deleteHistoryEntries, HISTORY_CHANGED_EVENT, loadHistory, type HistoryEntry } from "@/lib/storage";
+import { deleteHistoryEntries, loadHistory, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
 import { feedbackCount, reportHref } from "@/lib/report";
 import { Card } from "./ui";
@@ -16,12 +16,7 @@ export function usePracticeHistory() {
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("pageshow", refresh);
-    window.addEventListener(HISTORY_CHANGED_EVENT, refresh);
-    return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("pageshow", refresh);
-      window.removeEventListener(HISTORY_CHANGED_EVENT, refresh);
-    };
+    return () => { window.removeEventListener("storage", refresh); window.removeEventListener("pageshow", refresh); };
   }, []);
 
   const removeMany = useCallback((ids: readonly string[], question: string) => {

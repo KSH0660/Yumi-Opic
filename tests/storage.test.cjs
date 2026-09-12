@@ -258,39 +258,3 @@ test('이미 고른 설문이 있으면 방문 표시가 그 선택을 덮지 �
   storage.markSurveySeen();
   assert.deepEqual(storage.loadSettings().surveyChoiceIds, ['job-none', 'hobby-music', 'sport-gym', 'vacation-home']);
 }));
-
-test('따라 읽은 날짜와 당시 문장 수를 저장하고 손상된 항목만 제외한다', () => withStorage((data) => {
-  const original = entry();
-  const slot = original.result.exam.items[0].slot;
-  const practice = { slot, completedAt: Date.now(), sentences: 6, count: 1 };
-  original.result.readCounts = { [slot]: 1 };
-  original.result.readPractices = [practice];
-  storage.pushHistory(original);
-  assert.deepEqual(storage.loadHistory()[0].result.readPractices, [practice]);
-  assert.equal(storage.loadTodaySpeaking().readSentences, 6);
-
-  original.result.readPractices.push(null, { ...practice, slot: 99 }, { ...practice, completedAt: 'today' },
-    { ...practice, sentences: -1 }, { ...practice, count: 0.5 });
-  data.set(KEY, JSON.stringify([original]));
-  assert.deepEqual(storage.loadHistory()[0].result.readPractices, [practice]);
-}));
-
-test('오늘 합계는 최근 20회보다 많이 보관하고 중복 저장으로 늘지 않는다', () => withStorage(() => {
-  for (let i = 0; i < 25; i++) storage.pushHistory(entry(`attempt-${i}`));
-  assert.equal(storage.loadHistory().length, 20);
-  assert.deepEqual(storage.loadTodaySpeaking(), { questions: 25, answerSentences: 25, readCount: 0, readSentences: 0 });
-  storage.pushHistory(entry('attempt-24'));
-  assert.equal(storage.loadTodaySpeaking().questions, 25);
-  storage.deleteHistoryEntries(['attempt-24', 'attempt-23']);
-  assert.equal(storage.loadTodaySpeaking().questions, 23);
-  storage.clearHistory();
-  assert.deepEqual(storage.loadTodaySpeaking(), { questions: 0, answerSentences: 0, readCount: 0, readSentences: 0 });
-}));
-
-test('오늘 통계가 없거나 손상돼도 저장된 상세 기록에서 복원한다', () => withStorage((data) => {
-  data.set(KEY, JSON.stringify([entry()]));
-  data.set('yumi-opic:daily-speaking', '{broken');
-  assert.equal(storage.loadTodaySpeaking().questions, 1);
-  data.set('yumi-opic:daily-speaking', JSON.stringify({ day: '2026-09-12', entries: { bad: { questions: -100 } } }));
-  assert.equal(storage.loadTodaySpeaking().questions, 1);
-}));

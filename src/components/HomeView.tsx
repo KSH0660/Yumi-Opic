@@ -9,7 +9,6 @@ import { loadMicMode } from "@/lib/micShare";
 import { RANDOM_SCOPE_LABELS, RANDOM_SCOPES, randomPracticeLink, repeatPracticeLink } from "@/lib/nav";
 import { defaultSettings, hasSavedSettings, loadSettings } from "@/lib/storage";
 import Footer from "./Footer";
-import DailySpeakingCard from "./DailySpeakingCard";
 import { usePracticeHistory } from "./PracticeHistory";
 import ThemeToggle from "./ThemeToggle";
 import { Card } from "./ui";
@@ -121,8 +120,6 @@ export default function HomeView() {
         </Link>
       ))}</Card>
     </section>}
-
-    <DailySpeakingCard history={history} />
 
     <Footer />
   </main>;
