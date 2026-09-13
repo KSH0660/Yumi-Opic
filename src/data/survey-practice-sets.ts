@@ -660,4 +660,50 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 12, displayNumber: "13", questionId: "transportation-roleplay1-q13" },
     ] },
   ],
+  "friends-family": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "friends-family-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "friends-family-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "friends-family-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "friends-family-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "friends-family-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "friends-family-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "5", questionId: "friends-family-combo3-q5" },
+      { slot: 8, displayNumber: "6", questionId: "friends-family-combo3-q6" },
+      { slot: 9, displayNumber: "7", questionId: "friends-family-combo3-q7" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "5", questionId: "friends-family-combo4-q5" },
+      { slot: 11, displayNumber: "6", questionId: "friends-family-combo4-q6" },
+      { slot: 12, displayNumber: "7", questionId: "friends-family-combo4-q7" },
+    ] },
+    { label: "COMBO 5", items: [
+      { slot: 13, displayNumber: "8", questionId: "friends-family-combo5-q8" },
+      { slot: 14, displayNumber: "9", questionId: "friends-family-combo5-q9" },
+      { slot: 15, displayNumber: "10", questionId: "friends-family-combo5-q10" },
+    ] },
+    { label: "COMBO 6", items: [
+      { slot: 16, displayNumber: "8", questionId: "friends-family-combo6-q8" },
+      { slot: 17, displayNumber: "9", questionId: "friends-family-combo6-q9" },
+      { slot: 18, displayNumber: "10", questionId: "friends-family-combo6-q10" },
+    ] },
+    { label: "COMBO 7", items: [
+      { slot: 19, displayNumber: "8", questionId: "friends-family-combo7-q8" },
+      { slot: 20, displayNumber: "9", questionId: "friends-family-combo7-q9" },
+      { slot: 21, displayNumber: "10", questionId: "friends-family-combo7-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 22, displayNumber: "11", questionId: "friends-family-roleplay1-q11" },
+      { slot: 23, displayNumber: "12", questionId: "friends-family-roleplay1-q12" },
+      { slot: 24, displayNumber: "13", questionId: "friends-family-roleplay1-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 25, displayNumber: "14", questionId: "friends-family-advanced1-q14" },
+      { slot: 26, displayNumber: "15", questionId: "friends-family-advanced1-q15" },
+    ] },
+  ],
 };

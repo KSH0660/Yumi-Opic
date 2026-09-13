@@ -1760,6 +1760,224 @@ export const surpriseTopics: Topic[] = [
         "ko": "가장 최근 자동차 문제를 겪었던 경험과 해결 방법을 자세히 말해 주세요."
       }
     ]
+  },
+  {
+    "id": "friends-family",
+    "category": "surprise",
+    "ko": "친구 & 가족",
+    "en": "Friends & Family",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["friends-family"],
+    "questions": [
+      {
+        "id": "friends-family-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a family member or a friend you have. What is he or she like? What is special about that person?",
+        "ko": "가족이나 친구 한 명의 성격과 특별한 점을 설명해 주세요."
+      },
+      {
+        "id": "friends-family-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "When you get together with friends or family, what kinds of things do you like to do together and why?",
+        "ko": "친구나 가족과 만날 때 함께 무엇을 하고 왜 좋아하는지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last time when you got together with your friends or family. Who was there and when was it? Tell me everything you did that day from beginning to end.",
+        "ko": "가장 최근 친구나 가족과 만났을 때 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a family member or a friend you have. What is he or she like? What is special about that person?",
+        "ko": "가족이나 친구 한 명의 성격과 특별한 점을 설명해 주세요."
+      },
+      {
+        "id": "friends-family-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last time when you got together with your friends or family. Who was there and when was it? Tell me everything you did that day from beginning to end.",
+        "ko": "가장 최근 친구나 가족과 만났을 때 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Could you tell me about a special event or a holiday you celebrated with your family or friends? Tell me all about that event or the holiday from beginning to end.",
+        "ko": "가족이나 친구와 함께 기념한 특별한 행사나 공휴일을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo3-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a family member or a friend you have. What is he or she like? What is special about that person?",
+        "ko": "가족이나 친구 한 명의 성격과 특별한 점을 설명해 주세요."
+      },
+      {
+        "id": "friends-family-combo3-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last time when you got together with your friends or family. Who was there and when was it? Tell me everything you did that day from beginning to end.",
+        "ko": "가장 최근 친구나 가족과 만났을 때 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo3-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you visited a friend or a family member. What did you do when you visited them? What was memorable about that visit? Tell me everything from beginning to end.",
+        "ko": "친구나 가족을 방문했을 때 한 일과 기억에 남은 점을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo4-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about visits to a friend's or a family member's house. What do you normally do when you go there?",
+        "ko": "친구나 가족의 집을 방문할 때 보통 무엇을 하는지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo4-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about a visit to a friend or a family member in your childhood. Who did you visit and whom did you go with? What do you remember about that visit? What made the visit special?",
+        "ko": "어린 시절 친구나 가족을 방문했던 기억과 특별했던 점을 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo4-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you visited a friend or a family member. What did you do when you visited them? What was memorable about that visit? Tell me everything from beginning to end.",
+        "ko": "친구나 가족을 방문했을 때 한 일과 기억에 남은 점을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo5-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a family member or a friend you have. What is he or she like? What is special about that person?",
+        "ko": "가족이나 친구 한 명의 성격과 특별한 점을 설명해 주세요."
+      },
+      {
+        "id": "friends-family-combo5-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last time when you got together with your friends or family. Who was there and when was it? Tell me everything you did that day from beginning to end.",
+        "ko": "가장 최근 친구나 가족과 만났을 때 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo5-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Could you tell me about a special event or a holiday you celebrated with your family or friends? Tell me all about that event or the holiday from beginning to end.",
+        "ko": "가족이나 친구와 함께 기념한 특별한 행사나 공휴일을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo6-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a family member or a friend you have. What is he or she like? What is special about that person?",
+        "ko": "가족이나 친구 한 명의 성격과 특별한 점을 설명해 주세요."
+      },
+      {
+        "id": "friends-family-combo6-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last time when you got together with your friends or family. Who was there and when was it? Tell me everything you did that day from beginning to end.",
+        "ko": "가장 최근 친구나 가족과 만났을 때 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo6-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you visited a friend or a family member. What did you do when you visited them? What was memorable about that visit? Tell me everything from beginning to end.",
+        "ko": "친구나 가족을 방문했을 때 한 일과 기억에 남은 점을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo7-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about visits to a friend's or a family member's house. What do you normally do when you go there?",
+        "ko": "친구나 가족의 집을 방문할 때 보통 무엇을 하는지 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo7-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about a visit to a friend or a family member in your childhood. Who did you visit and whom did you go with? What do you remember about that visit? What made the visit special?",
+        "ko": "어린 시절 친구나 가족을 방문했던 기억과 특별했던 점을 말해 주세요."
+      },
+      {
+        "id": "friends-family-combo7-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you visited a friend or a family member. What did you do when you visited them? What was memorable about that visit? Tell me everything from beginning to end.",
+        "ko": "친구나 가족을 방문했을 때 한 일과 기억에 남은 점을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "friends-family-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You want to meet up with your friend on the weekend. Call your friend and ask 3 or 4 questions about what you can do together and when you can meet.",
+        "ko": "주말에 친구와 만나 함께 할 일과 만날 시간에 관해 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "friends-family-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I’m sorry, but there is a problem which I need you to resolve. You are unable to meet your friend at the time and place that was agreed upon. Call your friend and give two to three alternatives to address the problem.",
+        "ko": "약속한 시간과 장소에서 친구를 만날 수 없는 상황을 설명하고 두세 가지 대안을 제시하세요."
+      },
+      {
+        "id": "friends-family-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Was there a time when you had to cancel your plans with someone? Maybe the weather was bad. Maybe you had work or chores that took up your free time. What did you do to deal with the situation that unexpectedly took up your free time?",
+        "ko": "누군가와의 계획을 취소해야 했던 경험과 갑자기 시간을 빼앗긴 상황에 어떻게 대처했는지 말해 주세요."
+      },
+      {
+        "id": "friends-family-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Describe two different friends or family members. Describe each of them in as much detail as you can. And then, tell me about the things they have in common and the differences between them.",
+        "ko": "친구나 가족 두 명을 자세히 설명하고 공통점과 차이점을 말해 주세요."
+      },
+      {
+        "id": "friends-family-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "When you get together with friends or family, what are some of the topics or interests you discuss? Why are these things of interest or concern to you? How do these things affect your life?",
+        "ko": "친구나 가족과 나누는 주제나 관심사, 그 이유와 삶에 미치는 영향을 말해 주세요."
+      }
+    ]
   }
 ];
 
