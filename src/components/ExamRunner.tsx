@@ -87,10 +87,15 @@ interface VoiceAnalysisSession {
 
 const LONG_PAUSE_MS = 5_000;
 const CHUNK_GAP_MS = 1_000;
+const NATURAL_OPENING_PATTERN = /^\s*(?:well|um|uh|oh|right|yeah|let me (?:think|see)|i(?:'|’)m not really sure|that(?:'|’)s a good question|i need a (?:second|moment) to think about that|give me a (?:second|moment)|how should i put it|i guess|i suppose)\b/i;
 
 function countFillers(transcript: string): number {
   return [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
     .reduce((total, pattern) => total + (transcript.match(pattern)?.length ?? 0), 0);
+}
+
+function hasNaturalThinkingOpening(transcript: string): boolean {
+  return NATURAL_OPENING_PATTERN.test(transcript);
 }
 
 function variation(values: number[]): number | null {
@@ -103,11 +108,19 @@ function variation(values: number[]): number | null {
 
 function fillerFeedback(transcript: string, totalWords: number): string {
   const fillerCount = countFillers(transcript);
-  if (fillerCount === 0) return "No tracked fillers detected.";
+  const naturalOpening = hasNaturalThinkingOpening(transcript);
+  if (fillerCount === 0) {
+    return naturalOpening
+      ? "Natural thinking opener detected. It supports a spontaneous delivery."
+      : "No tracked fillers detected.";
+  }
   const repeated = [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
     .some((pattern) => (transcript.match(pattern)?.length ?? 0) >= 3);
   if (repeated || fillerCount >= Math.max(4, Math.ceil(totalWords / 20))) {
     return `${fillerCount} tracked fillers. They may be interrupting your flow; replace a few with a quiet pause.`;
+  }
+  if (naturalOpening) {
+    return `${fillerCount} tracked filler${fillerCount === 1 ? "" : "s"}. The opening sounds like natural real-time thinking.`;
   }
   return `${fillerCount} tracked filler${fillerCount === 1 ? "" : "s"}. This amount can sound natural in spontaneous speech.`;
 }
@@ -295,10 +308,13 @@ export default function ExamRunner({
     const chunks = session.currentChunkWords > 0
       ? [...session.chunkWordCounts, session.currentChunkWords]
       : session.chunkWordCounts;
-    const averageChunkWords = chunks.length > 0
-      ? chunks.reduce((sum, count) => sum + count, 0) / chunks.length
+    const naturalOpening = hasNaturalThinkingOpening(transcript);
+    // A brief opener followed by a thinking pause is a normal way to formulate an answer.
+    const assessedChunks = naturalOpening && chunks.length > 1 && chunks[0] <= 8 ? chunks.slice(1) : chunks;
+    const averageChunkWords = assessedChunks.length > 0
+      ? assessedChunks.reduce((sum, count) => sum + count, 0) / assessedChunks.length
       : totalWords;
-    const fragmented = chunks.length >= 4 && averageChunkWords < 4;
+    const fragmented = assessedChunks.length >= 4 && averageChunkWords < 4;
     const energyVariation = variation(session.energySamples);
     const cadenceVariation = variation(session.cadenceSamples);
     const flatEnergy = energyVariation !== null && energyVariation < 0.22;
@@ -316,14 +332,16 @@ export default function ExamRunner({
       cadenceVariation !== null && cadenceVariation < 0.18,
       speakingTimeSec >= 30 && session.longPauseCount === 0,
       flatEnergy,
-      chunks.length <= 2 && totalWords >= 80,
-      !hasSelfCorrection && totalWords >= 80,
+      assessedChunks.length <= 2 && totalWords >= 80,
+      !hasSelfCorrection && !naturalOpening && totalWords >= 80,
     ].filter(Boolean).length;
     const spontaneity = scriptedSignals >= 3
       ? "Very scripted-sounding · Several delivery signals are unusually uniform. Add natural thought pauses and emphasis."
       : scriptedSignals === 2
         ? "Somewhat prepared-sounding · Let the rhythm vary naturally as each idea develops."
-        : hasSelfCorrection
+        : naturalOpening
+          ? "Natural / spontaneous · The opening sounds like real-time thought formulation."
+          : hasSelfCorrection
           ? "Natural / spontaneous · The self-correction sounds like normal real-time speaking."
           : "Natural / spontaneous · No strong scripted-delivery pattern detected.";
     setVoiceAnalyses((current) => ({
