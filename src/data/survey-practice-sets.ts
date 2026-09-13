@@ -274,6 +274,87 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       {"slot":19,"displayNumber":"15","questionId":"park-advanced2-q15"},
     ] },
   ],
+  "holiday": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "holiday-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "holiday-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "holiday-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "holiday-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "holiday-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "holiday-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "5", questionId: "holiday-combo3-q5" },
+      { slot: 8, displayNumber: "6", questionId: "holiday-combo3-q6" },
+      { slot: 9, displayNumber: "7", questionId: "holiday-combo3-q7" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "5", questionId: "holiday-combo4-q5" },
+      { slot: 11, displayNumber: "6", questionId: "holiday-combo4-q6" },
+      { slot: 12, displayNumber: "7", questionId: "holiday-combo4-q7" },
+    ] },
+    { label: "COMBO 5", items: [
+      { slot: 13, displayNumber: "8", questionId: "holiday-combo5-q8" },
+      { slot: 14, displayNumber: "9", questionId: "holiday-combo5-q9" },
+      { slot: 15, displayNumber: "10", questionId: "holiday-combo5-q10" },
+    ] },
+    { label: "COMBO 6", items: [
+      { slot: 16, displayNumber: "8", questionId: "holiday-combo6-q8" },
+      { slot: 17, displayNumber: "9", questionId: "holiday-combo6-q9" },
+      { slot: 18, displayNumber: "10", questionId: "holiday-combo6-q10" },
+    ] },
+    { label: "COMBO 7", items: [
+      { slot: 19, displayNumber: "8", questionId: "holiday-combo7-q8" },
+      { slot: 20, displayNumber: "9", questionId: "holiday-combo7-q9" },
+      { slot: 21, displayNumber: "10", questionId: "holiday-combo7-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 22, displayNumber: "11", questionId: "holiday-roleplay1-q11" },
+      { slot: 23, displayNumber: "12", questionId: "holiday-roleplay1-q12" },
+      { slot: 24, displayNumber: "13", questionId: "holiday-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 25, displayNumber: "11", questionId: "holiday-roleplay2-q11" },
+      { slot: 26, displayNumber: "12", questionId: "holiday-roleplay2-q12" },
+      { slot: 27, displayNumber: "13", questionId: "holiday-roleplay2-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 3", items: [
+      { slot: 28, displayNumber: "11", questionId: "holiday-roleplay3-q11" },
+      { slot: 29, displayNumber: "12", questionId: "holiday-roleplay3-q12" },
+      { slot: 30, displayNumber: "13", questionId: "holiday-roleplay3-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 31, displayNumber: "14", questionId: "holiday-advanced1-q14" },
+      { slot: 32, displayNumber: "15", questionId: "holiday-advanced1-q15" },
+    ] },
+    { label: "ADVANCED COMBO 2", items: [
+      { slot: 33, displayNumber: "14", questionId: "holiday-advanced2-q14" },
+      { slot: 34, displayNumber: "15", questionId: "holiday-advanced2-q15" },
+    ] },
+  ],
+  "community-event": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "community-event-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "community-event-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "community-event-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "community-event-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "community-event-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "community-event-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "community-event-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "community-event-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "community-event-combo3-q10" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 10, displayNumber: "14", questionId: "community-event-advanced1-q14" },
+      { slot: 11, displayNumber: "15", questionId: "community-event-advanced1-q15" },
+    ] },
+  ],
   workplaces: [
     { label: "COMBO 1", items: [
       { slot: 1, displayNumber: "2", questionId: "workplaces-combo1-q2" },

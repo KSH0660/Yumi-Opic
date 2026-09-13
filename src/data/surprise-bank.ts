@@ -868,6 +868,386 @@ export const surpriseTopics: Topic[] = [
         "ko": "헤어샵에서 문제가 있었던 때를 말해 주세요. 무슨 일이 있었고 어떻게 해결했는지 처음부터 끝까지 자세히 이야기해 주세요."
       }
     ]
+  },
+  {
+    "id": "holiday",
+    "category": "surprise",
+    "ko": "공휴일 & 모임 & 축하",
+    "en": "Holiday & Gatherings & Celebrations",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["holiday"],
+    "questions": [
+      {
+        "id": "holiday-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about some popular holidays in your country. Where do people typically celebrate these holidays? What kinds of things do they do to celebrate?",
+        "ko": "당신의 나라에서 인기 있는 공휴일과 사람들이 축하하는 장소 및 방식을 말해 주세요."
+      },
+      {
+        "id": "holiday-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "Choose one of the holidays you just told me about. Tell me all of the things people typically do to celebrate this holiday. What activities are involved?",
+        "ko": "앞서 말한 공휴일 하나를 골라 사람들이 축하하기 위해 하는 활동을 모두 설명해 주세요."
+      },
+      {
+        "id": "holiday-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about a holiday memory from your childhood. Tell me where you were and what that place looked like. Tell me everything that you remember from that holiday scene.",
+        "ko": "어린 시절의 공휴일 기억을 당시 장소의 모습과 기억나는 모든 일과 함께 말해 주세요."
+      },
+      {
+        "id": "holiday-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about some popular holidays in your country. Where do people typically celebrate these holidays? What kinds of things do they do to celebrate?",
+        "ko": "당신의 나라에서 인기 있는 공휴일과 사람들이 축하하는 장소 및 방식을 말해 주세요."
+      },
+      {
+        "id": "holiday-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about a holiday memory from your childhood. Tell me where you were and what that place looked like. Tell me everything that you remember from that holiday scene.",
+        "ko": "어린 시절의 공휴일 기억을 당시 장소의 모습과 기억나는 모든 일과 함께 말해 주세요."
+      },
+      {
+        "id": "holiday-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about the most recent holiday you celebrated. Why was that holiday memorable? Was there anything special about that day? Talk about why that holiday was particularly unforgettable.",
+        "ko": "가장 최근에 기념한 공휴일과 그날이 특별하고 잊을 수 있었던 이유를 말해 주세요."
+      },
+      {
+        "id": "holiday-combo3-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about some of the gatherings or celebrations that happen at where you live.",
+        "ko": "사는 곳에서 열리는 모임이나 축하 행사들을 말해 주세요."
+      },
+      {
+        "id": "holiday-combo3-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a gathering or a celebration that was held in which you live. Describe where the gathering was held, who was there, what the purpose of the gathering was, and what happened from beginning to end.",
+        "ko": "사는 곳에서 열린 모임이나 축하 행사의 장소, 참석자, 목적과 전 과정을 설명해 주세요."
+      },
+      {
+        "id": "holiday-combo3-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Sometimes when people get together for celebrations or gatherings, unexpected things can happen. Tell me all about something unexpected that happened at a celebration or a gathering in the area where you live. Tell me what happened from beginning to end.",
+        "ko": "사는 지역의 축하 행사나 모임에서 일어난 예상 밖의 일을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "holiday-combo4-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Where do people usually have celebrations or parties in your area? Is it at someone's home, a park, or some place else? Tell me everything about that place in as much detail as you can.",
+        "ko": "당신의 지역에서 사람들이 축하 행사나 파티를 여는 장소를 최대한 자세히 설명해 주세요."
+      },
+      {
+        "id": "holiday-combo4-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last party, gathering or celebration that you attended. What happened and who was there with you? Tell me about what you did from beginning to end.",
+        "ko": "최근 참석한 파티, 모임 또는 축하 행사에서 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "holiday-combo4-q7",
+        "number": "7",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a time when you helped prepare a party or celebration. Perhaps, you helped invite people, or you helped decorate, or get the food or drinks. Tell me about this experience from the beginning to the end in detail.",
+        "ko": "파티나 축하 행사를 준비하도록 도왔던 경험을 처음부터 끝까지 자세히 말해 주세요."
+      },
+      {
+        "id": "holiday-combo5-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about some popular holidays in your country. Where do people typically celebrate these holidays? What kinds of things do they do to celebrate?",
+        "ko": "당신의 나라에서 인기 있는 공휴일과 사람들이 축하하는 장소 및 방식을 말해 주세요."
+      },
+      {
+        "id": "holiday-combo5-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about a holiday memory from your childhood. Tell me where you were and what that place looked like. Tell me everything that you remember from that holiday scene.",
+        "ko": "어린 시절의 공휴일 기억을 당시 장소의 모습과 기억나는 모든 일과 함께 말해 주세요."
+      },
+      {
+        "id": "holiday-combo5-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about the most recent holiday you celebrated. Why was that holiday memorable? Was there anything special about that day? Talk about why that holiday was particularly unforgettable.",
+        "ko": "가장 최근에 기념한 공휴일과 그날이 특별하고 잊을 수 있었던 이유를 말해 주세요."
+      },
+      {
+        "id": "holiday-combo6-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about some of the gatherings or celebrations that happen at where you live.",
+        "ko": "사는 곳에서 열리는 모임이나 축하 행사들을 말해 주세요."
+      },
+      {
+        "id": "holiday-combo6-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a gathering or a celebration that was held in which you live. Describe where the gathering was held, who was there, what the purpose of the gathering was, and what happened from beginning to end.",
+        "ko": "사는 곳에서 열린 모임이나 축하 행사의 장소, 참석자, 목적과 전 과정을 설명해 주세요."
+      },
+      {
+        "id": "holiday-combo6-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Sometimes when people get together for celebrations or gatherings, unexpected things can happen. Tell me all about something unexpected that happened at a celebration or a gathering in the area where you live. Tell me what happened from beginning to end.",
+        "ko": "사는 지역의 축하 행사나 모임에서 일어난 예상 밖의 일을 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "holiday-combo7-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Where do people usually have celebrations or parties in your area? Is it at someone's home, a park, or some place else? Tell me everything about that place in as much detail as you can.",
+        "ko": "당신의 지역에서 사람들이 축하 행사나 파티를 여는 장소를 최대한 자세히 설명해 주세요."
+      },
+      {
+        "id": "holiday-combo7-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the last party, gathering or celebration that you attended. What happened and who was there with you? Tell me about what you did from beginning to end.",
+        "ko": "최근 참석한 파티, 모임 또는 축하 행사에서 누구와 무엇을 했는지 처음부터 끝까지 말해 주세요."
+      },
+      {
+        "id": "holiday-combo7-q10",
+        "number": "10",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a time when you helped prepare a party or celebration. Perhaps, you helped invite people, or you helped decorate, or get the food or drinks. Tell me about this experience from the beginning to the end in detail.",
+        "ko": "파티나 축하 행사를 준비하도록 도왔던 경험을 처음부터 끝까지 자세히 말해 주세요."
+      },
+      {
+        "id": "holiday-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You have been invited to a holiday party. Call your friend and ask when the party starts and what you should bring there. Ask two or three more questions about the party.",
+        "ko": "공휴일 파티에 초대되었습니다. 친구에게 전화해 시작 시간, 가져갈 것과 그 밖의 질문 두세 가지를 하세요."
+      },
+      {
+        "id": "holiday-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. You just had a car accident, and you are going to be late for the holiday party. Call your friend, explain the situation, and give two to three alternatives regarding the situation.",
+        "ko": "교통사고로 공휴일 파티에 늦게 되었습니다. 친구에게 전화해 상황을 설명하고 두세 가지 대안을 제시하세요."
+      },
+      {
+        "id": "holiday-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever made plans for a trip or a party, but had to cancel at the last minute because of something that happened unexpectedly? Tell me everything about what prevented you from going.",
+        "ko": "여행이나 파티 계획을 세웠지만 예상치 못한 일로 막판에 취소한 경험과 가지 못한 이유를 모두 말해 주세요."
+      },
+      {
+        "id": "holiday-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. Your friend is thinking about having a holiday party and has asked for your help to plan the event. Call your friend and ask three or four questions to find out more about the party.",
+        "ko": "친구가 공휴일 파티를 계획하며 도움을 요청했습니다. 파티에 대해 알아보기 위한 질문 서너 가지를 하세요."
+      },
+      {
+        "id": "holiday-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. After you agreed to help plan the party with your friend, you realize that you will be very busy the week before the party. Since you have less time to help your friend, call him, explain the situation. Offer two or three suggestions as to how to plan the party in less time.",
+        "ko": "파티 전 주에 매우 바빠져 도울 시간이 부족합니다. 친구에게 상황을 설명하고 짧은 시간에 준비할 방법을 두세 가지 제안하세요."
+      },
+      {
+        "id": "holiday-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Tell me about a time when you really wanted to go to a party or a celebration, but for some reason you could not go. What happened? Tell me the whole story from beginning to end.",
+        "ko": "정말 가고 싶었던 파티나 축하 행사에 가지 못했던 때를 처음부터 끝까지 이야기해 주세요."
+      },
+      {
+        "id": "holiday-roleplay3-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. Your friend has invited you to a holiday meal. Call your friend and ask three or four questions about the meal.",
+        "ko": "친구가 공휴일 식사에 초대했습니다. 친구에게 전화해 식사에 관해 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "holiday-roleplay3-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. Your car broke down on your way to your friend's house. You think you will be very late to the meal. Call your friend, explain the situation. And then, talk about when and how you plan to get there, even though you will be late.",
+        "ko": "친구 집으로 가는 중 차가 고장 나 식사에 늦게 되었습니다. 친구에게 상황과 도착 시간 및 방법을 설명하세요."
+      },
+      {
+        "id": "holiday-roleplay3-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever had problems with plans you had on a holiday? Perhaps, something unexpected did not enable you to do what you had planned to do. It could have been the weather or the traffic situation. Tell me everything about that experience and how you dealt with it.",
+        "ko": "공휴일 계획에 문제가 생긴 경험과 그 문제에 어떻게 대처했는지 모두 말해 주세요."
+      },
+      {
+        "id": "holiday-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Gatherings or celebrations in small towns are often different from those in big cities. Tell me about some of the similarities and differences between the celebrations people have in small towns and in big cities in your country.",
+        "ko": "당신의 나라에서 작은 마을과 대도시의 모임이나 축하 행사가 어떻게 비슷하고 다른지 말해 주세요."
+      },
+      {
+        "id": "holiday-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "What kinds of concerns do you hear people express regarding gatherings or celebrations in your area? Do people complain about traffic, parking, noise, garbage or other problems?",
+        "ko": "지역의 모임이나 축하 행사와 관련해 교통, 주차, 소음, 쓰레기 등 사람들이 제기하는 우려를 말해 주세요."
+      },
+      {
+        "id": "holiday-advanced2-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "How have celebrations and gatherings in your country changed since you were a child? Are there more of these events now than before? What sorts of events are more popular today than in the past?",
+        "ko": "어린 시절 이후 당신의 나라의 축하 행사와 모임이 어떻게 변했고 어떤 행사가 더 인기 있는지 말해 주세요."
+      },
+      {
+        "id": "holiday-advanced2-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Celebrations and gatherings are important to people living in a city or town. However, a lot of work, organization and money go into putting one of these events together. Was there a discussion among people related to organizing an event recently? What was the issue or different people were discussing?",
+        "ko": "최근 행사 조직과 관련해 사람들이 논의한 내용과 쟁점이 무엇이었는지 말해 주세요."
+      }
+    ]
+  },
+  {
+    "id": "community-event",
+    "category": "surprise",
+    "ko": "지역 행사",
+    "en": "Community Event",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["community-event"],
+    "questions": [
+      {
+        "id": "community-event-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know about a community event that takes place in your neighborhood. Do you ever attend a festival, concert, or celebration? Describe the event in detail.",
+        "ko": "동네에서 열리는 지역 행사 하나를 최대한 자세히 설명해 주세요."
+      },
+      {
+        "id": "community-event-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "What kind of community events do people in your area usually participate in? What types of activities take place at these events? Describe it in as much detail as you can.",
+        "ko": "지역 사람들이 참여하는 행사와 그곳에서 이루어지는 활동을 자세히 설명해 주세요."
+      },
+      {
+        "id": "community-event-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about your personal experience of participating in community event. What did you do and how did you feel? Tell me all about your experience in detail.",
+        "ko": "지역 행사에 참여한 개인적인 경험과 했던 일, 느낀 점을 자세히 말해 주세요."
+      },
+      {
+        "id": "community-event-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know about a community event that takes place in your neighborhood. Do you ever attend a festival, concert, or celebration? Describe the event in detail.",
+        "ko": "동네에서 열리는 지역 행사 하나를 최대한 자세히 설명해 주세요."
+      },
+      {
+        "id": "community-event-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about your personal experience of participating in community event. What did you do and how did you feel? Tell me all about your experience in detail.",
+        "ko": "지역 행사에 참여한 개인적인 경험과 했던 일, 느낀 점을 자세히 말해 주세요."
+      },
+      {
+        "id": "community-event-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the most memorable community event you have ever attended. What made it so special, and what was your experience like?",
+        "ko": "참석했던 가장 기억에 남는 지역 행사와 특별했던 이유 및 경험을 말해 주세요."
+      },
+      {
+        "id": "community-event-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know about a community event that takes place in your neighborhood. Do you ever attend a festival, concert, or celebration? Describe the event in detail.",
+        "ko": "동네에서 열리는 지역 행사 하나를 최대한 자세히 설명해 주세요."
+      },
+      {
+        "id": "community-event-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about your personal experience of participating in community event. What did you do and how did you feel? Tell me all about your experience in detail.",
+        "ko": "지역 행사에 참여한 개인적인 경험과 했던 일, 느낀 점을 자세히 말해 주세요."
+      },
+      {
+        "id": "community-event-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the most memorable community event you have ever attended. What made it so special, and what was your experience like?",
+        "ko": "참석했던 가장 기억에 남는 지역 행사와 특별했던 이유 및 경험을 말해 주세요."
+      },
+      {
+        "id": "community-event-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "What are some differences between the community events that are often held in your area now and those in the past? What were the main characteristics of past community events, and how are they different from today's events? I'd like to know how community events in your area have changed over time.",
+        "ko": "현재와 과거에 열린 지역 행사의 특징과 차이 및 시간에 따른 변화를 말해 주세요."
+      },
+      {
+        "id": "community-event-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "These days many community events are promoted and shared through social media. Please explain how people can find out about community events through different types of social media. Also, what kind of impact does social media have on community events? Please explain in detail.",
+        "ko": "여러 소셜 미디어를 통해 지역 행사를 찾는 방법과 소셜 미디어가 행사에 미치는 영향을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 
