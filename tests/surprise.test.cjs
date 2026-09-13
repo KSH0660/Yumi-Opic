@@ -104,7 +104,7 @@ test('repeated display numbers survive history roundtrip separately and repeat t
 
 test('single-question practice can reach every standalone surprise question, never an orphaned follow-up', () => {
   const eligible = bank.allTopics.flatMap(topic => topic.questions.filter(q =>
-    (q.source === 'verified' || q.source === 'provided') && !q.dependsOn?.length));
+    !q.dependsOn?.length));
   const seen = new Set();
   for (let i = 0; i < eligible.length; i++) {
     const exam = engine.buildSingleQuestion(undefined, () => (i + 0.5) / eligible.length);
