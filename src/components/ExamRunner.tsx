@@ -31,7 +31,7 @@ import { examExitLink, randomPracticeLink } from "@/lib/nav";
 import { joinTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
-import ExamResult, { type AnswerRecording } from "./ExamResult";
+import ExamResult, { type AnswerRecording, type VoiceAnalysis } from "./ExamResult";
 import { SavedExpressionsPanel } from "./SavedExpressions";
 import { SourceBadge } from "./ui";
 import FixedPracticeNavigation from "./FixedPracticeNavigation";
@@ -60,18 +60,6 @@ interface AudioSession {
   saveOnStop: boolean;
 }
 
-interface VoiceAnalysis {
-  speakingTimeSec: number;
-  wordsPerMinute: number;
-  pace: string;
-  longPauseCount: number;
-  chunking: string;
-  stressDelivery: string;
-  energy: string;
-  fillers: string;
-  spontaneity: string;
-}
-
 interface VoiceAnalysisSession {
   slot: number;
   startedAt: number;
@@ -83,6 +71,8 @@ interface VoiceAnalysisSession {
   cadenceSamples: number[];
   energySamples: number[];
   lastEnergySampleAt: number;
+  completion: Promise<void>;
+  resolveCompletion: () => void;
 }
 
 const LONG_PAUSE_MS = 5_000;
@@ -205,6 +195,7 @@ export default function ExamRunner({
   const [hintUse, setHintUse] = useState<Record<number, number>>({});
   const [recordings, setRecordings] = useState<Record<number, AnswerRecording>>({});
   const [voiceAnalyses, setVoiceAnalyses] = useState<Record<number, VoiceAnalysis>>({});
+  const [analyzingSlot, setAnalyzingSlot] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("ready");
@@ -300,8 +291,12 @@ export default function ExamRunner({
     const session = voiceAnalysisSessionRef.current;
     if (!session || session.slot !== targetSlot) return;
     voiceAnalysisSessionRef.current = null;
+    setAnalyzingSlot((current) => current === targetSlot ? null : current);
     const transcript = session.transcript.trim();
-    if (!transcript) return;
+    if (!transcript) {
+      session.resolveCompletion();
+      return;
+    }
     const speakingTimeSec = Math.max(1, Math.round((Date.now() - session.startedAt) / 1000));
     const totalWords = countEnglishWords(transcript);
     const wordsPerMinute = Math.round((totalWords * 60) / speakingTimeSec);
@@ -368,6 +363,7 @@ export default function ExamRunner({
         spontaneity,
       },
     }));
+    session.resolveCompletion();
   }, []);
 
   const stopAudioCapture = useCallback((save: boolean) => {
@@ -393,7 +389,9 @@ export default function ExamRunner({
     if (!handle) return;
     if (mode === "discard") {
       dictationSessionRef.current += 1;
+      voiceAnalysisSessionRef.current?.resolveCompletion();
       voiceAnalysisSessionRef.current = null;
+      setAnalyzingSlot(null);
       handle.abort();
       return;
     }
@@ -415,6 +413,8 @@ export default function ExamRunner({
     baseRef.current = answersRef.current[targetSlot] ?? "";
     setInterim("");
     if (isPractice && voiceAnalysisSessionRef.current?.slot !== targetSlot) {
+      let resolveCompletion: () => void = () => undefined;
+      const completion = new Promise<void>((resolve) => { resolveCompletion = resolve; });
       voiceAnalysisSessionRef.current = {
         slot: targetSlot,
         startedAt: Date.now(),
@@ -426,7 +426,10 @@ export default function ExamRunner({
         cadenceSamples: [],
         energySamples: [],
         lastEnergySampleAt: 0,
+        completion,
+        resolveCompletion,
       };
+      setAnalyzingSlot(targetSlot);
     }
 
     const handle = startDictation({
@@ -475,7 +478,11 @@ export default function ExamRunner({
 
     if (!handle) {
       // 인식기는 있는데 시작이 막혔다. 버튼을 누른 직후에만 켤 수 있는 브라우저다.
-      if (voiceAnalysisSessionRef.current?.slot === targetSlot) voiceAnalysisSessionRef.current = null;
+      if (voiceAnalysisSessionRef.current?.slot === targetSlot) {
+        voiceAnalysisSessionRef.current.resolveCompletion();
+        voiceAnalysisSessionRef.current = null;
+        setAnalyzingSlot(null);
+      }
       setMicError(micMessage("start-blocked"));
       return false;
     }
@@ -595,10 +602,30 @@ export default function ExamRunner({
     }
   }, [disposeAudioSession, handleMicConflict, recordingAvailable, stopAudioCapture]);
 
-  const stopAnswerCapture = useCallback((mode: "save" | "discard") => {
+  const stopAnswerCapture = useCallback((mode: "save" | "discard"): Promise<void> => {
+    const analysisSession = voiceAnalysisSessionRef.current;
     stopDictation(mode === "save" ? "flush" : "discard");
     stopAudioCapture(mode === "save");
-  }, [stopAudioCapture, stopDictation]);
+    if (!analysisSession) return Promise.resolve();
+    if (mode === "discard") {
+      if (voiceAnalysisSessionRef.current === analysisSession) {
+        analysisSession.resolveCompletion();
+        voiceAnalysisSessionRef.current = null;
+        setAnalyzingSlot(null);
+      }
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      const fallback = window.setTimeout(() => {
+        if (voiceAnalysisSessionRef.current === analysisSession) finishVoiceAnalysis(analysisSession.slot);
+        resolve();
+      }, 1_500);
+      void analysisSession.completion.then(() => {
+        window.clearTimeout(fallback);
+        resolve();
+      });
+    });
+  }, [finishVoiceAnalysis, stopAudioCapture, stopDictation]);
 
   const editAnswer = useCallback((targetSlot: number, text: string) => {
     dictationSessionRef.current += 1;
@@ -714,9 +741,9 @@ export default function ExamRunner({
     if (listening && !typing) beginAnswerCapture(slot);
   }
 
-  function goToQuestion(targetIndex: number) {
+  async function goToQuestion(targetIndex: number) {
     if (targetIndex < 0 || targetIndex >= exam.items.length || targetIndex === index) return;
-    stopAnswerCapture("save");
+    await stopAnswerCapture("save");
     stopSpeaking();
     setIndex(targetIndex);
   }
@@ -725,8 +752,8 @@ export default function ExamRunner({
     goToQuestion(index + 1);
   }
 
-  function submit() {
-    stopAnswerCapture("save");
+  async function submit() {
+    await stopAnswerCapture("save");
     stopSpeaking();
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -739,6 +766,7 @@ export default function ExamRunner({
     Object.values(recordingsRef.current).forEach((recording) => URL.revokeObjectURL(recording.url));
     setRecordings({});
     setVoiceAnalyses({});
+    setAnalyzingSlot(null);
     setAnswers({});
     setTimes({});
     setReplays({});
@@ -768,6 +796,7 @@ export default function ExamRunner({
         hintUse={hintUse}
         replays={replays}
         recordings={recordings}
+        voiceAnalyses={voiceAnalyses}
         onRetry={resetAttempt}
         onRegenerate={onRegenerate}
       />
@@ -1003,19 +1032,27 @@ export default function ExamRunner({
             </div>
           )}
 
-          {isPractice && voiceAnalysis && (
+          {isPractice && (
             <section className="mt-6 border border-exam-line bg-exam-frame-2 px-4 py-4" aria-label="VOICE ANALYSIS">
               <h2 className="text-xs font-bold tracking-wide text-exam-ink">VOICE ANALYSIS</h2>
-              <p className="mt-1 text-[11px] text-exam-ink-muted">Speaking time {formatTime(voiceAnalysis.speakingTimeSec)}</p>
-              <dl className="mt-3 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">Pace</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.pace}</dd></div>
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">5+ sec Pauses</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.longPauseCount} · Natural thinking pauses under 5 seconds are not counted.</dd></div>
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">Chunking</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.chunking}</dd></div>
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">Stress &amp; Delivery</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.stressDelivery}</dd></div>
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">Energy / Monotone</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.energy}</dd></div>
-                <div><dt className="text-xs font-semibold text-exam-ink-muted">Fillers</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.fillers}</dd></div>
-                <div className="sm:col-span-2"><dt className="text-xs font-semibold text-exam-ink-muted">Spontaneity</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.spontaneity}</dd></div>
-              </dl>
+              {analyzingSlot === slot ? (
+                <p className="mt-2 text-sm text-exam-ink-muted">답변을 분석하고 있습니다.</p>
+              ) : voiceAnalysis ? (
+                <>
+                  <p className="mt-1 text-[11px] text-exam-ink-muted">Speaking time {formatTime(voiceAnalysis.speakingTimeSec)}</p>
+                  <dl className="mt-3 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">Pace</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.pace}</dd></div>
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">5+ sec Pauses</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.longPauseCount} · Natural thinking pauses under 5 seconds are not counted.</dd></div>
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">Chunking</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.chunking}</dd></div>
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">Stress &amp; Delivery</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.stressDelivery}</dd></div>
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">Energy / Monotone</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.energy}</dd></div>
+                    <div><dt className="text-xs font-semibold text-exam-ink-muted">Fillers</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.fillers}</dd></div>
+                    <div className="sm:col-span-2"><dt className="text-xs font-semibold text-exam-ink-muted">Spontaneity</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.spontaneity}</dd></div>
+                  </dl>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-exam-ink-muted">녹음을 마치면 음성 분석이 표시됩니다.</p>
+              )}
             </section>
           )}
 

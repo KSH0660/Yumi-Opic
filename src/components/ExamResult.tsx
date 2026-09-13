@@ -46,6 +46,18 @@ export interface AnswerRecording {
   mimeType: string;
 }
 
+export interface VoiceAnalysis {
+  speakingTimeSec: number;
+  wordsPerMinute: number;
+  pace: string;
+  longPauseCount: number;
+  chunking: string;
+  stressDelivery: string;
+  energy: string;
+  fillers: string;
+  spontaneity: string;
+}
+
 const FEEDBACK_ERROR = "AI 피드백을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
 
 /**
@@ -140,6 +152,7 @@ export default function ExamResult({
   hintUse = {},
   replays = {},
   recordings = {},
+  voiceAnalyses = {},
   historyEntry,
   onRetry,
   onRegenerate,
@@ -154,6 +167,8 @@ export default function ExamResult({
   replays?: Record<number, number>;
   /** 브라우저에서 녹음한 문항별 답변. URL은 현재 페이지 세션 동안만 유지된다. */
   recordings?: Record<number, AnswerRecording>;
+  /** 연습 화면에서 이미 계산한 문항별 브라우저 음성 분석. */
+  voiceAnalyses?: Record<number, VoiceAnalysis>;
   historyEntry?: HistoryEntry;
   onRetry?: () => void;
   onRegenerate?: () => void;
@@ -464,6 +479,7 @@ export default function ExamResult({
             hints={hintUse[item.slot] ?? 0}
             replays={replays[item.slot] ?? 0}
             recording={recordings[item.slot]}
+            voiceAnalysis={voiceAnalyses[item.slot]}
             feedback={feedbackBySlot[item.slot]}
             feedbackLoading={pendingSlots.has(item.slot)}
             feedbackError={feedbackErrors[item.slot] ?? null}
@@ -641,6 +657,7 @@ function ItemResult({
   hints,
   replays,
   recording,
+  voiceAnalysis,
   feedback,
   feedbackLoading,
   feedbackError,
@@ -663,6 +680,7 @@ function ItemResult({
   hints: number;
   replays: number;
   recording?: AnswerRecording;
+  voiceAnalysis?: VoiceAnalysis;
   feedback?: OpicFeedback;
   /** 이 문항을 지금 분석 중인지. 개별 버튼과 한 번에 받기 어느 쪽에서 보냈든 같다. */
   feedbackLoading: boolean;
@@ -716,6 +734,22 @@ function ItemResult({
           <p className="mt-2 text-xs leading-relaxed text-fg-subtle">{item.question.ko}</p>
 
           {recording && <RecordingPlayer recording={recording} slot={item.slot} />}
+
+          {voiceAnalysis && (
+            <section className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-4" aria-label="VOICE ANALYSIS">
+              <h3 className="text-xs font-bold tracking-wide text-fg">VOICE ANALYSIS</h3>
+              <p className="mt-1 text-[11px] text-fg-subtle">Speaking time {formatTime(voiceAnalysis.speakingTimeSec)}</p>
+              <dl className="mt-3 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-xs font-semibold text-fg-subtle">Pace</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.pace}</dd></div>
+                <div><dt className="text-xs font-semibold text-fg-subtle">5+ sec Pauses</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.longPauseCount} · Natural thinking pauses under 5 seconds are not counted.</dd></div>
+                <div><dt className="text-xs font-semibold text-fg-subtle">Chunking</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.chunking}</dd></div>
+                <div><dt className="text-xs font-semibold text-fg-subtle">Stress &amp; Delivery</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.stressDelivery}</dd></div>
+                <div><dt className="text-xs font-semibold text-fg-subtle">Energy / Monotone</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.energy}</dd></div>
+                <div><dt className="text-xs font-semibold text-fg-subtle">Fillers</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.fillers}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-xs font-semibold text-fg-subtle">Spontaneity</dt><dd className="mt-1 leading-relaxed text-fg-muted">{voiceAnalysis.spontaneity}</dd></div>
+              </dl>
+            </section>
+          )}
 
           {/*
             녹음본이 없다는 말은 "재생만 안 된다"가 아니다. 답변 텍스트를 바로잡을
