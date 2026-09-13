@@ -923,4 +923,36 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 12, displayNumber: "13", questionId: "furniture-roleplay1-q13" },
     ] },
   ],
+  "hotel": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "hotel-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "hotel-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "hotel-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "hotel-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "hotel-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "hotel-combo2-q7" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 7, displayNumber: "11", questionId: "hotel-roleplay1-q11" },
+      { slot: 8, displayNumber: "12", questionId: "hotel-roleplay1-q12" },
+      { slot: 9, displayNumber: "13", questionId: "hotel-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 10, displayNumber: "11", questionId: "hotel-roleplay2-q11" },
+      { slot: 11, displayNumber: "12", questionId: "hotel-roleplay2-q12" },
+      { slot: 12, displayNumber: "13", questionId: "hotel-roleplay2-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 3", items: [
+      { slot: 13, displayNumber: "11", questionId: "hotel-roleplay3-q11" },
+      { slot: 14, displayNumber: "12", questionId: "hotel-roleplay3-q12" },
+      { slot: 15, displayNumber: "13", questionId: "hotel-roleplay3-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 4", items: [
+      { slot: 16, displayNumber: "11", questionId: "hotel-roleplay4-q11" },
+      { slot: 17, displayNumber: "12", questionId: "hotel-roleplay4-q12" },
+      { slot: 18, displayNumber: "13", questionId: "hotel-roleplay4-q13" },
+    ] },
+  ],
 };

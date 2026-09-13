@@ -3002,6 +3002,160 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
       }
     ]
+  },
+  {
+    "id": "hotel",
+    "category": "surprise",
+    "ko": "호텔",
+    "en": "Hotel",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.hotel,
+    "questions": [
+      {
+        "id": "hotel-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about hotels in your country. What do they look like? Where are they located?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me what you typically do when you go to a hotel. What do you do first, second, et cetera? When do you usually stay at hotels?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "People often have memories of especially beautiful and hotels. Tell me about a hotel that you remember for some reason. Where was it? What did it look like? Describe it for me in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about hotels in your country. What do they look like? Where are they located?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "People often have memories of especially beautiful and hotels. Tell me about a hotel that you remember for some reason. Where was it? What did it look like? Describe it for me in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When was the last time you stayed in a hotel? Tell me the whole story of where you were, why you were there and what you did there. Take me through the whole hotel stay from start to finish.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You have arrived in a new city, and you try to find a hotel for the night. Go to the reception desk of the hotel, describe the room you want and ask three or four questions to get information about what is available.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. You've learned that there are no rooms available at this hotel. Call your travel companions, let them know about the situation. Leave a message to describe the situation and propose some alternatives to the problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Think about a time when your travel plans did not work out as expected. What happened? Tell me all about the circumstances what you and the others did and how the situation was finally resolved.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are visiting a new city and need a hotel room for the night. Call a hotel and ask three or four questions to find out about its rooms and services.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. When you get to your hotel room, it is very small and not clean at all Call the front desk and describe what you have found in detail. Then, make some suggestions as to how you can resolve the situation.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Sometimes, surprising or unexpected things can happen when you stay at a hotel. Tell me about a memorable experience you had while staying at a hotel. Maybe there was a problem with your room. Maybe you met some other guests. Tell me the whole story of an interesting hotel visit.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay3-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "You are going on a trip on business to another country. Call a hotel that you want to stay at and ask three or four questions about the hotel.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay3-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "You were supposed to go on a business trip to another country with your boss. However, something came up suddenly and you can't go. Call your boss and explain the situation. And then, make two to three suggestions that will help you continue your business with the company overseas.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay3-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "Have you ever had a problem during a trip you took on business or for leisure? What was the nature of the problem and how did you deal with the situation? Describe in detail about what happened.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay4-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are staying at a hotel and have a free day to explore the city. Go to the front desk and ask three or four questions about what to do.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay4-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. You left your bag in the taxi that brought you back to the hotel. Call the taxi company and explain what happened. Ask them how you can get it back.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "hotel-roleplay4-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Has anything like that ever happened to you? Have you ever lost something somewhere or could not find something important? Tell me about when you lost or forgot something important.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      }
+    ]
   }
 ];
 
