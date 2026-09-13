@@ -176,18 +176,21 @@ export function completeQuestionSets(topic: Topic, types?: readonly QuestionType
       return !types || fixedSetMatches(group, questions, types) ? [questions] : [];
     });
     enforced = undefined;
-  } else if (topic.category === "surprise" && types?.length && types.every(type => ADVANCED_TYPES.includes(type))) {
-    // 비교·이슈 구간만 유형 순서를 지킨다. 두 유형을 모두 가진 돌발 주제만 여기에 들어간다.
+  } else if (topic.category === "surprise" && types?.length
+      && types.every(type => ADVANCED_TYPES.includes(type) || ROLEPLAY_TYPES.includes(type))) {
+    /*
+     * 비교·이슈와 롤플레이 구간만 유형 순서를 지킨다. 두 구간은 자료 순서 세트로 대신할 수
+     * 없으므로, 해당 유형을 모두 가진 돌발 주제만 들어간다. 유형이 없으면 세트가 비어
+     * 자연히 후보에서 빠진다.
+     */
     sets = types.reduce<Question[][]>((built, type) => built.flatMap(set =>
       topic.questions.filter(q => q.type === type && !set.some(earlier => earlier.id === q.id)).map(q => [...set, q])), [[]]);
   } else if (topic.category === "surprise") {
     /*
      * 돌발은 주제마다 가진 유형이 제각각이라 번호별 유형을 강요하지 않는다. 자료의 첫
      * 문항으로 시작하고 나머지 둘은 자료 순서를 지켜 무작위로 고른다. 1·2·3 뿐 아니라
-     * 1·3·4, 1·3·5도 나온다. 비교·이슈는 어드밴스 구간 몫이라 여기서 뺀다.
+     * 1·3·4, 1·3·5도 나온다. 비교·이슈와 롤플레이는 각 구간 몫이라 위에서 처리한다.
      */
-    // 롤플레이 구간은 자료 순서 세트로 대신할 수 없다. 실제 롤플레이 문항을 선언한 주제만 채운다.
-    if (types?.length && types.every(type => ROLEPLAY_TYPES.includes(type))) return [];
     const [first, ...rest] = topic.questions.filter(q => !ADVANCED_TYPES.includes(q.type));
     sets = first ? rest.flatMap((second, i) => rest.slice(i + 1).map(third => [first, second, third])) : [];
     // 자료 순서 세트는 번호별 유형과 무관하므로 요청 유형으로 거르지 않는다.
