@@ -60,6 +60,30 @@ interface AudioSession {
   saveOnStop: boolean;
 }
 
+interface VoiceAnalysis {
+  transcript: string;
+  speakingTimeSec: number;
+  totalWords: number;
+  wordsPerMinute: number;
+  fillerCount: number;
+  longPauseCount: number;
+}
+
+interface VoiceAnalysisSession {
+  slot: number;
+  startedAt: number;
+  lastSpeechAt: number;
+  transcript: string;
+  longPauseCount: number;
+}
+
+const LONG_PAUSE_MS = 2_000;
+
+function countFillers(transcript: string): number {
+  return [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
+    .reduce((total, pattern) => total + (transcript.match(pattern)?.length ?? 0), 0);
+}
+
 function formatTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 }
@@ -139,6 +163,7 @@ export default function ExamRunner({
   const [replays, setReplays] = useState<Record<number, number>>({});
   const [hintUse, setHintUse] = useState<Record<number, number>>({});
   const [recordings, setRecordings] = useState<Record<number, AnswerRecording>>({});
+  const [voiceAnalyses, setVoiceAnalyses] = useState<Record<number, VoiceAnalysis>>({});
   const [submitted, setSubmitted] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("ready");
@@ -162,6 +187,7 @@ export default function ExamRunner({
 
   const dictationRef = useRef<DictationHandle | null>(null);
   const dictationSessionRef = useRef(0);
+  const voiceAnalysisSessionRef = useRef<VoiceAnalysisSession | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const baseRef = useRef("");
   const answersRef = useRef<Record<number, string>>({});
@@ -181,6 +207,7 @@ export default function ExamRunner({
   /** 질문이 나오는 동안에는 답변 시간을 세지 않는다. 음성이 끝나면 0:00 부터 다시 센다. */
   const elapsed = phase === "playing" ? 0 : times[slot] ?? 0;
   const words = countEnglishWords(answer);
+  const voiceAnalysis = voiceAnalyses[slot];
   const replaysLeft = MAX_REPLAYS - (replays[slot] ?? 0);
   const canReplay = phase === "answering" && replayLeftSec > 0 && replaysLeft > 0;
 
@@ -228,6 +255,27 @@ export default function ExamRunner({
     setMicLevel(0);
   }, []);
 
+  const finishVoiceAnalysis = useCallback((targetSlot: number) => {
+    const session = voiceAnalysisSessionRef.current;
+    if (!session || session.slot !== targetSlot) return;
+    voiceAnalysisSessionRef.current = null;
+    const transcript = session.transcript.trim();
+    if (!transcript) return;
+    const speakingTimeSec = Math.max(1, Math.round((Date.now() - session.startedAt) / 1000));
+    const totalWords = countEnglishWords(transcript);
+    setVoiceAnalyses((current) => ({
+      ...current,
+      [targetSlot]: {
+        transcript,
+        speakingTimeSec,
+        totalWords,
+        wordsPerMinute: Math.round((totalWords * 60) / speakingTimeSec),
+        fillerCount: countFillers(transcript),
+        longPauseCount: session.longPauseCount,
+      },
+    }));
+  }, []);
+
   const stopAudioCapture = useCallback((save: boolean) => {
     audioTokenRef.current += 1;
     probeRef.current = null;
@@ -251,6 +299,7 @@ export default function ExamRunner({
     if (!handle) return;
     if (mode === "discard") {
       dictationSessionRef.current += 1;
+      voiceAnalysisSessionRef.current = null;
       handle.abort();
       return;
     }
@@ -271,6 +320,15 @@ export default function ExamRunner({
 
     baseRef.current = answersRef.current[targetSlot] ?? "";
     setInterim("");
+    if (isPractice && voiceAnalysisSessionRef.current?.slot !== targetSlot) {
+      voiceAnalysisSessionRef.current = {
+        slot: targetSlot,
+        startedAt: Date.now(),
+        lastSpeechAt: 0,
+        transcript: baseRef.current,
+        longPauseCount: 0,
+      };
+    }
 
     const handle = startDictation({
       onUpdate: ({ committed, interim: pending }) => {
@@ -278,6 +336,16 @@ export default function ExamRunner({
         // 한 글자라도 왔으면 이 기기는 받아쓰기와 녹음을 함께 쓸 수 있다.
         if (probeRef.current && (committed || pending)) {
           probeRef.current = observeMicResult(probeRef.current);
+        }
+        const transcript = joinTranscript(baseRef.current, joinTranscript(committed, pending));
+        const analysisSession = voiceAnalysisSessionRef.current;
+        if (analysisSession?.slot === targetSlot && transcript !== analysisSession.transcript) {
+          const now = Date.now();
+          if (analysisSession.lastSpeechAt > 0 && now - analysisSession.lastSpeechAt >= LONG_PAUSE_MS) {
+            analysisSession.longPauseCount += 1;
+          }
+          analysisSession.lastSpeechAt = now;
+          analysisSession.transcript = transcript;
         }
         setAnswers((prev) => ({
           ...prev,
@@ -290,18 +358,20 @@ export default function ExamRunner({
         if (dictationSessionRef.current !== session) return;
         setListening(false);
         setInterim("");
+        finishVoiceAnalysis(targetSlot);
       },
     });
 
     if (!handle) {
       // 인식기는 있는데 시작이 막혔다. 버튼을 누른 직후에만 켤 수 있는 브라우저다.
+      if (voiceAnalysisSessionRef.current?.slot === targetSlot) voiceAnalysisSessionRef.current = null;
       setMicError(micMessage("start-blocked"));
       return false;
     }
     dictationRef.current = handle;
     setListening(true);
     return true;
-  }, []);
+  }, [finishVoiceAnalysis, isPractice]);
 
   /**
    * 녹음이 마이크를 쥐는 바람에 받아쓰기가 한 글자도 못 받고 있다. 녹음을 놓아
@@ -552,6 +622,7 @@ export default function ExamRunner({
     stopAnswerCapture("discard");
     Object.values(recordingsRef.current).forEach((recording) => URL.revokeObjectURL(recording.url));
     setRecordings({});
+    setVoiceAnalyses({});
     setAnswers({});
     setTimes({});
     setReplays({});
@@ -769,7 +840,15 @@ export default function ExamRunner({
                     {typing ? "마이크로 돌아가기" : "직접 입력·고쳐 쓰기"}
                   </button>
                   {answer.length > 0 && (
-                    <button type="button" onClick={() => { stopAnswerCapture("discard"); editAnswer(slot, ""); }} className="ml-auto rounded border border-exam-line px-2.5 py-1 text-xs text-exam-ink-muted transition hover:text-exam-ink">지우기</button>
+                    <button type="button" onClick={() => {
+                      stopAnswerCapture("discard");
+                      editAnswer(slot, "");
+                      setVoiceAnalyses((current) => {
+                        const next = { ...current };
+                        delete next[slot];
+                        return next;
+                      });
+                    }} className="ml-auto rounded border border-exam-line px-2.5 py-1 text-xs text-exam-ink-muted transition hover:text-exam-ink">지우기</button>
                   )}
                 </div>
               </div>
@@ -806,6 +885,23 @@ export default function ExamRunner({
               {/* 결과 화면에서 별표로 저장해 둔 조언. 힌트와 달리 사용 횟수를 세지 않는다. */}
               <SavedExpressionsPanel questionId={item.question.id} topicId={item.topicId} topicKo={item.topicKo} />
             </div>
+          )}
+
+          {isPractice && voiceAnalysis && (
+            <section className="mt-6 border border-exam-line bg-exam-frame-2 px-4 py-4" aria-label="VOICE ANALYSIS">
+              <h2 className="text-xs font-bold tracking-wide text-exam-ink">VOICE ANALYSIS</h2>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                <div className="sm:col-span-2 lg:col-span-5">
+                  <dt className="text-xs text-exam-ink-muted">Transcript</dt>
+                  <dd className="mt-1 whitespace-pre-wrap leading-relaxed">{voiceAnalysis.transcript}</dd>
+                </div>
+                <div><dt className="text-xs text-exam-ink-muted">Speaking time</dt><dd className="mt-1 font-semibold tabular-nums">{formatTime(voiceAnalysis.speakingTimeSec)}</dd></div>
+                <div><dt className="text-xs text-exam-ink-muted">Total words</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.totalWords}</dd></div>
+                <div><dt className="text-xs text-exam-ink-muted">Words per minute</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.wordsPerMinute}</dd></div>
+                <div><dt className="text-xs text-exam-ink-muted">Filler count</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.fillerCount}</dd></div>
+                <div><dt className="text-xs text-exam-ink-muted">Long pause count</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.longPauseCount}</dd></div>
+              </dl>
+            </section>
           )}
 
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-exam-line pt-4">
