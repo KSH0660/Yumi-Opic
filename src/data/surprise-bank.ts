@@ -2896,6 +2896,112 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "furniture",
+    "category": "surprise",
+    "ko": "가구",
+    "en": "Furniture",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.furniture,
+    "questions": [
+      {
+        "id": "furniture-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the furniture you have in your home. Is there a piece of furniture that is your favorite?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about how you use your furniture on a typical day. What kinds of things do you do with your furniture?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the furniture you had at home when you were a child. Was there anything different from the furniture that you use today?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the furniture you have in your home. Is there a piece of furniture that is your favorite?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the furniture you had at home when you were a child. Was there anything different from the furniture that you use today?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about a time when you had problems with your furniture. Perhaps it could have gotten damaged or broken for some reasons. Tell me what exactly happened and how you solved the problem.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the furniture you have in your home. Is there a piece of furniture that is your favorite?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the furniture you had at home when you were a child. Was there anything different from the furniture that you use today?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about a time when you had problems with your furniture. Perhaps it could have gotten damaged or broken for some reasons. Tell me what exactly happened and how you solved the problem.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "furniture-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You want to buy a new piece of furniture for your home At the store, you see a piece that you like, but you have some questions about it. Pretend you are speaking to a salesperson. Ask three or four questions to get all the information you need about the furniture you like.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "furniture-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem I need you to resolve. When you get the piece of furniture at home, you don't like the way it looks. Call the store, explain why you are not satisfied, and propose some solutions to resolve the problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "furniture-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Has anything like that ever happened to you? Have you ever bought something for your home or yourself that did not work out? Tell me everything that happened and how you eventually solved the problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      }
+    ]
   }
 ];
 
