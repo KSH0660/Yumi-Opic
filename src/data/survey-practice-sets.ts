@@ -870,4 +870,35 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 11, displayNumber: "15", questionId: "technology-advanced1-q15" },
     ] },
   ],
+  "free-time": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "free-time-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "free-time-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "free-time-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "free-time-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "free-time-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "free-time-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "5", questionId: "free-time-combo3-q5" },
+      { slot: 8, displayNumber: "6", questionId: "free-time-combo3-q6" },
+      { slot: 9, displayNumber: "7", questionId: "free-time-combo3-q7" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "8", questionId: "free-time-combo4-q8" },
+      { slot: 11, displayNumber: "9", questionId: "free-time-combo4-q9" },
+      { slot: 12, displayNumber: "10", questionId: "free-time-combo4-q10" },
+    ] },
+    { label: "COMBO 5", items: [
+      { slot: 13, displayNumber: "8", questionId: "free-time-combo5-q8" },
+      { slot: 14, displayNumber: "9", questionId: "free-time-combo5-q9" },
+      { slot: 15, displayNumber: "10", questionId: "free-time-combo5-q10" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 16, displayNumber: "14", questionId: "free-time-advanced1-q14" },
+      { slot: 17, displayNumber: "15", questionId: "free-time-advanced1-q15" },
+    ] },
+  ],
 };

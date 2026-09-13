@@ -2750,6 +2750,152 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "free-time",
+    "category": "surprise",
+    "ko": "여가시간",
+    "en": "Free Time",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["free-time"],
+    "questions": [
+      {
+        "id": "free-time-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Where do people in your country go to in their free time? Do they go to beaches? Do they go to parks or any other places? What are some popular locations that people like to visit in their free time?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What do people in your country like to do in their free time? What are some popular free time activities?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Do you have more or less free time now than you did in the past? Describe for me how your free time has changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Where do people in your country go to in their free time? Do they go to beaches? Do they go to parks or any other places? What are some popular locations that people like to visit in their free time?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Do you have more or less free time now than you did in the past? Describe for me how your free time has changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you had some free time. What did you do? Who did you spend your free time with? Tell me everything that happened the last time you had some free time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo3-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What do people in your country like to do in their free time? What are some popular free time activities?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo3-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Do you have more or less free time now than you did in the past? Describe for me how your free time has changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo3-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you had some free time. What did you do? Who did you spend your free time with? Tell me everything that happened the last time you had some free time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo4-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Where do people in your country go to in their free time? Do they go to beaches? Do they go to parks or any other places? What are some popular locations that people like to visit in their free time?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo4-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Do you have more or less free time now than you did in the past? Describe for me how your free time has changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo4-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you had some free time. What did you do? Who did you spend your free time with? Tell me everything that happened the last time you had some free time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo5-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "What do people in your country like to do in their free time? What are some popular free time activities?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo5-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Do you have more or less free time now than you did in the past? Describe for me how your free time has changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-combo5-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you had some free time. What did you do? Who did you spend your free time with? Tell me everything that happened the last time you had some free time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "free-time-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "What trends have you noticed when it comes to free time in your area? Do people have more or less leisure time than in the past? Describe your observations.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "free-time-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Technology has had a huge impact on how people use their free time. Describe some of the changes that technology has brought when it comes to free time and free time activities.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 
