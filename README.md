@@ -582,11 +582,16 @@ npm run tts -- --topic=recycling  # 재활용 주제만 생성
 
 | 고칠 곳 | 무엇을 |
 | --- | --- |
-| `tests/exam-exposure.test.cjs` | `assert.equal(questions.length, N)` — 출제 대상 문항 수 |
-| `tests/surprise.test.cjs` | `surpriseQuestionCount` 와 주제별 문항 수 배열 |
 | `tests/fixtures/surprise-questions.md` | 돌발 주제를 **새 자료로 교체**했을 때. 고정 세트를 선언하면 이 파일 대신 선언된 세트가 번호·순서의 근거가 됩니다 |
 | `src/data/audio-manifest.json` + `public/audio/*.mp3` | 문항 **ID 가 바뀌거나 사라지면** 옛 mp3 와 목록 항목이 고아로 남습니다 |
-| `README.md` 의 "현재 범위" | 문항 수 |
+| `README.md` 의 "현재 범위" | 문항 수 (문서 수치이며 테스트는 이 값을 보지 않습니다) |
+
+**테스트는 문항 수를 못박지 않습니다.** 예전에는 `assert.equal(questions.length, 230)`
+같은 줄이 있어 문항을 늘릴 때마다 이 줄부터 깨졌지만, 지금은 데이터에서 끌어온 불변식만
+확인합니다 — 빈 주제가 없을 것, 문항 ID 가 겹치지 않을 것, 집계 값(`surpriseQuestionCount`)이
+실제 문항과 맞을 것, 선언된 고정 세트가 실재하는 주제·문항을 가리킬 것, 그리고 모든 문항이
+적어도 하나의 완성된 세트에 들어갈 것. 그래서 **문항을 추가하는 것만으로는 테스트가
+깨지지 않습니다.**
 
 ### 낭독 파일은 `npm run tts` 로 정리합니다
 
@@ -625,8 +630,8 @@ npm test && npm run typecheck && npm run build
 ### 추가한 뒤 확인
 
 `npm test` 는 **모든 활성 문항이 적어도 하나의 완성된 실전 세트에 포함되는지**를 검사합니다
-(`tests/exam-exposure.test.cjs`). 새로 넣은 문항이 어느 구간에도 못 들어가면 여기서 걸립니다.
-숫자만 틀렸는데 다른 곳이 깨진 것처럼 보이기 쉬우니 실패 메시지를 먼저 확인하세요.
+(`tests/exam-exposure.test.cjs`). 새로 넣은 문항이 어느 구간에도 못 들어가면 여기서 걸리며,
+실패 메시지에 어느 주제인지 함께 나옵니다. 위의 유형 커버리지를 다시 확인하세요.
 
 검토 기록과 현재 수치는 [docs/exam-bank-review-2026-09-13.md](docs/exam-bank-review-2026-09-13.md)
 에 있습니다.

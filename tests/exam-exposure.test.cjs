@@ -22,10 +22,13 @@ function remember(exposure, exam, time) {
 }
 
 test('every active bank question belongs to a complete full-exam set, including new source variants and surprise roleplay', () => {
-  assert.equal(questions.length, 307);
+  // 개수를 못박아 두면 문항을 늘릴 때마다 이 줄부터 깨지고, 정작 무엇이 잘못됐는지는
+  // 알려 주지 못한다. 개수 대신 데이터에서 끌어온 불변식만 본다.
+  assert.ok(questions.length > 0);
+  assert.equal(new Set(questions.map(q => q.id)).size, questions.length, '문항 ID 가 겹친다');
   for (const topic of allTopics.filter(t => !engine.DRAW_EXCLUDED_TOPIC_IDS.includes(t.id))) {
-    const allowed = patterns;
-    const reachable = new Set(allowed.flatMap(types => engine.completeQuestionSets(topic, types)).flat().map(q => q.id));
+    assert.ok(topic.questions.length > 0, `${topic.id}: 출제 대상인데 문항이 없다`);
+    const reachable = new Set(patterns.flatMap(types => engine.completeQuestionSets(topic, types)).flat().map(q => q.id));
     assert.deepEqual([...reachable].sort(), topic.questions.map(q => q.id).sort(), topic.id);
   }
 });
