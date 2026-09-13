@@ -61,12 +61,15 @@ interface AudioSession {
 }
 
 interface VoiceAnalysis {
-  transcript: string;
   speakingTimeSec: number;
-  totalWords: number;
   wordsPerMinute: number;
-  fillerCount: number;
+  pace: string;
   longPauseCount: number;
+  chunking: string;
+  stressDelivery: string;
+  energy: string;
+  fillers: string;
+  spontaneity: string;
 }
 
 interface VoiceAnalysisSession {
@@ -75,13 +78,38 @@ interface VoiceAnalysisSession {
   lastSpeechAt: number;
   transcript: string;
   longPauseCount: number;
+  currentChunkWords: number;
+  chunkWordCounts: number[];
+  cadenceSamples: number[];
+  energySamples: number[];
+  lastEnergySampleAt: number;
 }
 
-const LONG_PAUSE_MS = 2_000;
+const LONG_PAUSE_MS = 5_000;
+const CHUNK_GAP_MS = 1_000;
 
 function countFillers(transcript: string): number {
   return [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
     .reduce((total, pattern) => total + (transcript.match(pattern)?.length ?? 0), 0);
+}
+
+function variation(values: number[]): number | null {
+  if (values.length < 6) return null;
+  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+  if (mean === 0) return 0;
+  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return Math.sqrt(variance) / mean;
+}
+
+function fillerFeedback(transcript: string, totalWords: number): string {
+  const fillerCount = countFillers(transcript);
+  if (fillerCount === 0) return "No tracked fillers detected.";
+  const repeated = [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
+    .some((pattern) => (transcript.match(pattern)?.length ?? 0) >= 3);
+  if (repeated || fillerCount >= Math.max(4, Math.ceil(totalWords / 20))) {
+    return `${fillerCount} tracked fillers. They may be interrupting your flow; replace a few with a quiet pause.`;
+  }
+  return `${fillerCount} tracked filler${fillerCount === 1 ? "" : "s"}. This amount can sound natural in spontaneous speech.`;
 }
 
 function formatTime(sec: number): string {
@@ -263,15 +291,63 @@ export default function ExamRunner({
     if (!transcript) return;
     const speakingTimeSec = Math.max(1, Math.round((Date.now() - session.startedAt) / 1000));
     const totalWords = countEnglishWords(transcript);
+    const wordsPerMinute = Math.round((totalWords * 60) / speakingTimeSec);
+    const chunks = session.currentChunkWords > 0
+      ? [...session.chunkWordCounts, session.currentChunkWords]
+      : session.chunkWordCounts;
+    const averageChunkWords = chunks.length > 0
+      ? chunks.reduce((sum, count) => sum + count, 0) / chunks.length
+      : totalWords;
+    const fragmented = chunks.length >= 4 && averageChunkWords < 4;
+    const energyVariation = variation(session.energySamples);
+    const cadenceVariation = variation(session.cadenceSamples);
+    const flatEnergy = energyVariation !== null && energyVariation < 0.22;
+    const hasSelfCorrection = /\b(i mean|rather|sorry|let me (?:rephrase|start again)|what i mean is)\b/i.test(transcript);
+    const pace = wordsPerMinute > 135
+      ? `${wordsPerMinute} WPM · Fast. Slow down slightly so key ideas stay clear.`
+      : wordsPerMinute > 120
+        ? `${wordsPerMinute} WPM · Slightly fast, but still within an acceptable range.`
+        : wordsPerMinute >= 90
+          ? `${wordsPerMinute} WPM · Clear target range for OPIc delivery.`
+          : wordsPerMinute < 80 && fragmented
+            ? `${wordsPerMinute} WPM · Slow and fragmented. Connect a few short pieces into fuller thoughts.`
+            : `${wordsPerMinute} WPM · Calm pace. Keep ideas connected rather than trying to speak faster.`;
+    const scriptedSignals = [
+      cadenceVariation !== null && cadenceVariation < 0.18,
+      speakingTimeSec >= 30 && session.longPauseCount === 0,
+      flatEnergy,
+      chunks.length <= 2 && totalWords >= 80,
+      !hasSelfCorrection && totalWords >= 80,
+    ].filter(Boolean).length;
+    const spontaneity = scriptedSignals >= 3
+      ? "Very scripted-sounding · Several delivery signals are unusually uniform. Add natural thought pauses and emphasis."
+      : scriptedSignals === 2
+        ? "Somewhat prepared-sounding · Let the rhythm vary naturally as each idea develops."
+        : hasSelfCorrection
+          ? "Natural / spontaneous · The self-correction sounds like normal real-time speaking."
+          : "Natural / spontaneous · No strong scripted-delivery pattern detected.";
     setVoiceAnalyses((current) => ({
       ...current,
       [targetSlot]: {
-        transcript,
         speakingTimeSec,
-        totalWords,
-        wordsPerMinute: Math.round((totalWords * 60) / speakingTimeSec),
-        fillerCount: countFillers(transcript),
+        wordsPerMinute,
+        pace,
         longPauseCount: session.longPauseCount,
+        chunking: fragmented
+          ? "Fragmented · Try grouping short pieces into complete thoughts."
+          : "Connected · Ideas generally flow in meaningful thought groups.",
+        stressDelivery: flatEnergy
+          ? "Too even · Emphasize the words that carry each key idea."
+          : energyVariation === null
+            ? "Not enough audio data to assess overall stress reliably."
+            : "Varied · Key ideas have useful changes in emphasis.",
+        energy: flatEnergy
+          ? "Your delivery is quite flat. Try emphasizing key ideas a little more."
+          : energyVariation === null
+            ? "Energy variation is unavailable in this browser session."
+            : "Natural energy variation detected across the response.",
+        fillers: fillerFeedback(transcript, totalWords),
+        spontaneity,
       },
     }));
   }, []);
@@ -327,6 +403,11 @@ export default function ExamRunner({
         lastSpeechAt: 0,
         transcript: baseRef.current,
         longPauseCount: 0,
+        currentChunkWords: 0,
+        chunkWordCounts: [],
+        cadenceSamples: [],
+        energySamples: [],
+        lastEnergySampleAt: 0,
       };
     }
 
@@ -341,9 +422,21 @@ export default function ExamRunner({
         const analysisSession = voiceAnalysisSessionRef.current;
         if (analysisSession?.slot === targetSlot && transcript !== analysisSession.transcript) {
           const now = Date.now();
-          if (analysisSession.lastSpeechAt > 0 && now - analysisSession.lastSpeechAt >= LONG_PAUSE_MS) {
-            analysisSession.longPauseCount += 1;
+          const previousWords = countEnglishWords(analysisSession.transcript);
+          const nextWords = countEnglishWords(transcript);
+          const addedWords = Math.max(0, nextWords - previousWords);
+          if (analysisSession.lastSpeechAt > 0) {
+            const gap = now - analysisSession.lastSpeechAt;
+            if (gap >= LONG_PAUSE_MS) analysisSession.longPauseCount += 1;
+            if (gap >= CHUNK_GAP_MS && analysisSession.currentChunkWords > 0) {
+              analysisSession.chunkWordCounts.push(analysisSession.currentChunkWords);
+              analysisSession.currentChunkWords = 0;
+            }
+            if (addedWords > 0 && gap >= 250) {
+              analysisSession.cadenceSamples.push(addedWords / (gap / 1_000));
+            }
           }
+          analysisSession.currentChunkWords += addedWords;
           analysisSession.lastSpeechAt = now;
           analysisSession.transcript = transcript;
         }
@@ -449,6 +542,11 @@ export default function ExamRunner({
         const frameSec = (now - lastFrameAt) / 1000;
         lastFrameAt = now;
         const targetLevel = Math.min(1, Math.max(0, (rms - 0.01) * 7.5));
+        const analysisSession = voiceAnalysisSessionRef.current;
+        if (analysisSession?.slot === session.slot && targetLevel > 0.03 && now - analysisSession.lastEnergySampleAt >= 100) {
+          analysisSession.energySamples.push(targetLevel);
+          analysisSession.lastEnergySampleAt = now;
+        }
 
         // 소리는 이만큼 들어오는데 받아쓰기가 한 글자도 없다면 이 녹음이 마이크를
         // 쥐고 있는 것이다. 그때는 녹음을 접고 받아쓰기에 마이크를 넘긴다.
@@ -890,16 +988,15 @@ export default function ExamRunner({
           {isPractice && voiceAnalysis && (
             <section className="mt-6 border border-exam-line bg-exam-frame-2 px-4 py-4" aria-label="VOICE ANALYSIS">
               <h2 className="text-xs font-bold tracking-wide text-exam-ink">VOICE ANALYSIS</h2>
-              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
-                <div className="sm:col-span-2 lg:col-span-5">
-                  <dt className="text-xs text-exam-ink-muted">Transcript</dt>
-                  <dd className="mt-1 whitespace-pre-wrap leading-relaxed">{voiceAnalysis.transcript}</dd>
-                </div>
-                <div><dt className="text-xs text-exam-ink-muted">Speaking time</dt><dd className="mt-1 font-semibold tabular-nums">{formatTime(voiceAnalysis.speakingTimeSec)}</dd></div>
-                <div><dt className="text-xs text-exam-ink-muted">Total words</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.totalWords}</dd></div>
-                <div><dt className="text-xs text-exam-ink-muted">Words per minute</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.wordsPerMinute}</dd></div>
-                <div><dt className="text-xs text-exam-ink-muted">Filler count</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.fillerCount}</dd></div>
-                <div><dt className="text-xs text-exam-ink-muted">Long pause count</dt><dd className="mt-1 font-semibold tabular-nums">{voiceAnalysis.longPauseCount}</dd></div>
+              <p className="mt-1 text-[11px] text-exam-ink-muted">Speaking time {formatTime(voiceAnalysis.speakingTimeSec)}</p>
+              <dl className="mt-3 grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">Pace</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.pace}</dd></div>
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">5+ sec Pauses</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.longPauseCount} · Natural thinking pauses under 5 seconds are not counted.</dd></div>
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">Chunking</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.chunking}</dd></div>
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">Stress &amp; Delivery</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.stressDelivery}</dd></div>
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">Energy / Monotone</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.energy}</dd></div>
+                <div><dt className="text-xs font-semibold text-exam-ink-muted">Fillers</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.fillers}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-xs font-semibold text-exam-ink-muted">Spontaneity</dt><dd className="mt-1 leading-relaxed">{voiceAnalysis.spontaneity}</dd></div>
               </dl>
             </section>
           )}
