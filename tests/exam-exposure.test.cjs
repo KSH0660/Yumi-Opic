@@ -22,7 +22,7 @@ function remember(exposure, exam, time) {
 }
 
 test('every active bank question belongs to a complete full-exam set, including new source variants and surprise roleplay', () => {
-  assert.equal(questions.length, 230);
+  assert.equal(questions.length, 262);
   for (const topic of allTopics.filter(t => !engine.DRAW_EXCLUDED_TOPIC_IDS.includes(t.id))) {
     const allowed = patterns;
     const reachable = new Set(allowed.flatMap(types => engine.completeQuestionSets(topic, types)).flat().map(q => q.id));
