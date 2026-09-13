@@ -955,4 +955,30 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 18, displayNumber: "13", questionId: "hotel-roleplay4-q13" },
     ] },
   ],
+  "weather": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "weather-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "weather-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "weather-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "weather-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "weather-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "weather-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "weather-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "weather-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "weather-combo3-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 10, displayNumber: "11", questionId: "weather-roleplay1-q11" },
+      { slot: 11, displayNumber: "12", questionId: "weather-roleplay1-q12" },
+      { slot: 12, displayNumber: "13", questionId: "weather-roleplay1-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 13, displayNumber: "14", questionId: "weather-advanced1-q14" },
+      { slot: 14, displayNumber: "15", questionId: "weather-advanced1-q15" },
+    ] },
+  ],
 };

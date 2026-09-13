@@ -3156,6 +3156,128 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
       }
     ]
+  },
+  {
+    "id": "weather",
+    "category": "surprise",
+    "ko": "날씨",
+    "en": "Weather",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.weather,
+    "questions": [
+      {
+        "id": "weather-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the weather at where you live. What is the weather like in each season? Which season do you personally like most? Tell me everything about the weather.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the weather at where you are today. What is happening right now?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "How has the weather in your country changed over the years? What was the weather like when you were a child? How was it different from the weather now?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the weather at where you live. What is the weather like in each season? Which season do you personally like most? Tell me everything about the weather.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "How has the weather in your country changed over the years? What was the weather like when you were a child? How was it different from the weather now?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Severe weather conditions can do a lot of damage. Tell me about an experience you had related to severe weather conditions. Perhaps a city was flooded, or maybe businesses or schools were closed due to heavy snow. What was the problem? How did people deal with the situation?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the weather at where you live. What is the weather like in each season? Which season do you personally like most? Tell me everything about the weather.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "How has the weather in your country changed over the years? What was the weather like when you were a child? How was it different from the weather now?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Severe weather conditions can do a lot of damage. Tell me about an experience you had related to severe weather conditions. Perhaps a city was flooded, or maybe businesses or schools were closed due to heavy snow. What was the problem? How did people deal with the situation?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "weather-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are going on vacation to another country. Call a hotel in that country and ask what the weather is like there. You want to know what clothes you should bring on your trip. Ask two or three more questions regarding travel plans.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "weather-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there's a problem that I need you to resolve. The clothes you have brought with you on your vacation are not suitable for the weather. Call a clothing store and explain the situation. Ask 2 or 3 questions about the kinds of clothes they have.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "weather-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Tell me about an experience you had related to weather changes. Perhaps a city was flooded, or maybe businesses or schools were closed due to heavy snow. What was the problem? How did you deal with the situation?",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "weather-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Have you noticed changes in the weather in your area over the past several years? How have this weather changes affected daily life? Describe the trends you have observed.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "weather-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "The media often reports on major weather events as well as trends and changes in weather patterns. Recount a news story that you read or heard recently on the topic of weather and weather patterns.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 
