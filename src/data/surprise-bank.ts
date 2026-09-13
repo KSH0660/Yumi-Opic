@@ -1978,6 +1978,451 @@ export const surpriseTopics: Topic[] = [
         "ko": "친구나 가족과 나누는 주제나 관심사, 그 이유와 삶에 미치는 영향을 말해 주세요."
       }
     ]
+  },
+  {
+    "id": "internet",
+    "category": "surprise",
+    "ko": "인터넷 & 웹서핑 & 비디오",
+    "en": "Internet & Web Surfing & Video",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.internet,
+    "questions": [
+      {
+        "id": "internet-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What do people usually do on the Internet? Do they play games, watch television, etc? Talk about the things people do online in detail.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What are your usual habits when you are online? Do you usually share videos, do your shopping, read the news, etc? What do you usually do online?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When did you first become interested in surfing the Tell me about your first experience or experiences of surfing the Internet in great detail. What were your first impressions of it? What do you remember about it?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of videos do you like to watch online for fun, for work or for school? Tell me about the kinds of videos you like to watch online. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo2-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about your typical routine online. What do you do? Tell me about your online activities.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo2-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Describe something memorable you saw online for work or for leisure. Maybe it was something impressive, unusual, humorous or meaningful for you. What did you notice about it? What made it special?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo3-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What are your usual habits when you are online? Do you usually share videos, do your shopping, read the news, etc? What do you usually do online?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo3-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about your favorite website or type of website you visit. Why do you like it? Give me as many details as you can.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo3-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When did you first become interested in surfing the Tell me about your first experience or experiences of surfing the Internet in great detail. What were your first impressions of it? What do you remember about it?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo4-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What are your usual habits when you are online? Do you usually share videos, do your shopping, read the news, etc? What do you usually do online?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo4-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "When did you first become interested in surfing the Tell me about your first experience or experiences of surfing the Internet in great detail. What were your first impressions of it? What do you remember about it?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo4-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about a project that you worked on that involved doing research on the Internet. Start with giving me some background about the project: when and where it was. And then, tell me how you used the Internet to get the project done.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo5-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of videos do you like to watch online for fun, for work or for school? Tell me about the kinds of videos you like to watch online. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo5-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Describe something memorable you saw online for work or for leisure. Maybe it was something impressive, unusual, humorous or meaningful for you. What did you notice about it? What made it special?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo5-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "What did you do on the Internet yesterday? What websites did you visit? Tell me about the things you did online yesterday.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo6-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "What are your usual habits when you are online? Do you usually share videos, do your shopping, read the news, etc? What do you usually do online?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo6-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "When did you first become interested in surfing the Tell me about your first experience or experiences of surfing the Internet in great detail. What were your first impressions of it? What do you remember about it?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo6-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about a project that you worked on that involved doing research on the Internet. Start with giving me some background about the project: when and where it was. And then, tell me how you used the Internet to get the project done.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo7-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of videos do you like to watch online for fun, for work or for school? Tell me about the kinds of videos you like to watch online. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo7-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Describe something memorable you saw online for work or for leisure. Maybe it was something impressive, unusual, humorous or meaningful for you. What did you notice about it? What made it special?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-combo7-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "What did you do on the Internet yesterday? What websites did you visit? Tell me about the things you did online yesterday.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. Your friend has found a cool website. Call your friend and ask three or four questions about the website he or she has found. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "You are having trouble using a website. Contact technical support to resolve the problem. Leave a message describing the issue. Emphasize that you need the problem solved as quickly as possible. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever had any trouble on the Internet? Perhaps you had difficulty using a website, or you lost Internet connection. What was the exact problem? And how did you deal with the situation?",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are planning your trip abroad and need some help. Call a friend who knows a lot about travel websites. Explain your situation, ask your friend to recommend a travel website, and ask two or three questions about using the website to plan your trip.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem I need you to resolve. You and your friend were planning a trip overseas. However, an earthquake has occurred in the country you were planning to visit, so you can't go there anymore. Call your friend, explain what happened, and suggest two or three alternative plans for your trip.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That’s the end of the situation. Tell me about a time when you were planning a trip and got some travel information from a website. Did you change your original plans based on the information you found? What kind of information did you find, and how did your plans change? Tell me about the experience in as much detail as possible.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "internet-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "What kinds of concerns do people have about Internet use nowadays? They could be about issues regarding safety, privacy or security. How have these concerns affected people's lives?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "internet-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "How is Internet usage different among people in different age groups? How do young people use the Internet differently? Discuss this matter in detail.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "internet-advanced2-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Internet usage has changed over the years. How did people use to search for information on the Internet in the past? How do people access information online nowadays? If it has changed, how is it different? Please, compare the differences and provide the details.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "internet-advanced2-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "What kinds of concerns do people have about Internet use nowadays? They could be about issues regarding safety, privacy or security. How have these concerns affected people's lives?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
+  }
+,
+  {
+    "id": "health",
+    "category": "surprise",
+    "ko": "건강",
+    "en": "Health",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.health,
+    "questions": [
+      {
+        "id": "health-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the kinds of foods healthy people eat. What foods are they? Where do they buy these foods?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about all the things you do in order to stay healthy. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Ideas about what good health is and how to maintain it change frequently. What did people do to maintain good health when you were a child? What was considered to be a healthy diet at that time? How did people usually exercise? Describe how our ideas of what is healthy have changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about a local health food stores or grocery market. What do this place look like?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo2-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What are the eating habits of healthy people? What do they usually eat during the week, for breakfast, lunch, dinner, snacks, etc?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo2-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Ideas about what good health is and how to maintain it change frequently. What did people do to maintain good health when you were a child? What was considered to be a healthy diet at that time? How did people usually exercise? Describe how our ideas of what is healthy have changed over time.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo3-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a healthy person you know of. What makes that person healthy? Tell me everything that makes that person healthier. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo3-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a time when you or someone you know did something new to become healthier. Maybe it was playing a sport or eating some healthy food. Tell me about the change in detail. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo3-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "People do a lot of things to try to be healthy. They might join a healthy cooking class or join a new exercise program. Tell me about something you have done to try to improve your health. Tell me why you chose that particular activity and how it all worked out. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo4-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe a healthy person you know of. What makes that person healthy? Tell me everything that makes that person healthier. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo4-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about a time when you or someone you know did something new to become healthier. Maybe it was playing a sport or eating some healthy food. Tell me about the change in detail. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-combo4-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "People do a lot of things to try to be healthy. They might join a healthy cooking class or join a new exercise program. Tell me about something you have done to try to improve your health. Tell me why you chose that particular activity and how it all worked out. ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are interested in joining a new gym that has recently opened in your town. Call the gym and ask three or four questions to get some information about the gym.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. There is an emergency and you can't make it to a training session with your personal trainer. Call your trainer and explain the situation and give some alternatives to make arrangements for a schedule change.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Maintaining one's health can be a big challenge. Tell me in detail about a challenge you faced related to maintaining or improving your health. Maybe you tried a difficult diet or maybe you tried to stop smoking. Tell me everything that you did. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are interested in joining a new gym that has recently opened in your town. Call the gym and ask three or four questions to get some information about the gym.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem I need you to resolve. You have signed up at the gym, but you are not satisfied with it. Maybe the gym is not clean enough or there are too many people. Call the manager of the gym and make arrangements to get a refund. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Maintaining one's health can be a big challenge. Tell me in detail about a challenge you faced related to maintaining or improving your health. Maybe you tried a difficult diet or maybe you tried to stop smoking. Tell me everything that you did. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "health-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Different generations have different views on what is healthy. Some generations think people have to be skinny in order to be healthy while others believe people must be muscular. What did your parents' generation think people have to be like to be healthy? How does that compare to what your generation believe?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "health-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Tell me about a recent news story that you saw related to health issues. Describe what the issue was about in detail. How did your community react to the news?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "health-advanced2-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Describe how people usually stayed in good shape when you were a child. What kinds of sports did they play? Were gyms popular then? Describe what fitness was like then, and how it has changed over the years?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "health-advanced2-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Describe a recent event in your area that involved health issues. Perhaps, something happened in the food or medical industries. Perhaps, something related to sports happened or something like smoking was banned. Describe what happened in detail including the reaction of your community.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 

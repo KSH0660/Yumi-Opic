@@ -706,4 +706,99 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 26, displayNumber: "15", questionId: "friends-family-advanced1-q15" },
     ] },
   ],
+  "internet": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "internet-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "internet-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "internet-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "2", questionId: "internet-combo2-q2" },
+      { slot: 5, displayNumber: "3", questionId: "internet-combo2-q3" },
+      { slot: 6, displayNumber: "4", questionId: "internet-combo2-q4" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "2", questionId: "internet-combo3-q2" },
+      { slot: 8, displayNumber: "3", questionId: "internet-combo3-q3" },
+      { slot: 9, displayNumber: "4", questionId: "internet-combo3-q4" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "5", questionId: "internet-combo4-q5" },
+      { slot: 11, displayNumber: "6", questionId: "internet-combo4-q6" },
+      { slot: 12, displayNumber: "7", questionId: "internet-combo4-q7" },
+    ] },
+    { label: "COMBO 5", items: [
+      { slot: 13, displayNumber: "5", questionId: "internet-combo5-q5" },
+      { slot: 14, displayNumber: "6", questionId: "internet-combo5-q6" },
+      { slot: 15, displayNumber: "7", questionId: "internet-combo5-q7" },
+    ] },
+    { label: "COMBO 6", items: [
+      { slot: 16, displayNumber: "8", questionId: "internet-combo6-q8" },
+      { slot: 17, displayNumber: "9", questionId: "internet-combo6-q9" },
+      { slot: 18, displayNumber: "10", questionId: "internet-combo6-q10" },
+    ] },
+    { label: "COMBO 7", items: [
+      { slot: 19, displayNumber: "5", questionId: "internet-combo7-q5" },
+      { slot: 20, displayNumber: "6", questionId: "internet-combo7-q6" },
+      { slot: 21, displayNumber: "7", questionId: "internet-combo7-q7" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 22, displayNumber: "11", questionId: "internet-roleplay1-q11" },
+      { slot: 23, displayNumber: "12", questionId: "internet-roleplay1-q12" },
+      { slot: 24, displayNumber: "13", questionId: "internet-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 25, displayNumber: "11", questionId: "internet-roleplay2-q11" },
+      { slot: 26, displayNumber: "12", questionId: "internet-roleplay2-q12" },
+      { slot: 27, displayNumber: "13", questionId: "internet-roleplay2-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 28, displayNumber: "14", questionId: "internet-advanced1-q14" },
+      { slot: 29, displayNumber: "15", questionId: "internet-advanced1-q15" },
+    ] },
+    { label: "ADVANCED COMBO 2", items: [
+      { slot: 30, displayNumber: "14", questionId: "internet-advanced2-q14" },
+      { slot: 31, displayNumber: "15", questionId: "internet-advanced2-q15" },
+    ] },
+  ],
+  "health": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "health-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "health-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "health-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "2", questionId: "health-combo2-q2" },
+      { slot: 5, displayNumber: "3", questionId: "health-combo2-q3" },
+      { slot: 6, displayNumber: "4", questionId: "health-combo2-q4" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "5", questionId: "health-combo3-q5" },
+      { slot: 8, displayNumber: "6", questionId: "health-combo3-q6" },
+      { slot: 9, displayNumber: "7", questionId: "health-combo3-q7" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "8", questionId: "health-combo4-q8" },
+      { slot: 11, displayNumber: "9", questionId: "health-combo4-q9" },
+      { slot: 12, displayNumber: "10", questionId: "health-combo4-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 13, displayNumber: "11", questionId: "health-roleplay1-q11" },
+      { slot: 14, displayNumber: "12", questionId: "health-roleplay1-q12" },
+      { slot: 15, displayNumber: "13", questionId: "health-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 16, displayNumber: "11", questionId: "health-roleplay2-q11" },
+      { slot: 17, displayNumber: "12", questionId: "health-roleplay2-q12" },
+      { slot: 18, displayNumber: "13", questionId: "health-roleplay2-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 19, displayNumber: "14", questionId: "health-advanced1-q14" },
+      { slot: 20, displayNumber: "15", questionId: "health-advanced1-q15" },
+    ] },
+    { label: "ADVANCED COMBO 2", items: [
+      { slot: 21, displayNumber: "14", questionId: "health-advanced2-q14" },
+      { slot: 22, displayNumber: "15", questionId: "health-advanced2-q15" },
+    ] },
+  ],
 };
