@@ -2652,6 +2652,104 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "technology",
+    "category": "surprise",
+    "ko": "테크놀러지",
+    "en": "Technology",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.technology,
+    "questions": [
+      {
+        "id": "technology-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What kind of technology do people typically use in your country? Do people use computers, cell phones or hand-held devices? What are some common forms of technology that people use?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What piece of technology do you use most often? Do you use computers or mobile phones? Tell me about the most typical type of technology you use every day.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Technology has definitely changed over time. Tell me about an early memory that you have about a piece of technology. years ago. It could be a computer or a mobile phone from many years ago. Describe for me what this thing was like back then. How has that technology changed over time?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What kind of technology do people typically use in your country? Do people use computers, cell phones or hand-held devices? What are some common forms of technology that people use?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Technology has definitely changed over time. Tell me about an early memory that you have about a piece of technology. years ago. It could be a computer or a mobile phone from many years ago. Describe for me what this thing was like back then. How has that technology changed over time?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Problem often come up because of our dependence on technology. Think about a time when you experienced a problem because some piece of technology was not working properly. Maybe your computer crashed or maybe your cell phone had no service. Tell me about a time when you had some kind of problem getting your technology to work.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "technology-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I’d like to give you a situation and ask you to act it out. You are writing a report on the technology industry. Your friend knows a lot about this industry. Call him and ask three or four questions to learn more about this industry.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "technology-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I’m sorry, but there is a problem which I need you to resolve. Your friend offers to meet you so that you can learn more about the industry which he works in. However, a few days before the meeting, a member of your family has an emergency. Call your friend, explain the situation, and offer two or three alternatives to get the information later on.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "technology-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That’s the end of the situation. Tell me about a time you learned about an exciting new product. It might have been the first time you learned about smartphones, video games, cars or other products. Tell me about the product and how you learned about it. Tell me everything you did from beginning to end in as much detail as possible.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "technology-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "I'd like to know about popular technology in your country. How has that technology developed over the years? How was it different compared to technology now? How do they affect people's lives?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "technology-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Tell me about recent news you read or watched related to technology. What was the news regarding technology? Do people talk about those issues often? How do people handle these issues?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 

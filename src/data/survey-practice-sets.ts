@@ -849,4 +849,25 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 8, displayNumber: "15", questionId: "phone-calls-advanced1-q15" },
     ] },
   ],
+  "technology": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "technology-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "technology-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "technology-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "technology-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "technology-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "technology-combo2-q7" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 7, displayNumber: "11", questionId: "technology-roleplay1-q11" },
+      { slot: 8, displayNumber: "12", questionId: "technology-roleplay1-q12" },
+      { slot: 9, displayNumber: "13", questionId: "technology-roleplay1-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 10, displayNumber: "14", questionId: "technology-advanced1-q14" },
+      { slot: 11, displayNumber: "15", questionId: "technology-advanced1-q15" },
+    ] },
+  ],
 };
