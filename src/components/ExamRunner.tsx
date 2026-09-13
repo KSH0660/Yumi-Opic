@@ -77,7 +77,8 @@ interface VoiceAnalysisSession {
 
 const LONG_PAUSE_MS = 5_000;
 const CHUNK_GAP_MS = 1_000;
-const NATURAL_OPENING_PATTERN = /^\s*(?:well|um|uh|oh|right|yeah|let me (?:think|see)|i(?:'|’)m not really sure|that(?:'|’)s a good question|i need a (?:second|moment) to think about that|give me a (?:second|moment)|how should i put it|i guess|i suppose)\b/i;
+const NATURAL_THINKING_EXPRESSION = /\b(?:well|um|uh|oh|right|yeah|let me (?:think|see)|what else(?: can i say)?|how should i put it|i(?:'|’)m trying to think|i(?:'|’)m not really sure(?:,? but)?|that(?:'|’)s a good question|i need a (?:second|moment) to think about that|give me a (?:second|moment)|i guess|i suppose|actually|i mean)\b/i;
+const NATURAL_OPENING_PATTERN = new RegExp(`^\\s*(?:${NATURAL_THINKING_EXPRESSION.source})`, "i");
 
 function countFillers(transcript: string): number {
   return [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
@@ -86,6 +87,10 @@ function countFillers(transcript: string): number {
 
 function hasNaturalThinkingOpening(transcript: string): boolean {
   return NATURAL_OPENING_PATTERN.test(transcript);
+}
+
+function hasNaturalThinkingExpression(transcript: string): boolean {
+  return NATURAL_THINKING_EXPRESSION.test(transcript);
 }
 
 function variation(values: number[]): number | null {
@@ -104,9 +109,8 @@ function fillerFeedback(transcript: string, totalWords: number): string {
       ? "Natural thinking opener detected. It supports a spontaneous delivery."
       : "No tracked fillers detected.";
   }
-  const repeated = [/\bum\b/gi, /\buh\b/gi, /\byou\s+know\b/gi, /\bi\s+mean\b/gi, /\bwell\b/gi]
-    .some((pattern) => (transcript.match(pattern)?.length ?? 0) >= 3);
-  if (repeated || fillerCount >= Math.max(4, Math.ceil(totalWords / 20))) {
+  const denselyDisruptive = fillerCount >= 8 && fillerCount >= Math.ceil(totalWords * 0.12);
+  if (denselyDisruptive) {
     return `${fillerCount} tracked fillers. They may be interrupting your flow; replace a few with a quiet pause.`;
   }
   if (naturalOpening) {
@@ -304,6 +308,7 @@ export default function ExamRunner({
       ? [...session.chunkWordCounts, session.currentChunkWords]
       : session.chunkWordCounts;
     const naturalOpening = hasNaturalThinkingOpening(transcript);
+    const naturalThinking = hasNaturalThinkingExpression(transcript);
     // A brief opener followed by a thinking pause is a normal way to formulate an answer.
     const assessedChunks = naturalOpening && chunks.length > 1 && chunks[0] <= 8 ? chunks.slice(1) : chunks;
     const averageChunkWords = assessedChunks.length > 0
@@ -315,27 +320,29 @@ export default function ExamRunner({
     const flatEnergy = energyVariation !== null && energyVariation < 0.22;
     const hasSelfCorrection = /\b(i mean|rather|sorry|let me (?:rephrase|start again)|what i mean is)\b/i.test(transcript);
     const pace = wordsPerMinute > 135
-      ? `${wordsPerMinute} WPM · Fast. Slow down slightly so key ideas stay clear.`
+      ? `${wordsPerMinute} WPM · 속도가 빠릅니다. 의식적으로 더 천천히 말해보세요.`
       : wordsPerMinute > 120
-        ? `${wordsPerMinute} WPM · Slightly fast, but still within an acceptable range.`
+        ? `${wordsPerMinute} WPM · 조금 빠릅니다. 조금 더 천천히 말해보세요.`
         : wordsPerMinute >= 90
-          ? `${wordsPerMinute} WPM · Clear target range for OPIc delivery.`
+          ? `${wordsPerMinute} WPM · 적절한 속도입니다. 지금 속도를 유지하세요.`
+          : wordsPerMinute >= 80
+            ? `${wordsPerMinute} WPM · 차분한 속도입니다. 더 빠르게 말할 필요는 없습니다.`
           : wordsPerMinute < 80 && fragmented
-            ? `${wordsPerMinute} WPM · Slow and fragmented. Connect a few short pieces into fuller thoughts.`
-            : `${wordsPerMinute} WPM · Calm pace. Keep ideas connected rather than trying to speak faster.`;
-    const scriptedSignals = [
+            ? `${wordsPerMinute} WPM · 속도보다 짧게 끊긴 생각을 의미 단위로 더 자연스럽게 연결해보세요.`
+            : `${wordsPerMinute} WPM · 차분하게 말하고 있습니다. 더 빠르게 말할 필요는 없습니다.`;
+    const uniformDeliverySignals = [
       cadenceVariation !== null && cadenceVariation < 0.18,
-      speakingTimeSec >= 30 && session.longPauseCount === 0,
       flatEnergy,
       assessedChunks.length <= 2 && totalWords >= 80,
-      !hasSelfCorrection && !naturalOpening && totalWords >= 80,
     ].filter(Boolean).length;
+    const spontaneitySignals = Number(naturalThinking) + Number(hasSelfCorrection);
+    const scriptedSignals = Math.max(0, uniformDeliverySignals - spontaneitySignals);
     const spontaneity = scriptedSignals >= 3
       ? "Very scripted-sounding · Several delivery signals are unusually uniform. Add natural thought pauses and emphasis."
       : scriptedSignals === 2
         ? "Somewhat prepared-sounding · Let the rhythm vary naturally as each idea develops."
-        : naturalOpening
-          ? "Natural / spontaneous · The opening sounds like real-time thought formulation."
+        : naturalThinking
+          ? "Natural / spontaneous · Natural thinking language supports real-time thought formulation."
           : hasSelfCorrection
           ? "Natural / spontaneous · The self-correction sounds like normal real-time speaking."
           : "Natural / spontaneous · No strong scripted-delivery pattern detected.";
@@ -350,12 +357,12 @@ export default function ExamRunner({
           ? "Fragmented · Try grouping short pieces into complete thoughts."
           : "Connected · Ideas generally flow in meaningful thought groups.",
         stressDelivery: flatEnergy
-          ? "Too even · Emphasize the words that carry each key idea."
+          ? "전달이 전체적으로 조금 고르게 들립니다. 핵심 단어에 조금 더 힘을 주면 전달력이 좋아집니다."
           : energyVariation === null
             ? "Not enough audio data to assess overall stress reliably."
             : "Varied · Key ideas have useful changes in emphasis.",
         energy: flatEnergy
-          ? "Your delivery is quite flat. Try emphasizing key ideas a little more."
+          ? "Browser amplitude variation was limited. This alone does not establish monotone or incorrect intonation."
           : energyVariation === null
             ? "Energy variation is unavailable in this browser session."
             : "Natural energy variation detected across the response.",
