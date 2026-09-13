@@ -17,9 +17,9 @@ const FIXED_SET_TOPIC_IDS = bank.surpriseTopics.filter(t => t.fixedPracticeSets)
 test('supplied surprise questions preserve the topic, numbering, title, wording and order', () => {
   const source = readFileSync(path.join(__dirname, 'fixtures/surprise-questions.md'), 'utf8');
   const sections = source.split(/^## \d+\. /m).slice(1);
-  assert.equal(bank.surpriseTopics.length, 7);
-  assert.equal(bank.surpriseQuestionCount, 99);
-  assert.deepEqual(bank.surpriseTopics.map(t => t.questions.length), [19, 25, 5, 17, 12, 9, 12]);
+  assert.equal(bank.surpriseTopics.length, 9);
+  assert.equal(bank.surpriseQuestionCount, 144);
+  assert.deepEqual(bank.surpriseTopics.map(t => t.questions.length), [19, 25, 5, 17, 12, 9, 12, 34, 11]);
 
   // 아직 자료 그대로인 주제는 fixture 와 한 글자도 달라지면 안 된다. 고정 세트로 다시 받은
   // 주제는 아래에서 선언된 세트로 검증하므로, fixture 에 남은 옛 섹션은 비교하지 않는다.
