@@ -801,4 +801,52 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 22, displayNumber: "15", questionId: "health-advanced2-q15" },
     ] },
   ],
+  "phone": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "phone-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "phone-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "phone-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "5", questionId: "phone-combo2-q5" },
+      { slot: 5, displayNumber: "6", questionId: "phone-combo2-q6" },
+      { slot: 6, displayNumber: "7", questionId: "phone-combo2-q7" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "8", questionId: "phone-combo3-q8" },
+      { slot: 8, displayNumber: "9", questionId: "phone-combo3-q9" },
+      { slot: 9, displayNumber: "10", questionId: "phone-combo3-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 10, displayNumber: "11", questionId: "phone-roleplay1-q11" },
+      { slot: 11, displayNumber: "12", questionId: "phone-roleplay1-q12" },
+      { slot: 12, displayNumber: "13", questionId: "phone-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 13, displayNumber: "11", questionId: "phone-roleplay2-q11" },
+      { slot: 14, displayNumber: "12", questionId: "phone-roleplay2-q12" },
+      { slot: 15, displayNumber: "13", questionId: "phone-roleplay2-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 3", items: [
+      { slot: 16, displayNumber: "11", questionId: "phone-roleplay3-q11" },
+      { slot: 17, displayNumber: "12", questionId: "phone-roleplay3-q12" },
+      { slot: 18, displayNumber: "13", questionId: "phone-roleplay3-q13" },
+    ] },
+  ],
+  "phone-calls": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "phone-calls-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "phone-calls-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "phone-calls-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "2", questionId: "phone-calls-combo2-q2" },
+      { slot: 5, displayNumber: "3", questionId: "phone-calls-combo2-q3" },
+      { slot: 6, displayNumber: "4", questionId: "phone-calls-combo2-q4" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 7, displayNumber: "14", questionId: "phone-calls-advanced1-q14" },
+      { slot: 8, displayNumber: "15", questionId: "phone-calls-advanced1-q15" },
+    ] },
+  ],
 };

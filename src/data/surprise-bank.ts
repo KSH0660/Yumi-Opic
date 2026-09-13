@@ -2423,6 +2423,235 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "phone",
+    "category": "surprise",
+    "ko": "전화",
+    "en": "Phone",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["phone"],
+    "questions": [
+      {
+        "id": "phone-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What do you like most about your phone? Maybe you like the camera or maybe you like certain applications. Tell me why you like those features.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What do you and your friends do on your phones besides talking to each other over the phone? Do you make updates on your social media pages? Do you play games? Tell me what you typically do on your phone.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the first phone you used. How was it? How was it different from the phone you are using now?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What do you like most about your phone? Maybe you like the camera or maybe you like certain applications. Tell me why you like those features.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the first phone you used. How was it? How was it different from the phone you are using now? ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Some features and services on phones are easy to use. But you may have to get help from friends, family or the services. Tell me about a time when you had a problem using your phone. What was the problem and how did you deal with the situation?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "What do you like most about your phone? Maybe you like the camera or maybe you like certain applications. Tell me why you like those features.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about the first phone you used. How was it? How was it different from the phone you are using now? ",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Some features and services on phones are easy to use. But you may have to get help from friends, family or the services. Tell me about a time when you had a problem using your phone. What was the problem and how did you deal with the situation?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. One of your friends bought the new version of the cellphone you're using. So you want to know about that cellphone. Call your friend and ask 3 or 4 questions about what new features it has.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. Your friend sent a document on his or her cellphone, but it doesn't open on your phone. Call your friend, explain the issue, and suggest two or three alternatives.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever experienced your phone not functioning properly? Tell me about any issues or problems you've had while using your phone.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to ask it out. You'd like to buy a new cell phone. Call a store and ask 3 or 4 questions about a new phone you'd like to purchase.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. You have received the new phone, but the feature is not what you expected. You'd like to return it to get a new phone. Call the store, explain the situation and make arrangements to get a new product.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situations Have you ever bought a piece of technology which was not what you wanted or was different from what you had expected? was the feature not what you wanted or did it just not work properly? Tell me about that experience in detail.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay3-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You and your friend are going to be traveling internationally and you want to take your phone with you. Call your phone service provider, explain the situation, and ask two or three questions to learn about what you may need to do to use your phone overseas, what the charges may be, and other relevant information. ",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay3-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem which I need you to resolve. Before you leave on a trip overseas with the friend, you learn that your phone service plan is set up for international calls, but your friend's phone is not. Talk to your friend and offer two or three solutions to resolve this problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "phone-roleplay3-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. People sometimes have difficulties with their phones when they are traveling, commuting, or going from one place to another. Sometimes, their batteries run out. Sometimes, they cannot get a good signal when they make a phone call. Tell me about a time when you had difficulties using your phone while traveling or commuting.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      }
+    ]
+  }
+,
+  {
+    "id": "phone-calls",
+    "category": "surprise",
+    "ko": "전화 통화",
+    "en": "Phone Calls",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["phone-calls"],
+    "questions": [
+      {
+        "id": "phone-calls-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the kinds of things you and your friends talk about on the phone.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "I'd like to know about your routine of talking on the phone. Who do you talk with, when do you usually talk on the phone and how long do you talk for? Do you do other things at the same time when you are on the phone?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Can you tell me about a memorable phone conversation you had using your phone? Maybe your friend or your relative told you some exciting news. Maybe something funny happened while you were on the phone. Tell me about that story from beginning to end with lots of details about why it was so memorable.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the kinds of things you and your friends talk about on the phone.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-combo2-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "I'd like to know about your routine of talking on the phone. Who do you talk with, when do you usually talk on the phone and how long do you talk for? Do you do other things at the same time when you are on the phone?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-combo2-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "How did you choose the phone that you currently use? How did you hear about it? Did you do research? Tell me everything you can remember about your experience of choosing your phone from beginning to end",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "phone-calls-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Describe how people used cell phones five years ago. What could they do with their phone functions and applications? What are some of the biggest changes as to how people use their phones? Describe the phone you used to use in the past in detail.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "phone-calls-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "In some societies, there is a concern that young people are not developing face-to-face communication skills because they spend too much time on their phones. What do people in your country think about the way in which young people use their phones?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 
