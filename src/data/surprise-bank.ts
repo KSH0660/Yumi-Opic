@@ -1248,6 +1248,518 @@ export const surpriseTopics: Topic[] = [
         "ko": "여러 소셜 미디어를 통해 지역 행사를 찾는 방법과 소셜 미디어가 행사에 미치는 영향을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "bank",
+    "category": "surprise",
+    "ko": "은행",
+    "en": "Bank",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.bank,
+    "questions": [
+      {
+        "id": "bank-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the banks in your country. What do they typically look like? Where are they usually located?",
+        "ko": "당신의 나라에 있는 은행의 모습과 일반적인 위치를 설명해 주세요."
+      },
+      {
+        "id": "bank-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "Tell me about what goes on when you visit the bank. What do you do from the moment you walk in until you walk out?",
+        "ko": "은행에 들어가서 나올 때까지 무엇을 하는지 말해 주세요."
+      },
+      {
+        "id": "bank-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Banks have definitely changed over time. Tell me about a bank you remember from your childhood. What did the bank look like? How was it different from banks today?",
+        "ko": "어린 시절 기억하는 은행의 모습과 오늘날 은행과의 차이를 말해 주세요."
+      },
+      {
+        "id": "bank-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the banks in your country. What do they typically look like? Where are they usually located?",
+        "ko": "당신의 나라에 있는 은행의 모습과 일반적인 위치를 설명해 주세요."
+      },
+      {
+        "id": "bank-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Banks have definitely changed over time. Tell me about a bank you remember from your childhood. What did the bank look like? How was it different from banks today?",
+        "ko": "어린 시절 기억하는 은행의 모습과 오늘날 은행과의 차이를 말해 주세요."
+      },
+      {
+        "id": "bank-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Sometimes, problems can occur when you are at the bank. Tell me about a problem you had that involved your bank. Maybe the bank was closed or perhaps the bank might have made some kind of mistake. Tell me how you dealt with that problem.",
+        "ko": "은행에서 겪었던 문제와 그 문제에 어떻게 대처했는지 말해 주세요."
+      },
+      {
+        "id": "bank-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about the banks in your country. What do they typically look like? Where are they usually located?",
+        "ko": "당신의 나라에 있는 은행의 모습과 일반적인 위치를 설명해 주세요."
+      },
+      {
+        "id": "bank-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Banks have definitely changed over time. Tell me about a bank you remember from your childhood. What did the bank look like? How was it different from banks today?",
+        "ko": "어린 시절 기억하는 은행의 모습과 오늘날 은행과의 차이를 말해 주세요."
+      },
+      {
+        "id": "bank-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Sometimes, problems can occur when you are at the bank. Tell me about a problem you had that involved your bank. Maybe the bank was closed or perhaps the bank might have made some kind of mistake. Tell me how you dealt with that problem.",
+        "ko": "은행에서 겪었던 문제와 그 문제에 어떻게 대처했는지 말해 주세요."
+      },
+      {
+        "id": "bank-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You need to open a new bank account. Call the bank and ask the bank-teller 3 or 4 questions about opening a new account.",
+        "ko": "새 은행 계좌를 개설하기 위해 은행 직원에게 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "bank-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. You have left your new bank card at the restaurant where you had dinner. Call the restaurant and explain what happened. Describe your card and offer suggestions to ask how to get the card back to you.",
+        "ko": "식당에 두고 온 새 은행 카드를 되찾기 위해 상황과 카드 특징을 설명하고 방법을 제안하세요."
+      },
+      {
+        "id": "bank-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Can you remember a problem you had with a bank account, a credit card or an ATM card that required some help or some assistance? Perhaps you lost your card or the card would not work. Tell me about that experience you had in as much detail as you can.",
+        "ko": "은행 계좌나 신용 카드, ATM 카드 문제로 도움을 받았던 경험을 자세히 말해 주세요."
+      },
+      {
+        "id": "bank-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You need to open a new bank account. Call the bank and ask the bank-teller 3 or 4 questions about opening a new account.",
+        "ko": "새 은행 계좌를 개설하기 위해 은행 직원에게 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "bank-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem I need you to resolve. You just got your credit card, but found out that there is something wrong with it. Call the bank, explain the situation and solve the problem.",
+        "ko": "새 신용 카드의 문제를 은행에 설명하고 해결하세요."
+      },
+      {
+        "id": "bank-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Can you remember a problem you had with a bank account, a credit card or an ATM card that required some help or some assistance? Perhaps you lost your card or the card would not work. Tell me about that experience you had in as much detail as you can.",
+        "ko": "은행 계좌나 신용 카드, ATM 카드 문제로 도움을 받았던 경험을 자세히 말해 주세요."
+      }
+    ]
+  },
+  {
+    "id": "fashion",
+    "category": "surprise",
+    "ko": "패션",
+    "en": "Fashion",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.fashion,
+    "questions": [
+      {
+        "id": "fashion-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of clothes do people in your country typically wear? Are there different clothes for work and for play? Tell me about the clothes in your country.",
+        "ko": "당신의 나라 사람들이 평소 입는 옷과 일할 때 및 여가 때 입는 옷을 설명해 주세요."
+      },
+      {
+        "id": "fashion-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "What kind of clothes do you like to wear personally? What kind of fashion style do you prefer? What are you wearing today? Give me all the details about your fashion style.",
+        "ko": "좋아하는 옷과 패션 스타일, 오늘 입은 옷을 자세히 말해 주세요."
+      },
+      {
+        "id": "fashion-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Fashion styles are always changing. Tell me about the kinds of clothes that were popular when you were younger. What did fashion styles look like back then? How were they different from what is popular now?",
+        "ko": "어릴 때 유행했던 옷과 당시 패션이 오늘날과 어떻게 다른지 말해 주세요."
+      },
+      {
+        "id": "fashion-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of clothes do people in your country typically wear? Are there different clothes for work and for play? Tell me about the clothes in your country.",
+        "ko": "당신의 나라 사람들이 평소 입는 옷과 일할 때 및 여가 때 입는 옷을 설명해 주세요."
+      },
+      {
+        "id": "fashion-combo2-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "What do you do when you go to buy new clothes? Where do you go? Who do you go with? Tell me everything about what you do when you buy new clothes?",
+        "ko": "새 옷을 살 때 어디에서 누구와 무엇을 하는지 모두 말해 주세요."
+      },
+      {
+        "id": "fashion-combo2-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Fashion styles are always changing. Tell me about the kinds of clothes that were popular when you were younger. What did fashion styles look like back then? How were they different from what is popular now?",
+        "ko": "어릴 때 유행했던 옷과 당시 패션이 오늘날과 어떻게 다른지 말해 주세요."
+      },
+      {
+        "id": "fashion-combo3-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of clothes do people in your country typically wear? Are there different clothes for work and for play? Tell me about the clothes in your country.",
+        "ko": "당신의 나라 사람들이 평소 입는 옷과 일할 때 및 여가 때 입는 옷을 설명해 주세요."
+      },
+      {
+        "id": "fashion-combo3-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "What do you do when you go shopping? Where do you go and what do you look for? Tell me about your typical shopping habits in detail.",
+        "ko": "쇼핑할 때 어디에 가고 무엇을 찾는지 평소 쇼핑 습관을 자세히 말해 주세요."
+      },
+      {
+        "id": "fashion-combo3-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Fashion styles are always changing. Tell me about the kinds of clothes that were popular when you were younger. What did fashion styles look like back then? How were they different from what is popular now?",
+        "ko": "어릴 때 유행했던 옷과 당시 패션이 오늘날과 어떻게 다른지 말해 주세요."
+      },
+      {
+        "id": "fashion-combo4-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of clothes do people in your country typically wear? Are there different clothes for work and for play? Tell me about the clothes in your country.",
+        "ko": "당신의 나라 사람들이 평소 입는 옷과 일할 때 및 여가 때 입는 옷을 설명해 주세요."
+      },
+      {
+        "id": "fashion-combo4-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Fashion styles are always changing. Tell me about the kinds of clothes that were popular when you were younger. What did fashion styles look like back then? How were they different from what is popular now?",
+        "ko": "어릴 때 유행했던 옷과 당시 패션이 오늘날과 어떻게 다른지 말해 주세요."
+      },
+      {
+        "id": "fashion-combo4-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you bought a new piece of clothing. What did you need to buy and where did you find it? Were there any challenges or problems? Give me all the details.",
+        "ko": "가장 최근에 새 옷을 샀던 경험과 어려움이나 문제를 자세히 말해 주세요."
+      },
+      {
+        "id": "fashion-combo5-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "What kinds of clothes do people in your country typically wear? Are there different clothes for work and for play? Tell me about the clothes in your country.",
+        "ko": "당신의 나라 사람들이 평소 입는 옷과 일할 때 및 여가 때 입는 옷을 설명해 주세요."
+      },
+      {
+        "id": "fashion-combo5-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Fashion styles are always changing. Tell me about the kinds of clothes that were popular when you were younger. What did fashion styles look like back then? How were they different from what is popular now?",
+        "ko": "어릴 때 유행했던 옷과 당시 패션이 오늘날과 어떻게 다른지 말해 주세요."
+      },
+      {
+        "id": "fashion-combo5-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about the last time you bought a new piece of clothing. What did you need to buy and where did you find it? Were there any challenges or problems? Give me all the details.",
+        "ko": "가장 최근에 새 옷을 샀던 경험과 어려움이나 문제를 자세히 말해 주세요."
+      },
+      {
+        "id": "fashion-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are at a clothing store and need to get some clothes. Ask three or four questions about the clothes you would like to buy.",
+        "ko": "옷 가게에서 사고 싶은 옷에 관해 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "fashion-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem that I need you to resolve. The clothes you have ordered have arrived. But one of the shirts has a problem. Call the clothing store and explain the problem. Give 2 to 3 alternatives to solve the problem.",
+        "ko": "배송된 셔츠의 문제를 옷 가게에 설명하고 두세 가지 해결책을 제시하세요."
+      },
+      {
+        "id": "fashion-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever been unhappy with something that you bought or some service you received? What was the problem? How did you deal with the situation? Tell me everything in detail.",
+        "ko": "구매한 물건이나 받은 서비스에 불만이 있었던 경험과 대처 방법을 자세히 말해 주세요."
+      }
+    ]
+  },
+  {
+    "id": "geography",
+    "category": "surprise",
+    "ko": "지형",
+    "en": "Geography",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.geography,
+    "questions": [
+      {
+        "id": "geography-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe your country's geography for me. Are there mountains, lakes, or rivers? What is your country like?",
+        "ko": "당신 나라의 산, 호수, 강 등 지형을 설명해 주세요."
+      },
+      {
+        "id": "geography-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "Tell me about the outdoor activities that are popular in your country. Do people go hiking, bike or swim? What do people typically do outdoors?",
+        "ko": "당신의 나라에서 인기 있는 야외 활동을 말해 주세요."
+      },
+      {
+        "id": "geography-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about an early memory of your country’s geography. Perhaps, you visited a special place or went to an important natural landmark. Describe what you saw when you visited that special place.",
+        "ko": "특별한 장소나 자연 명소에서 본 것을 포함해 나라의 지형에 관한 어린 시절 기억을 말해 주세요."
+      },
+      {
+        "id": "geography-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe your country's geography for me. Are there mountains, lakes, or rivers? What is your country like?",
+        "ko": "당신 나라의 산, 호수, 강 등 지형을 설명해 주세요."
+      },
+      {
+        "id": "geography-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "I'd like you to pick a favorite place in your country from your childhood and describe that place for me. What are your memories of that place? What was it like when you were a child?",
+        "ko": "어린 시절 좋아했던 나라 안의 장소와 그곳에 관한 기억을 설명해 주세요."
+      },
+      {
+        "id": "geography-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "People often have memorable or moving experiences when they explore their country's geography. You might have climbed a famous mountain or might have been to a beautiful beach. Tell me a memorable story of when you visited a natural place in your country.",
+        "ko": "나라 안의 자연 명소를 방문했을 때 기억에 남았던 이야기를 말해 주세요."
+      },
+      {
+        "id": "geography-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Describe your country's geography for me. Are there mountains, lakes, or rivers? What is your country like?",
+        "ko": "당신 나라의 산, 호수, 강 등 지형을 설명해 주세요."
+      },
+      {
+        "id": "geography-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "I'd like you to pick a favorite place in your country from your childhood and describe that place for me. What are your memories of that place? What was it like when you were a child?",
+        "ko": "어린 시절 좋아했던 나라 안의 장소와 그곳에 관한 기억을 설명해 주세요."
+      },
+      {
+        "id": "geography-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "People often have memorable or moving experiences when they explore their country's geography. You might have climbed a famous mountain or might have been to a beautiful beach. Tell me a memorable story of when you visited a natural place in your country.",
+        "ko": "나라 안의 자연 명소를 방문했을 때 기억에 남았던 이야기를 말해 주세요."
+      },
+      {
+        "id": "geography-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I'd like to give you a situation and ask you to act it out. You are planning on going on a trip to a country where your friend lives. Call your friend and ask about the geography there. And then, ask two or three more questions regarding your travel",
+        "ko": "친구가 사는 나라로 여행을 계획하며 그곳의 지형과 여행에 관해 질문하세요."
+      },
+      {
+        "id": "geography-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I'm sorry, but there is a problem I need you to resolve. You realize that you can't go on the trip because of some reason. Call your friend, explain the situation to him or her, and make plans for a trip next time.",
+        "ko": "여행을 갈 수 없게 된 상황을 친구에게 설명하고 다음 여행 계획을 세우세요."
+      },
+      {
+        "id": "geography-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That's the end of the situation. Have you ever visited another country where the geography was different from your own country? If so, how was it different?",
+        "ko": "자국과 지형이 다른 나라를 방문한 경험과 차이를 말해 주세요."
+      },
+      {
+        "id": "geography-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Talk about a country that is geographically similar to your country. What are the changes that the country has gone through in recent years?",
+        "ko": "당신의 나라와 지리적으로 비슷한 나라와 그 나라가 최근 겪은 변화를 말해 주세요."
+      },
+      {
+        "id": "geography-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Tell me about an article you read about the country you have mentioned. What was the article about? Was it related to the politics or the economy of the country?",
+        "ko": "앞서 말한 나라에 관해 읽은 기사와 정치 또는 경제 관련 내용을 설명해 주세요."
+      }
+    ]
+  },
+  {
+    "id": "transportation",
+    "category": "surprise",
+    "ko": "교통",
+    "en": "Transportation",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets.transportation,
+    "questions": [
+      {
+        "id": "transportation-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know how people get to work or school in your area. Do they drive cars or take buses? Tell me how people typically get around your area.",
+        "ko": "지역 사람들이 직장이나 학교에 가는 방법과 평소 이동 수단을 말해 주세요."
+      },
+      {
+        "id": "transportation-combo1-q3",
+        "number": "3",
+        "type": "routine",
+        "source": "provided",
+        "en": "What means of transportation do you use to get around? Do you drive your own car or take public transportation?",
+        "ko": "평소 이용하는 교통수단을 말해 주세요."
+      },
+      {
+        "id": "transportation-combo1-q4",
+        "number": "4",
+        "type": "experience",
+        "source": "provided",
+        "en": "How did you travel when you were a child? Were the types of transportation different back then? Describe for me how people used to get around in your city or town.",
+        "ko": "어린 시절 사람들의 이동 수단과 오늘날과의 차이를 설명해 주세요."
+      },
+      {
+        "id": "transportation-combo2-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know how people get to work or school in your area. Do they drive cars or take buses? Tell me how people typically get around your area.",
+        "ko": "지역 사람들이 직장이나 학교에 가는 방법과 평소 이동 수단을 말해 주세요."
+      },
+      {
+        "id": "transportation-combo2-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "How did you travel when you were a child? Were the types of transportation different back then? Describe for me how people used to get around in your city or town.",
+        "ko": "어린 시절 사람들의 이동 수단과 오늘날과의 차이를 설명해 주세요."
+      },
+      {
+        "id": "transportation-combo2-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Problems related to transportation often arise. Cars break down, trains run late or traffic could get bad. Tell me about a transportation problem that you once had. What did you do to deal with the situation?",
+        "ko": "겪었던 교통 문제와 그 상황에 어떻게 대처했는지 말해 주세요."
+      },
+      {
+        "id": "transportation-combo3-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "I’d like to know how people get to work or school in your area. Do they drive cars or take buses? Tell me how people typically get around your area.",
+        "ko": "지역 사람들이 직장이나 학교에 가는 방법과 평소 이동 수단을 말해 주세요."
+      },
+      {
+        "id": "transportation-combo3-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "How did you travel when you were a child? Were the types of transportation different back then? Describe for me how people used to get around in your city or town.",
+        "ko": "어린 시절 사람들의 이동 수단과 오늘날과의 차이를 설명해 주세요."
+      },
+      {
+        "id": "transportation-combo3-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Problems related to transportation often arise. Cars break down, trains run late or traffic could get bad. Tell me about a transportation problem that you once had. What did you do to deal with the situation?",
+        "ko": "겪었던 교통 문제와 그 상황에 어떻게 대처했는지 말해 주세요."
+      },
+      {
+        "id": "transportation-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I’d like to give you a situation and ask you to act it out. You are driving your car through a small town and have car trouble. Go to the nearest service station and ask for help. Ask three or four questions in order to get the information you need to get your car fixed.",
+        "ko": "작은 마을에서 자동차 문제가 생겨 정비소에 도움을 요청하고 서너 가지 질문을 하세요."
+      },
+      {
+        "id": "transportation-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I’m sorry, but there is a problem which I need you to resolve. Because of the car trouble, you will miss an important business meeting. Call your client and explain the situation and offer some alternative solutions.",
+        "ko": "자동차 문제로 중요한 회의에 늦게 된 상황을 고객에게 설명하고 대안을 제시하세요."
+      },
+      {
+        "id": "transportation-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That’s the end of the situation. Tell me about the last time you had trouble with your car. What was the problem and how did you deal with it? Give me lots of details.",
+        "ko": "가장 최근 자동차 문제를 겪었던 경험과 해결 방법을 자세히 말해 주세요."
+      }
+    ]
   }
 ];
 
