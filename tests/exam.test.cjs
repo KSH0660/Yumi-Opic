@@ -38,9 +38,7 @@ test('other topic practice uses actual slots 2-15 for one topic, without intro a
       assert.ok(exam.items.every((i) => i.topicId === topic.id));
       assert.equal(exam.focusTopicId, topic.id);
       for (const [index, item] of exam.items.entries()) {
-        if (topic.questions.some((q) => q.type === item.question.type && q.source === 'verified')) {
-          assert.equal(item.question.source, 'verified');
-        }
+        assert.ok(topic.questions.includes(item.question));
         for (const dependency of item.question.dependsOn ?? []) {
           assert.ok(ids(exam.items.slice(0, index)).includes(dependency));
         }
@@ -80,7 +78,7 @@ const FULL_EXAM_GROUPS = [
   { slots: [2, 3, 4], types: ['description', 'routine', 'experience'] },
   { slots: [5, 6, 7], types: ['description', 'experience', 'memorable'] },
   { slots: [8, 9, 10], types: ['description', 'experience', 'memorable'] },
-  { slots: [11, 12, 13], types: ['roleplay_ask', 'roleplay_problem', 'roleplay_experience'], surveyOnly: true },
+  { slots: [11, 12, 13], types: ['roleplay_ask', 'roleplay_problem', 'roleplay_experience'] },
   { slots: [14, 15], types: ['comparison', 'issue'] },
 ];
 const groupItems = (exam, group) => group.slots.map((slot) => exam.items.find((i) => i.slot === slot));
@@ -100,27 +98,32 @@ test('full exam draws three survey sets and two surprise sets, placing the surpr
 
     const surprise = groups.filter((group) => surpriseById.has(group.items[0].topicId));
     assert.equal(surprise.length, engine.FULL_EXAM_SURPRISE_GROUPS);
-    assert.ok(surprise.every((group) => !group.surveyOnly), '롤플레이 구간은 돌발에서 나오지 않는다');
     placements.add(surprise.map((group) => group.slots[0]).join('-'));
+    // 11~13번은 서베이든 돌발이든 실제 롤플레이 문항으로만 채운다. 자료 순서 세트로 대신하지 않는다.
+    const roleplay = groups.find((group) => group.slots[0] === 11);
+    assert.ok(roleplay.items.every((i) => i.question.type.startsWith('roleplay_')),
+      `롤플레이 구간에 ${roleplay.items[0].topicId} 의 비롤플레이 세트가 들어갔다`);
 
     for (const group of groups) {
       const topic = surpriseById.get(group.items[0].topicId);
-      if (!topic) {
-        // 배경 설문 구간은 번호별 유형을 그대로 따르고, 선언된 고정 세트가 있으면 그대로 쓴다.
+      const declared = (topic ?? bank.surveyTopicById.get(group.items[0].topicId)).fixedPracticeSets;
+      if (declared) {
+        // 고정 세트는 서베이·돌발 모두 선언된 묶음을 통째로, 자료의 유형·순서 그대로 낸다.
+        // 구간은 번호별 유형이 아니라 자료의 표시 번호로 정하므로 유형은 구간 기준과 다를 수 있다.
+        const drawn = declared.find((set) =>
+          JSON.stringify(set.items.map((i) => i.questionId)) === JSON.stringify(ids(group.items)));
+        assert.ok(drawn, `${group.items[0].topicId}: 선언되지 않은 세트가 나왔다`);
+        // 5~7번과 8~10번은 유형 구성이 같은 한 쌍이라 서로의 자리에 들어갈 수 있다.
+        const allowed = FULL_EXAM_GROUPS.filter((candidate) => candidate.types.join() === group.types.join());
+        assert.ok(allowed.some((candidate) =>
+          JSON.stringify(drawn.items.map((i) => i.displayNumber)) === JSON.stringify(candidate.slots.map(String))),
+          `${group.items[0].topicId}: 표시 번호 ${drawn.items.map((i) => i.displayNumber).join('·')} 가 ${group.slots.join('·')} 구간에 맞지 않는다`);
+      } else if (!topic) {
+        // 고정 세트가 없는 배경 설문 구간은 번호별 유형을 그대로 따른다.
         assert.deepEqual(group.items.map((i) => i.question.type), group.types);
-        const surveyTopic = bank.surveyTopicById.get(group.items[0].topicId);
-        if (surveyTopic.fixedPracticeSets) {
-          assert.ok(surveyTopic.fixedPracticeSets.some((set) =>
-            JSON.stringify(set.items.map((i) => i.questionId)) === JSON.stringify(ids(group.items))));
-        }
       } else if (group.types.includes('comparison')) {
         // 돌발 어드밴스 구간만 비교 → 이슈 순서를 지킨다.
         assert.deepEqual(group.items.map((i) => i.question.type), group.types);
-      } else if (topic.fixedPracticeSets) {
-        // 고정 세트를 선언한 돌발은 배경 설문과 똑같이 선언된 세트를 통째로 낸다.
-        assert.deepEqual(group.items.map((i) => i.question.type), group.types);
-        assert.ok(topic.fixedPracticeSets.some((set) =>
-          JSON.stringify(set.items.map((i) => i.questionId)) === JSON.stringify(ids(group.items))));
       } else {
         // 돌발 일반 구간은 자료의 첫 문항으로 시작해 자료 순서대로, 비교·이슈를 빼고 낸다.
         // 유형은 주제가 가진 자료를 따르므로 구간의 번호별 유형과 다를 수 있다.
@@ -138,8 +141,9 @@ test('full exam draws three survey sets and two surprise sets, placing the surpr
       }
     }
   }
-  // 롤플레이를 뺀 네 구간에서 두 곳을 고르는 여섯 조합이 모두 나온다.
-  assert.deepEqual([...placements].sort(), ['2-14', '2-5', '2-8', '5-14', '5-8', '8-14']);
+  // 롤플레이 세트를 선언한 돌발이 생겨 다섯 구간에서 두 곳을 고르는 열 조합이 모두 나온다.
+  assert.deepEqual([...placements].sort(),
+    ['11-14', '2-11', '2-14', '2-5', '2-8', '5-11', '5-14', '5-8', '8-11', '8-14']);
 });
 
 test('full exam never substitutes unselected survey topics and requires at least three valid topics', () => {
@@ -184,13 +188,15 @@ test('every surprise topic can fill a general set, only comparison-issue topics 
   const surpriseById = new Map(data.surpriseTopics.map((t) => [t.id, t]));
   const general = new Set();
   const advanced = new Set();
+  const roleplay = new Set();
   const drawnSets = new Map();
   for (let seed = 0; seed < 1500; seed++) {
     const exam = engine.buildFullExam({ rng: seeded(seed) });
     for (const group of FULL_EXAM_GROUPS) {
       const items = groupItems(exam, group);
       if (!surpriseById.has(items[0].topicId)) continue;
-      (group.types.includes('comparison') ? advanced : general).add(items[0].topicId);
+      const bucket = group.types.includes('comparison') ? advanced : group.slots[0] === 11 ? roleplay : general;
+      bucket.add(items[0].topicId);
       if (!group.types.includes('comparison')) {
         const drawn = drawnSets.get(items[0].topicId) ?? new Set();
         drawn.add(items.map((i) => i.question.number).join('·'));
@@ -199,17 +205,16 @@ test('every surprise topic can fill a general set, only comparison-issue topics 
       assert.deepEqual(items.map((i) => engine.itemNumber(exam.mode, i)), group.slots.map(String));
     }
   }
-  // 산업은 선언된 2~4·5~7·8~10 세트가 묘사·묘사로 시작해 번호별 유형과 어긋나므로 일반
-  // 구간을 채우지 못하고 14~15번 어드밴스 구간에만 들어간다. 자료를 고치거나 고정 세트
-  // 돌발의 유형 강제를 풀면 이 예외도 함께 없애야 한다.
-  const GENERAL_SET_BLOCKED = ['industry'];
-  assert.deepEqual([...general].sort(), data.surpriseTopics
-    .map((t) => t.id).filter((id) => !GENERAL_SET_BLOCKED.includes(id)).sort());
+  // 고정 세트는 표시 번호로 구간을 정하므로 산업의 묘사·묘사 세트도 일반 구간에 들어간다.
+  assert.deepEqual([...general].sort(), data.surpriseTopics.map((t) => t.id).sort());
   assert.deepEqual([...advanced].sort(), data.surpriseTopics
     .filter((t) => t.questions.some((q) => q.type === 'comparison') && t.questions.some((q) => q.type === 'issue'))
     .map((t) => t.id).sort());
+  // 11~13번은 롤플레이 세트를 선언한 돌발만 채운다. 자료 순서 세트로는 못 들어간다.
+  assert.deepEqual([...roleplay].sort(), data.surpriseTopics
+    .filter((t) => t.questions.some((q) => q.type === 'roleplay_ask')).map((t) => t.id).sort());
 
-  const generalGroups = FULL_EXAM_GROUPS.filter((group) => !group.surveyOnly && !group.types.includes('comparison'));
+  const generalGroups = FULL_EXAM_GROUPS.filter((group) => !group.types.includes('comparison'));
   for (const [topicId, drawn] of drawnSets) {
     const topic = surpriseById.get(topicId);
     if (topic.fixedPracticeSets) {
@@ -246,6 +251,9 @@ const randomSetTypes = [
 test('1-topic random practice reaches all four set types and keeps each set on one topic', () => {
   const drawable = data.allTopics.filter((t) => !EXCLUDED.includes(t.id));
   const seen = new Map(drawable.map((topic) => [topic.id, new Set()]));
+  // 고정 세트는 자료의 유형·순서를 보존하므로 유형 조합만으로는 어느 패턴을 뽑았는지 알 수 없다.
+  const seenPatterns = new Map(drawable.map((topic) => [topic.id, new Set()]));
+  const PATTERN_LABELS = [/2~4번형/, /5~7·8~10번형/, /11~13번형/, /14~15번형/];
   for (let index = 0; index < drawable.length; index++) {
     for (let variant = 0; variant < 12; variant++) {
       const rest = seeded(index * 12 + variant);
@@ -267,14 +275,19 @@ test('1-topic random practice reaches all four set types and keeps each set on o
         for (const dependency of item.question.dependsOn ?? []) {
           assert.ok(ids(exam.items.slice(0, position)).includes(dependency), item.question.id);
         }
-        if (topic.category === 'survey' && topic.questions.some((q) => q.type === item.question.type && q.source === 'verified')) {
-          assert.equal(item.question.source, 'verified');
-        }
+
       });
       if (topic.category === 'survey') {
-        const patternIndex = randomSetTypes.findIndex((pattern) => pattern.join() === types.join());
-        assert.equal(patternIndex, variant % 4);
-        assert.match(exam.items[0].comboLabel, [/2~4번형/, /5~7·8~10번형/, /11~13번형/, /14~15번형/][patternIndex]);
+        const patternIndex = variant % 4;
+        assert.match(exam.items[0].comboLabel, PATTERN_LABELS[patternIndex]);
+        seenPatterns.get(topic.id).add(patternIndex);
+        if (topic.fixedPracticeSets) {
+          // 고정 세트 서베이도 선언된 세트를 통째로 내며, 유형은 자료를 따른다.
+          assert.ok(topic.fixedPracticeSets.some((set) =>
+            JSON.stringify(set.items.map((i) => i.questionId)) === JSON.stringify(ids(exam.items))), topic.id);
+        } else {
+          assert.deepEqual(types, randomSetTypes[patternIndex]);
+        }
       } else if (topic.fixedPracticeSets) {
         // 고정 세트 돌발은 유형 패턴과 무관하게 선언된 세트를 통째로 낸다.
         assert.ok(topic.fixedPracticeSets.some((set) =>
@@ -289,7 +302,7 @@ test('1-topic random practice reaches all four set types and keeps each set on o
     }
   }
   for (const topic of engine.drawableSurveyTopics) {
-    assert.deepEqual([...seen.get(topic.id)].sort(), randomSetTypes.map((types) => types.join()).sort());
+    assert.deepEqual([...seenPatterns.get(topic.id)].sort(), [0, 1, 2, 3], topic.id);
   }
   for (const topic of data.surpriseTopics) {
     assert.ok(seen.get(topic.id).size > 0, topic.id);
@@ -371,14 +384,14 @@ test('random practice draws only from the chosen scope and records it on the exa
   for (const value of [null, undefined, '', 'all', 'SURVEY', 'roleplay']) assert.equal(engine.parseRandomScope(value), 'all');
 });
 
-test('single question mode reaches only eligible verified or provided survey questions', () => {
+test('single question mode draws every source and excludes dependent questions', () => {
   const allowed = new Set(bank.surveyTopics.flatMap((t) => t.questions.filter((q) =>
-    (q.source === 'verified' || q.source === 'provided') && !q.dependsOn?.length).map((q) => q.id)));
+    !q.dependsOn?.length).map((q) => q.id)));
   for (let seed = 0; seed < 500; seed++) {
     const exam = engine.buildSingleQuestion(bank.surveyTopics, seeded(seed));
     assert.equal(exam.items.length, 1);
     assert.ok(allowed.has(exam.items[0].question.id));
-    assert.ok(['verified', 'provided'].includes(exam.items[0].question.source));
+    assert.ok(!exam.items[0].question.dependsOn?.length);
   }
   assert.throws(() => engine.buildSingleQuestion([]));
 });

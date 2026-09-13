@@ -1,5 +1,7 @@
-import type { Exam, ExamItem, Question, QuestionType, RandomScope, Topic } from "./types";
+import type { Exam, ExamItem, FixedPracticeSet, Question, QuestionType, RandomScope, Topic } from "./types";
 import { DEFAULT_SURVEY_IDS, SURVEY_BANK_VERSION, allTopics, introQuestion, surpriseTopics, surveyTopics } from "../data";
+
+import { questionExposureKey, type ExamExposure } from "./examExposure";
 
 export type RandomSource = () => number;
 
@@ -47,13 +49,12 @@ export function shuffle<T>(items: readonly T[], rng: RandomSource = Math.random)
 }
 
 function singleCandidates(topic: Topic): Question[] {
-  return topic.questions.filter((q) => (q.source === "verified" || q.source === "provided") && !q.dependsOn?.length);
+  return topic.questions.filter((q) => !q.dependsOn?.length);
 }
 
 function questionOfType(topic: Topic, type: QuestionType, rng: RandomSource): Question {
   const typed = topic.questions.filter((q) => q.type === type);
-  const verified = typed.filter((q) => q.source === "verified");
-  return pickRandom(verified.length ? verified : typed, rng);
+  return pickRandom(typed, rng);
 }
 
 function item(slot: number, topic: Topic, question: Question, comboLabel: string): ExamItem {
@@ -103,6 +104,8 @@ function base(mode: Exam["mode"]): Pick<Exam, "id" | "createdAt" | "mode" | "ban
 export interface BuildExamOptions {
   enabledSurveyIds?: string[];
   includeIntro?: boolean;
+  /** 실제 청취·지문 열기로 쌓은 누적 출제 기록. 준비 화면의 추첨은 기록하지 않는다. */
+  exposure?: ExamExposure;
   rng?: RandomSource;
 }
 
@@ -121,25 +124,25 @@ const ROLEPLAY_TYPES: QuestionType[] = ["roleplay_ask", "roleplay_problem", "rol
 
 /**
  * 실전 모의고사의 다섯 구간. 실제 시험처럼 세 구간은 배경 설문에서, 두 구간은 돌발에서 뽑고
- * 어느 구간이 돌발이 될지는 회차마다 무작위로 정한다. 롤플레이는 돌발 뱅크에 문항이 없어
- * 항상 배경 설문에서 나온다. types 는 배경 설문 구간의 번호별 유형이며, 돌발이 들어가는
- * 일반 구간은 자료 순서를 따르므로 이 유형을 지키지 않는다.
+ * 어느 구간이 돌발이 될지는 보유 세트와 출제 이력에 따라 정한다. 고정 세트는 자료의
+ * 표시 번호로 구간을 정하고 원래 유형·순서를 보존한다. types 는 고정 세트가 없는
+ * 배경 설문의 유형 기준이며, 고정 세트 없는 돌발 일반 구간은 자료 순서를 따른다.
  */
 const FULL_EXAM_GROUPS = [
-  { slot: 2, label: "세트 1", types: GENERAL_TYPES[0], surveyOnly: false },
-  { slot: 5, label: "세트 2", types: GENERAL_TYPES[1], surveyOnly: false },
-  { slot: 8, label: "세트 3", types: GENERAL_TYPES[1], surveyOnly: false },
-  { slot: 11, label: "롤플레이 세트", types: ROLEPLAY_TYPES, surveyOnly: true },
-  { slot: 14, label: "어드밴스 세트", types: ADVANCED_TYPES, surveyOnly: false },
+  { slot: 2, label: "세트 1", types: GENERAL_TYPES[0] },
+  { slot: 5, label: "세트 2", types: GENERAL_TYPES[1] },
+  { slot: 8, label: "세트 3", types: GENERAL_TYPES[1] },
+  { slot: 11, label: "롤플레이 세트", types: ROLEPLAY_TYPES },
+  { slot: 14, label: "어드밴스 세트", types: ADVANCED_TYPES },
 ] as const;
 
 /** 한 회차에 돌발에서 뽑는 구간 수. 나머지 구간은 모두 배경 설문에서 뽑는다. */
 export const FULL_EXAM_SURPRISE_GROUPS = 2;
 export const MIN_FULL_EXAM_SURVEY_TOPICS = FULL_EXAM_GROUPS.length - FULL_EXAM_SURPRISE_GROUPS;
 
-/** 돌발이 들어갈 수 있는 구간 조합. 롤플레이 구간은 후보에서 빠진다. */
+/** 다섯 구간 중 두 곳을 돌발에 배정한다. 해당 구간을 완성할 수 있는 주제만 쓴다. */
 const SURPRISE_GROUP_CHOICES: number[][] = FULL_EXAM_GROUPS
-  .flatMap((group, index) => (group.surveyOnly ? [] : [index]))
+  .map((_, index) => index)
   .flatMap((first, i, eligible) => eligible.slice(i + 1).map((second) => [first, second]));
 
 function coherentSet(questions: readonly Question[]): boolean {
@@ -147,25 +150,46 @@ function coherentSet(questions: readonly Question[]): boolean {
     (q.dependsOn ?? []).every(id => questions.slice(0, i).some(earlier => earlier.id === id)));
 }
 
+/** 제공 자료의 번호가 있으면 일반 구간의 비교·습관 등 변형도 원래 세트에 포함한다. */
+function fixedSetMatches(group: FixedPracticeSet, questions: readonly Question[], types: readonly QuestionType[]): boolean {
+  const patterns = FULL_EXAM_GROUPS.filter(candidate => candidate.types.length === types.length
+    && candidate.types.every((type, index) => type === types[index]));
+  if (patterns.length && group.items.every(entry => entry.displayNumber !== undefined)) {
+    return patterns.some(pattern => group.items.length === pattern.types.length
+      && group.items.every((entry, index) => entry.displayNumber === String(pattern.slot + index)));
+  }
+  // 표시 번호가 없는 기존/사용자 정의 세트는 유형으로 구간을 판단한다.
+  return questions.length === types.length && questions.every((question, index) => question.type === types[index]);
+}
+
 /** Resolve declared sets intact. Legacy banks enumerate complete eligible bundles before any draw. */
 export function completeQuestionSets(topic: Topic, types?: readonly QuestionType[]): Question[][] {
   let sets: Question[][];
   let enforced = types;
   if (topic.fixedPracticeSets) {
-    sets = topic.fixedPracticeSets.map(group => group.items.map(({ questionId }) => {
-      const question = topic.questions.find(q => q.id === questionId);
-      if (!question) throw new Error(`${topic.id}: missing set question ${questionId}`);
-      return question;
-    }));
-  } else if (topic.category === "surprise" && types?.length && types.every(type => ADVANCED_TYPES.includes(type))) {
-    // 비교·이슈 구간만 유형 순서를 지킨다. 두 유형을 모두 가진 돌발 주제만 여기에 들어간다.
+    sets = topic.fixedPracticeSets.flatMap(group => {
+      const questions = group.items.map(({ questionId }) => {
+        const question = topic.questions.find(q => q.id === questionId);
+        if (!question) throw new Error(`${topic.id}: missing set question ${questionId}`);
+        return question;
+      });
+      return !types || fixedSetMatches(group, questions, types) ? [questions] : [];
+    });
+    enforced = undefined;
+  } else if (topic.category === "surprise" && types?.length
+      && types.every(type => ADVANCED_TYPES.includes(type) || ROLEPLAY_TYPES.includes(type))) {
+    /*
+     * 비교·이슈와 롤플레이 구간만 유형 순서를 지킨다. 두 구간은 자료 순서 세트로 대신할 수
+     * 없으므로, 해당 유형을 모두 가진 돌발 주제만 들어간다. 유형이 없으면 세트가 비어
+     * 자연히 후보에서 빠진다.
+     */
     sets = types.reduce<Question[][]>((built, type) => built.flatMap(set =>
       topic.questions.filter(q => q.type === type && !set.some(earlier => earlier.id === q.id)).map(q => [...set, q])), [[]]);
   } else if (topic.category === "surprise") {
     /*
      * 돌발은 주제마다 가진 유형이 제각각이라 번호별 유형을 강요하지 않는다. 자료의 첫
      * 문항으로 시작하고 나머지 둘은 자료 순서를 지켜 무작위로 고른다. 1·2·3 뿐 아니라
-     * 1·3·4, 1·3·5도 나온다. 비교·이슈는 어드밴스 구간 몫이라 여기서 뺀다.
+     * 1·3·4, 1·3·5도 나온다. 비교·이슈와 롤플레이는 각 구간 몫이라 위에서 처리한다.
      */
     const [first, ...rest] = topic.questions.filter(q => !ADVANCED_TYPES.includes(q.type));
     sets = first ? rest.flatMap((second, i) => rest.slice(i + 1).map(third => [first, second, third])) : [];
@@ -175,51 +199,97 @@ export function completeQuestionSets(topic: Topic, types?: readonly QuestionType
     sets = [[]];
     for (const type of types ?? []) {
       const typed = topic.questions.filter(q => q.type === type);
-      const verified = typed.filter(q => q.source === "verified");
-      sets = sets.flatMap(set => (verified.length ? verified : typed).map(q => [...set, q]));
+      // 기출 복원과 보완 문항을 모두 후보에 둔다. 출처만으로 도달 불가능한 문항을 만들지 않는다.
+      sets = sets.flatMap(set => typed.map(q => [...set, q]));
     }
   }
   return sets.filter(set => set.length > 0 && coherentSet(set) && (!enforced ||
     (set.length === enforced.length && set.every((q, i) => q.type === enforced[i]))));
 }
 
-interface GroupCandidate { topic: Topic; sets: Question[][] }
+/** 앞의 값부터 비교: 미출제 문항 수 → 적게 본 문항 → 오래전에 본 문항. */
+type DrawPriority = readonly [number, number, number];
+const ZERO_PRIORITY: DrawPriority = [0, 0, 0];
+const addPriority = (a: DrawPriority, b: DrawPriority): DrawPriority => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+function comparePriority(a: DrawPriority, b: DrawPriority): number {
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+  return 0;
+}
 
-/** 구간마다 세트가 완성되는 주제를 하나씩 배정한다. 같은 주제는 한 회차에 한 번만 쓴다. */
-function assignGroupTopics(surpriseGroups: readonly number[], survey: readonly Topic[], rng: RandomSource): GroupCandidate[] | undefined {
-  const pools = FULL_EXAM_GROUPS.map((group, index) => shuffle(
-    (surpriseGroups.includes(index) ? surpriseTopics : survey)
-      .map(topic => ({ topic, sets: completeQuestionSets(topic, group.types) }))
-      .filter(candidate => candidate.sets.length > 0), rng));
-  const usedTopicIds = new Set<string>();
-  // Backtrack when a later group needs a topic already taken by an earlier one.
-  function assign(index: number): GroupCandidate[] | undefined {
-    if (index === pools.length) return [];
-    for (const candidate of pools[index]) {
-      if (usedTopicIds.has(candidate.topic.id)) continue;
-      usedTopicIds.add(candidate.topic.id);
-      const rest = assign(index + 1);
-      if (rest) return [candidate, ...rest];
-      usedTopicIds.delete(candidate.topic.id);
+interface GroupCandidate { topic: Topic; sets: Question[][]; priority: DrawPriority }
+interface GroupAssignment { groups: GroupCandidate[]; priority: DrawPriority }
+
+function groupCandidates(survey: readonly Topic[], exposure: ExamExposure): GroupCandidate[][] {
+  const priorityByKey = new Map<string, DrawPriority>();
+  for (const topic of [...survey, ...surpriseTopics]) {
+    for (const question of topic.questions) {
+      const key = questionExposureKey(question);
+      const seen = exposure[key];
+      priorityByKey.set(key, seen ? [0, -seen.count, -seen.lastSeen] : [1, 0, 0]);
     }
-    return undefined;
   }
-  return assign(0);
+  return FULL_EXAM_GROUPS.map(group => [...survey, ...surpriseTopics].flatMap(topic => {
+    let priority: DrawPriority | undefined;
+    let sets: Question[][] = [];
+    for (const set of completeQuestionSets(topic, group.types)) {
+      const keys = new Set(set.map(questionExposureKey));
+      const score = [...keys].reduce<DrawPriority>((sum, key) => addPriority(sum, priorityByKey.get(key)!), ZERO_PRIORITY);
+      const compared = priority ? comparePriority(score, priority) : 1;
+      if (compared > 0) { priority = score; sets = [set]; }
+      else if (compared === 0) sets.push(set);
+    }
+    return priority ? [{ topic, sets, priority }] : [];
+  }));
+}
+
+/** 뒤 구간의 희소한 주제까지 고려해, 주제 중복 없이 전체 우선순위가 가장 높은 배정을 찾는다. */
+function assignGroupTopics(
+  surpriseGroups: readonly number[], candidates: readonly GroupCandidate[][], rng: RandomSource,
+): GroupAssignment | undefined {
+  const pools = candidates.map((pool, index) => shuffle(pool.filter(candidate =>
+    (candidate.topic.category === "surprise") === surpriseGroups.includes(index)), rng));
+  const topicIds = [...new Set(pools.flat().map(candidate => candidate.topic.id))];
+  const bits = new Map(topicIds.map((id, i) => [id, 1n << BigInt(i)]));
+  const cache = new Map<string, GroupAssignment | undefined>();
+  function assign(index: number, used: bigint): GroupAssignment | undefined {
+    if (index === pools.length) return { groups: [], priority: ZERO_PRIORITY };
+    const key = `${index}:${used}`;
+    if (cache.has(key)) return cache.get(key);
+    let best: GroupAssignment | undefined;
+    for (const candidate of pools[index]) {
+      const bit = bits.get(candidate.topic.id)!;
+      if (used & bit) continue;
+      const rest = assign(index + 1, used | bit);
+      if (!rest) continue;
+      const priority = addPriority(candidate.priority, rest.priority);
+      if (!best || comparePriority(priority, best.priority) > 0) {
+        best = { groups: [candidate, ...rest.groups], priority };
+      }
+    }
+    cache.set(key, best);
+    return best;
+  }
+  return assign(0, 0n);
 }
 
 export function buildFullExam(options: BuildExamOptions = {}): Exam {
-  const { includeIntro = true, rng = Math.random } = options;
+  const { includeIntro = true, exposure = {}, rng = Math.random } = options;
   const requested = new Set(options.enabledSurveyIds ?? DEFAULT_SURVEY_IDS);
   const enabled = drawableSurveyTopics.filter(topic => requested.has(topic.id));
   if (enabled.length < MIN_FULL_EXAM_SURVEY_TOPICS) {
     const excluded = surveyTopics.filter(topic => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map(topic => topic.ko).join("·");
     throw new Error(`실전 모의고사를 만들려면 서베이 주제를 ${MIN_FULL_EXAM_SURVEY_TOPICS}개 이상 선택해 주세요. ${excluded} 주제는 모의고사에 나오지 않아 개수에서 빠집니다.`);
   }
-  // 돌발 구간 조합을 무작위 순서로 훑어 세트가 완성되는 첫 배정을 쓴다.
+  const candidates = groupCandidates(enabled, exposure);
+  let selected: GroupAssignment | undefined;
+  // 돌발 위치도 함께 비교해야 일반·롤플레이에 밀려 드문 비교 문항이 계속 빠지지 않는다.
+  // 같은 우선순위의 위치·주제·세트는 무작위로 고른다.
   for (const surpriseGroups of shuffle(SURPRISE_GROUP_CHOICES, rng)) {
-    const selected = assignGroupTopics(surpriseGroups, enabled, rng);
-    if (!selected) continue;
-    const items = selected.flatMap(({ topic, sets }, index) => {
+    const assignment = assignGroupTopics(surpriseGroups, candidates, rng);
+    if (assignment && (!selected || comparePriority(assignment.priority, selected.priority) > 0)) selected = assignment;
+  }
+  if (selected) {
+    const items = selected.groups.flatMap(({ topic, sets }, index) => {
       const group = FULL_EXAM_GROUPS[index];
       const label = topic.category === "surprise" ? `${group.label} · 돌발` : group.label;
       return pickRandom(sets, rng).map((question, i) => item(group.slot + i, topic, question, label));
@@ -230,6 +300,7 @@ export function buildFullExam(options: BuildExamOptions = {}): Exam {
       // 어느 구간이 돌발인지는 미리 알려 주지 않는다. 실제 시험처럼 문항을 열어야 알 수 있다.
       notices: [
         "각 구간은 한 주제의 완성된 세트로 출제하며, 같은 주제는 한 회차에 한 번만 나옵니다.",
+        "아직 듣거나 지문을 열어 보지 않은 문제가 많은 세트를 우선합니다. 모두 본 문제라면 적게 본 문제, 오래전에 본 문제 순으로 고릅니다.",
         `다섯 구간 가운데 ${FULL_EXAM_SURPRISE_GROUPS}개가 돌발 세트입니다. 어느 구간에 들어갈지는 회차마다 달라집니다.`,
         "11~13번은 실제 시험처럼 한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 롤플레이 세트입니다.",
       ],
@@ -326,10 +397,7 @@ export function buildTopicSet(topics: readonly Topic[] = allTopics, rng: RandomS
   }
   if (!patterns.length) throw new Error("이 주제에는 랜덤 연습 세트를 만들 문항이 부족합니다.");
   const pattern = pickRandom(patterns, rng);
-  // 연결이 성립하는 세트 안에서 기출 복원 문항을 우선한다.
-  const verifiedCount = (set: Question[]) => set.filter((q) => q.source === "verified").length;
-  const mostVerified = Math.max(...pattern.sets.map(verifiedCount));
-  const questions = pickRandom(pattern.sets.filter((set) => verifiedCount(set) === mostVerified), rng);
+  const questions = pickRandom(pattern.sets, rng);
   return { ...base("set"), focusTopicId: topic.id,
     items: questions.map((question, i) => item(i + 1, topic, question, pattern.label)) };
 }

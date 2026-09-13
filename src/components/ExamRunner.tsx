@@ -25,6 +25,7 @@ import {
   type MicProbe,
 } from "@/lib/micShare";
 import { itemNumber } from "@/lib/exam";
+import { recordFullExamQuestion } from "@/lib/storage";
 import { topicById } from "@/data";
 import { examExitLink, randomPracticeLink } from "@/lib/nav";
 import { joinTranscript } from "@/lib/transcript";
@@ -124,6 +125,15 @@ export default function ExamRunner({
   const fixedPracticeSets = isPractice ? topicById.get(exam.focusTopicId ?? "")?.fixedPracticeSets : undefined;
   const isFixedPractice = !!fixedPracticeSets;
   const [index, setIndex] = useState(0);
+  const exposureAttemptRef = useRef(exam.id);
+  const exposedSlotsRef = useRef(new Set<number>());
+  const rememberQuestion = useCallback((targetSlot: number) => {
+    if (exposedSlotsRef.current.has(targetSlot)) return;
+    const entry = exam.items.find(entry => entry.slot === targetSlot);
+    if (!entry) return;
+    recordFullExamQuestion(exam, entry.question, exposureAttemptRef.current);
+    exposedSlotsRef.current.add(targetSlot);
+  }, [exam]);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [times, setTimes] = useState<Record<number, number>>({});
   const [replays, setReplays] = useState<Record<number, number>>({});
@@ -453,10 +463,11 @@ export default function ExamRunner({
       audioId: questionId,
       rate: SPEECH_RATE,
       onDuration: setSpeechMs,
+      onStart: () => rememberQuestion(targetSlot),
       onEnd: startAnswering,
       onError: startAnswering,
     });
-  }, [beginAnswerCapture, replays, stopAnswerCapture, typing]);
+  }, [beginAnswerCapture, rememberQuestion, replays, stopAnswerCapture, typing]);
 
   useEffect(() => {
     stopAnswerCapture("discard");
@@ -536,6 +547,8 @@ export default function ExamRunner({
   }
 
   function resetAttempt() {
+    exposureAttemptRef.current += ":retry";
+    exposedSlotsRef.current.clear();
     stopAnswerCapture("discard");
     Object.values(recordingsRef.current).forEach((recording) => URL.revokeObjectURL(recording.url));
     setRecordings({});
@@ -549,6 +562,7 @@ export default function ExamRunner({
   }
 
   function holdReveal(kind: Reveal) {
+    if (kind !== "keywords") rememberQuestion(slot);
     setReveal(kind);
     setHintUse((prev) => ({ ...prev, [slot]: (prev[slot] ?? 0) + 1 }));
   }

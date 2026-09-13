@@ -12,25 +12,28 @@ const { questionAudioUrl } = require('../.test-build/lib/questionAudio');
 const manifest = require('../src/data/audio-manifest.json');
 
 /** 고정 세트 자료로 다시 받은 돌발 주제. 번호와 순서는 세트 선언이 정한다. */
-const FIXED_SET_TOPIC_IDS = ['recycling', 'industry'];
+const FIXED_SET_TOPIC_IDS = bank.surpriseTopics.filter(t => t.fixedPracticeSets).map(t => t.id);
 
 test('supplied surprise questions preserve the topic, numbering, title, wording and order', () => {
   const source = readFileSync(path.join(__dirname, 'fixtures/surprise-questions.md'), 'utf8');
   const sections = source.split(/^## \d+\. /m).slice(1);
-  assert.equal(bank.surpriseTopics.length, 7);
-  assert.equal(bank.surpriseQuestionCount, 67);
-  assert.deepEqual(bank.surpriseTopics.map(t => t.questions.length), [19, 25, 5, 6, 4, 4, 4]);
+  // 주제·문항 수를 못박지 않는다. 대신 집계 값이 실제 문항과 어긋나는 것만 잡는다.
+  // 주제별 문항 수는 아래에서 선언된 세트·fixture 와 통째로 맞춰 보므로 따로 세지 않는다.
+  assert.ok(bank.surpriseTopics.length > 0);
+  assert.ok(bank.surpriseTopics.every(t => t.questions.length > 0), '문항이 없는 돌발 주제가 있다');
+  assert.equal(bank.surpriseQuestionCount,
+    bank.surpriseTopics.reduce((sum, t) => sum + t.questions.length, 0));
 
-  // 자료 그대로 받은 다섯 주제는 fixture 와 한 글자도 달라지면 안 된다.
+  // 아직 자료 그대로인 주제는 fixture 와 한 글자도 달라지면 안 된다. 고정 세트로 다시 받은
+  // 주제는 아래에서 선언된 세트로 검증하므로, fixture 에 남은 옛 섹션은 비교하지 않는다.
   const supplied = bank.surpriseTopics.filter(t => !FIXED_SET_TOPIC_IDS.includes(t.id));
-  assert.equal(sections.length, supplied.length);
-  sections.forEach((section, i) => {
-    const topic = supplied[i];
-    assert.equal(topic.en, section.split('\n')[0]);
+  for (const topic of supplied) {
+    const section = sections.find(entry => entry.split('\n')[0] === topic.en);
+    assert.ok(section, `fixture 에 ${topic.en} 섹션이 없다`);
     const expected = [...section.matchAll(/\*\*(\d+(?:-[AB])?)\. (.*?)\*\*\s*\n(.*?)(?=\n\n|$)/gs)]
       .map(([, number, title, en]) => ({ number, title, en: en.trim() }));
     assert.deepEqual(topic.questions.map(({ number, title, en }) => ({ number, title, en })), expected);
-  });
+  }
 
   // 고정 세트 주제는 fixture 대신 선언된 세트가 번호와 순서의 근거가 된다.
   for (const id of FIXED_SET_TOPIC_IDS) {
@@ -104,7 +107,7 @@ test('repeated display numbers survive history roundtrip separately and repeat t
 
 test('single-question practice can reach every standalone surprise question, never an orphaned follow-up', () => {
   const eligible = bank.allTopics.flatMap(topic => topic.questions.filter(q =>
-    (q.source === 'verified' || q.source === 'provided') && !q.dependsOn?.length));
+    !q.dependsOn?.length));
   const seen = new Set();
   for (let i = 0; i < eligible.length; i++) {
     const exam = engine.buildSingleQuestion(undefined, () => (i + 0.5) / eligible.length);
