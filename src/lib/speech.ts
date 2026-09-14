@@ -47,6 +47,11 @@ interface SpeechRecognitionLike extends EventTarget {
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: Event) => void) | null;
   onend: (() => void) | null;
+  /** 마이크가 실제로 열렸다. 말을 안 해도 온다. */
+  onaudiostart: (() => void) | null;
+  /** 말소리가 들어오기 시작했다. */
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
 }
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -318,8 +323,26 @@ export function stopSpeaking(): void {
 
 /** 곧바로 다시 켜면 인식기가 두 개 겹쳐 도는 기기가 있어 한 박자 쉰다. */
 const RESTART_DELAY_MS = 300;
+/**
+ * 휴대폰은 발화마다 세션이 끝나므로 이 쉬는 시간이 그대로 말이 끊기는 구멍이 된다.
+ * 다시 켜는 일은 onend 를 받은 뒤에만 하니 앞 세션은 이미 닫혀 있고, 겹쳐 도는 것을
+ * 막자고 데스크톱만큼 길게 쉴 까닭이 없다. 한 문장 말할 때마다 0.3초씩 흘리면
+ * 답변 한 개에서 낱말 여럿이 사라진다.
+ */
+const MOBILE_RESTART_DELAY_MS = 120;
 /** 마이크가 아예 안 잡히는 환경에서 무한 재시작을 막는 한도. */
 const MAX_RESTARTS = 60;
+/**
+ * 켠 뒤 이 시간 안에 `audiostart` 가 오지 않으면 인식기가 마이크를 잡지 못한 것이다.
+ * 조용히 있는 것과 구별된다. 조용해도 마이크는 열리므로 `audiostart` 는 온다.
+ */
+const AUDIO_OPEN_TIMEOUT_MS = 4000;
+/** 켜자마자 빈손으로 끝난 세션으로 볼 길이. */
+const QUICK_END_MS = 1000;
+/** 그런 세션이 이만큼 잇따르면 다시 켜도 소용이 없다. 돌던 것을 멈추고 알린다. */
+const MAX_QUICK_ENDS = 4;
+/** `start()` 가 거절될 때 다시 해 보는 한도. */
+const MAX_START_RETRIES = 3;
 
 /*
  * 마이크는 한 번에 한 곳만 쓰는 기기가 있다. 휴대폰에서 이 인식기와 녹음용
@@ -345,9 +368,25 @@ const MAX_RESTARTS = 60;
  * 발화 사이에 다시 켜느라 말을 흘릴 일이 없다.
  */
 
+/**
+ * 받아쓰기가 지금 무엇을 하고 있는지.
+ *
+ * 휴대폰은 받아쓰기가 마이크를 혼자 쓰기 때문에 입력 레벨을 잴 수 없다. 화면에
+ * 아무 표시가 없으면 사용자는 인식기가 도는지 멈췄는지 알 길이 없어 말없이 90초를
+ * 흘려보낸다. 그래서 인식기가 알려 주는 것만이라도 그대로 올려 보낸다.
+ *
+ *  - `starting`  켜는 중(다시 켜는 사이 포함)
+ *  - `listening` 마이크가 열렸다(`audiostart`)
+ *  - `speaking`  말소리를 듣고 있다(`speechstart`)
+ *  - `paused`    화면이 꺼졌거나 다른 앱으로 넘어가 켤 수 없다. 돌아오면 스스로 다시 켠다
+ */
+export type DictationActivity = "starting" | "listening" | "speaking" | "paused";
+
 export interface DictationHandlers {
   /** 세션이 시작된 뒤 지금까지 받아 적은 전체 텍스트를 매번 통째로 넘긴다. */
   onUpdate: (draft: TranscriptDraft) => void;
+  /** 인식기가 지금 무엇을 하고 있는지. 바뀔 때만 온다. */
+  onActivity?: (activity: DictationActivity) => void;
   onError?: (code: string) => void;
   onEnd?: () => void;
 }
@@ -373,6 +412,10 @@ export interface DictationHandle {
  */
 let liveDictation: DictationHandle | null = null;
 
+function isPageHidden(): boolean {
+  return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
 /**
  * 마이크 받아쓰기를 시작한다.
  *
@@ -385,7 +428,9 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
   const Ctor = getRecognitionCtor();
   if (!Ctor) return null;
   liveDictation?.abort();
-  const continuous = isDesktopAgent(window.navigator);
+  const desktop = isDesktopAgent(window.navigator);
+  const continuous = desktop;
+  const restartDelayMs = desktop ? RESTART_DELAY_MS : MOBILE_RESTART_DELAY_MS;
 
   /** 이 세션이 돌려준 손잡이. 자리를 내놓을 때 저것이 나인지 보는 데 쓴다. */
   let handle: DictationHandle | null = null;
@@ -404,6 +449,28 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
   let restartTimer = 0;
   let active: SpeechRecognitionLike | null = null;
 
+  /** 지금까지 한 번이라도 마이크가 열렸는지(`audiostart`). */
+  let micOpened = false;
+  /** 지금까지 한 번이라도 받아 적었는지. */
+  let heard = false;
+  /** 마이크가 안 열린다고 이미 알렸는지. 같은 말을 되풀이하지 않는다. */
+  let silentReported = false;
+  /** 켜자마자 빈손으로 끝난 세션이 몇 번 이어졌는지. */
+  let quickEnds = 0;
+  /** `start()` 가 잇따라 거절된 횟수. */
+  let startRetries = 0;
+  let sessionStartedAt = 0;
+  let sessionHeard = false;
+  let audioTimer = 0;
+  let activity: DictationActivity | null = null;
+  let detachVisibility: (() => void) | null = null;
+
+  const setActivity = (next: DictationActivity) => {
+    if (dead || activity === next) return;
+    activity = next;
+    handlers.onActivity?.(next);
+  };
+
   const emit = () => {
     const draft = collectTranscript(chunks);
     handlers.onUpdate({
@@ -419,13 +486,42 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
     chunks = [];
   };
 
+  const clearAudioTimer = () => {
+    if (!audioTimer) return;
+    window.clearTimeout(audioTimer);
+    audioTimer = 0;
+  };
+
+  const clearRestartTimer = () => {
+    if (!restartTimer) return;
+    window.clearTimeout(restartTimer);
+    restartTimer = 0;
+  };
+
+  /**
+   * 마이크가 열리기를 기다린다. 조용히 있는 것과 마이크를 못 잡은 것은 다르다.
+   * 말을 안 해도 `audiostart` 는 오므로, 그것조차 오지 않으면 다른 앱이 마이크를
+   * 쥐고 있거나 인식기가 켜진 척만 하고 있는 것이다. 아이폰 사파리가 버튼을 누른
+   * 직후가 아닐 때 이렇게 된다.
+   */
+  const armAudioTimer = () => {
+    clearAudioTimer();
+    if (micOpened || heard || silentReported) return;
+    audioTimer = window.setTimeout(() => {
+      audioTimer = 0;
+      if (dead || closing || ended || micOpened || heard || silentReported) return;
+      silentReported = true;
+      handlers.onError?.("mic-silent");
+    }, AUDIO_OPEN_TIMEOUT_MS);
+  };
+
   const finish = () => {
     if (ended) return;
     ended = true;
-    if (restartTimer) {
-      window.clearTimeout(restartTimer);
-      restartTimer = 0;
-    }
+    clearRestartTimer();
+    clearAudioTimer();
+    detachVisibility?.();
+    detachVisibility = null;
     if (liveDictation === handle) liveDictation = null;
     handlers.onEnd?.();
   };
@@ -435,6 +531,9 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
     recognition.onresult = null;
     recognition.onerror = null;
     recognition.onend = null;
+    recognition.onaudiostart = null;
+    recognition.onspeechstart = null;
+    recognition.onspeechend = null;
   };
 
   const create = (): SpeechRecognitionLike => {
@@ -448,6 +547,15 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       /* 설정을 막아 둔 기기가 있다 */
     }
 
+    recognition.onaudiostart = () => {
+      if (dead) return;
+      micOpened = true;
+      clearAudioTimer();
+      setActivity("listening");
+    };
+    recognition.onspeechstart = () => setActivity("speaking");
+    recognition.onspeechend = () => setActivity("listening");
+
     recognition.onresult = (event) => {
       if (dead) return;
       // results 는 이 세션에서 받아 적은 전부다. resultIndex 부터 골라 이어 붙이지 않고
@@ -460,7 +568,12 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
         const transcript = result[0]?.transcript ?? "";
         next.push({ isFinal: result.isFinal, transcript });
         // 한 글자라도 받아 적는 중이면 재시작 한도를 되돌린다
-        if (transcript.trim()) restarts = 0;
+        if (transcript.trim()) {
+          restarts = 0;
+          heard = true;
+          sessionHeard = true;
+          clearAudioTimer();
+        }
       }
       chunks = next;
       emit();
@@ -477,12 +590,23 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
     };
 
     recognition.onend = () => {
+      // 켜자마자 아무것도 못 받고 끝났는지 본다. 조용해서 끝난 세션은 몇 초를 버틴다.
+      const quick = !sessionHeard && Date.now() - sessionStartedAt < QUICK_END_MS;
+      quickEnds = quick ? quickEnds + 1 : 0;
       foldRun();
       if (!dead) emit();
       detach(recognition);
       if (active === recognition) active = null;
+      clearAudioTimer();
 
       if (dead || closing) {
+        finish();
+        return;
+      }
+      if (quickEnds >= MAX_QUICK_ENDS) {
+        // 인식기가 켜진 척만 하고 곧바로 닫는다. 다시 켜 봐야 같은 일이 되풀이되므로
+        // 여기서 멈추고 알린다. 사용자가 화면에서 다시 켜면 된다.
+        handlers.onError?.("mic-silent");
         finish();
         return;
       }
@@ -496,40 +620,72 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       // 휴대폰은 발화마다, 데스크톱도 한참 조용하면 세션이 끝난다. 사용자가 멈추기
       // 전이면 다시 켠다.
       restarts += 1;
-      restartTimer = window.setTimeout(() => {
-        restartTimer = 0;
-        if (dead || closing) {
-          finish();
-          return;
-        }
-        try {
-          active = create();
-          active.start();
-        } catch {
-          finish();
-        }
-      }, RESTART_DELAY_MS);
+      setActivity("starting");
+      scheduleRestart(restartDelayMs);
     };
 
     return recognition;
   };
 
+  /** 새 인식 세션을 연다. 화면이 꺼져 있으면 켜지 않고 돌아올 때를 기다린다. */
+  const launch = () => {
+    if (dead || closing) {
+      finish();
+      return;
+    }
+    // 다른 앱으로 넘어갔거나 화면이 꺼진 동안에는 인식기가 켜지지 않는다. 여기서
+    // 계속 두드리면 시작 실패만 쌓이므로, 돌아왔을 때 visibilitychange 가 다시 켠다.
+    if (isPageHidden()) {
+      setActivity("paused");
+      return;
+    }
+    try {
+      sessionStartedAt = Date.now();
+      sessionHeard = false;
+      active = create();
+      active.start();
+      startRetries = 0;
+      setActivity(micOpened ? "listening" : "starting");
+      armAudioTimer();
+    } catch {
+      // 앞 세션이 아직 완전히 닫히지 않아 거절되는 일이 있다. 조금 더 기다렸다 다시 해 본다.
+      detach(active);
+      active = null;
+      startRetries += 1;
+      if (startRetries > MAX_START_RETRIES) {
+        handlers.onError?.("start-blocked");
+        finish();
+        return;
+      }
+      scheduleRestart(restartDelayMs * 2 * startRetries);
+    }
+  };
+
+  function scheduleRestart(delayMs: number): void {
+    clearRestartTimer();
+    restartTimer = window.setTimeout(() => {
+      restartTimer = 0;
+      launch();
+    }, delayMs);
+  }
+
   try {
+    sessionStartedAt = Date.now();
     active = create();
     active.start();
   } catch {
     detach(active);
     return null;
   }
+  setActivity("starting");
+  armAudioTimer();
 
   handle = {
     stop: () => {
       if (dead || closing) return;
       closing = true;
-      if (restartTimer) {
-        window.clearTimeout(restartTimer);
-        restartTimer = 0;
-      }
+      clearRestartTimer();
+      clearAudioTimer();
       // stop() 은 인식 중이던 마지막 문장을 final 로 흘려보낸 뒤 onend 를 부른다.
       if (!active) {
         foldRun();
@@ -549,10 +705,8 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       if (dead) return;
       dead = true;
       closing = true;
-      if (restartTimer) {
-        window.clearTimeout(restartTimer);
-        restartTimer = 0;
-      }
+      clearRestartTimer();
+      clearAudioTimer();
       const current = active;
       active = null;
       detach(current);
@@ -567,6 +721,22 @@ export function startDictation(handlers: DictationHandlers): DictationHandle | n
       finish();
     },
   };
+
+  /*
+   * 휴대폰은 화면이 꺼지거나 다른 앱으로 넘어가면 인식기를 닫는다. 돌아왔을 때
+   * 스스로 다시 켜지 않으면 사용자는 말하고 있는데 한 글자도 남지 않는다.
+   */
+  if (typeof document !== "undefined") {
+    const onVisibility = () => {
+      if (dead || closing || ended) return;
+      if (isPageHidden() || active) return;
+      clearRestartTimer();
+      launch();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    detachVisibility = () => document.removeEventListener("visibilitychange", onVisibility);
+  }
+
   liveDictation = handle;
   return handle;
 }
