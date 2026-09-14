@@ -2,6 +2,7 @@ import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_CRITERIA,
   feedbackOutputTokenLimit,
+  readFeedbackEffort,
   requiresFrontLoadedOpening,
   type FeedbackResponse,
   type OpicFeedback,
@@ -243,6 +244,9 @@ export async function POST(request: Request) {
   // 고친 답변은 이 텍스트를 바탕으로 만들라고 지시한다. 프롬프트의 규칙과 같은 순서다.
   const answerBasis = audioTranscript || browserTranscript;
 
+  // 추론 강도는 배포 환경에서 바꾼다. 출력 상한도 같은 값을 보고 늘어난다.
+  const effort = readFeedbackEffort(process.env.OPENAI_FEEDBACK_EFFORT);
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -260,8 +264,8 @@ export async function POST(request: Request) {
         audioTranscript,
         elapsedSec,
       }),
-      reasoning: { effort: "low" },
-      max_output_tokens: feedbackOutputTokenLimit(answerBasis.length),
+      reasoning: { effort },
+      max_output_tokens: feedbackOutputTokenLimit(answerBasis.length, effort),
       store: false,
       text: {
         verbosity: "low",

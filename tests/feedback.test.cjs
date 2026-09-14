@@ -18,6 +18,7 @@ test('완료한 N문항의 좋음만 집계하고 미평가와 범위 밖 피드
 });
 const {
   requiresFrontLoadedOpening, isOpicFeedback, readFeedbackResponse, feedbackRewrite, feedbackOutputTokenLimit,
+  readFeedbackEffort, DEFAULT_FEEDBACK_EFFORT,
 } = require('../.test-build/lib/feedback');
 
 test('서술형 문항은 두괄식 기준으로 보고 롤플레이는 빼 준다', () => {
@@ -86,12 +87,34 @@ test('Before / After 는 바탕 답변과 고친 답변이 모두 있을 때만 
 });
 
 test('출력 토큰은 고친 답변만큼 답변 길이에 맞춰 늘리되 상한을 넘지 않는다', () => {
-  const short = feedbackOutputTokenLimit(300);
-  const long = feedbackOutputTokenLimit(1500);
+  const short = feedbackOutputTokenLimit(300, 'minimal');
+  const long = feedbackOutputTokenLimit(1500, 'minimal');
   assert.ok(short >= 1_200, '피드백만 받던 예전 상한보다 작지 않다');
   assert.ok(long > short);
-  assert.equal(feedbackOutputTokenLimit(-10), feedbackOutputTokenLimit(0));
-  assert.equal(feedbackOutputTokenLimit(1_000_000), 6_000);
+  assert.equal(feedbackOutputTokenLimit(-10, 'minimal'), feedbackOutputTokenLimit(0, 'minimal'));
+  assert.equal(feedbackOutputTokenLimit(1_000_000, 'minimal'), 6_000);
+});
+
+test('추론 강도를 올리면 추론 몫만큼 출력 상한이 함께 늘어난다', () => {
+  // 넓혀 주지 않으면 추론하다 예산을 다 써 JSON 이 통째로 잘린다.
+  const efforts = ['minimal', 'low', 'medium', 'high'];
+  const limits = efforts.map((effort) => feedbackOutputTokenLimit(600, effort));
+  for (let i = 1; i < limits.length; i += 1) assert.ok(limits[i] > limits[i - 1], efforts[i]);
+  // 답변 길이가 상한에 걸려도 추론 몫은 따로 얹는다.
+  assert.equal(feedbackOutputTokenLimit(1_000_000, 'high'), 10_000);
+  // 기본값은 high 라서 강도를 생략해도 자리가 좁아지지 않는다.
+  assert.equal(feedbackOutputTokenLimit(600), feedbackOutputTokenLimit(600, DEFAULT_FEEDBACK_EFFORT));
+  assert.equal(DEFAULT_FEEDBACK_EFFORT, 'high');
+});
+
+test('추론 강도 환경변수는 아는 값만 받고 나머지는 기본값으로 돌아간다', () => {
+  for (const effort of ['minimal', 'low', 'medium', 'high']) {
+    assert.equal(readFeedbackEffort(effort), effort);
+  }
+  assert.equal(readFeedbackEffort(' HIGH '), 'high');
+  for (const bad of [undefined, null, '', '  ', 'lowest', 'xhigh', '3']) {
+    assert.equal(readFeedbackEffort(bad), DEFAULT_FEEDBACK_EFFORT, String(bad));
+  }
 });
 
 test('피드백 항목은 5개까지만 읽는다', () => {

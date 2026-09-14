@@ -1,4 +1,4 @@
-import { feedbackOutputTokenLimit } from "./feedback";
+import { DEFAULT_FEEDBACK_EFFORT, feedbackOutputTokenLimit, type FeedbackEffort } from "./feedback";
 
 /**
  * AI 피드백 한 번에 드는 대략적인 비용.
@@ -42,6 +42,11 @@ export interface FeedbackCostInput {
   transcriptChars: number;
   /** 녹음본 길이(초). 0이면 전사를 건너뛰어 그만큼 싸진다. */
   audioSec: number;
+  /**
+   * 추론 강도(`OPENAI_FEEDBACK_EFFORT`). 강도를 올리면 추론에 떼어 두는 출력 토큰이
+   * 늘어 최대 비용도 함께 오른다. 생략하면 기본 강도로 본다.
+   */
+  effort?: FeedbackEffort;
 }
 
 export interface FeedbackCost {
@@ -62,8 +67,10 @@ export function estimateFeedbackCost(input: FeedbackCostInput, rates: CostRates 
   const inputTokens = PROMPT_OVERHEAD_TOKENS + transcriptTokens;
 
   const inputUsd = (inputTokens / 1_000_000) * rates.inputPerMTok;
-  // route.ts 의 max_output_tokens 와 같은 값이다. 고친 답변만큼 답변이 길수록 늘어난다.
-  const outputUsd = (feedbackOutputTokenLimit(input.transcriptChars) / 1_000_000) * rates.outputPerMTok;
+  // route.ts 의 max_output_tokens 와 같은 값이다. 고친 답변만큼 답변이 길수록, 추론 강도가
+  // 높을수록 늘어난다.
+  const outputTokens = feedbackOutputTokenLimit(input.transcriptChars, input.effort ?? DEFAULT_FEEDBACK_EFFORT);
+  const outputUsd = (outputTokens / 1_000_000) * rates.outputPerMTok;
   const transcribeUsd = (audioSec / 60) * rates.transcribePerMin;
 
   const modelKrw = (inputUsd + outputUsd) * rates.krwPerUsd;
