@@ -26,10 +26,10 @@ import {
   type MicMode,
   type MicProbe,
 } from "@/lib/micShare";
-import { itemNumber } from "@/lib/exam";
+import { itemNumber, parsePracticeTypeGroup } from "@/lib/exam";
 import { recordFullExamQuestion } from "@/lib/storage";
 import { topicById } from "@/data";
-import { examExitLink, randomPracticeLink } from "@/lib/nav";
+import { examExitLink, randomPracticeLink, typePracticeTitle } from "@/lib/nav";
 import { joinTranscript } from "@/lib/transcript";
 import AvaAvatar from "./AvaAvatar";
 import MicLevelMeter from "./MicLevelMeter";
@@ -184,8 +184,11 @@ export default function ExamRunner({
   title: string;
   onRegenerate?: () => void;
 }) {
-  const isPractice = exam.mode === "practice";
-  const fixedPracticeSets = isPractice ? topicById.get(exam.focusTopicId ?? "")?.fixedPracticeSets : undefined;
+  const isTopicPractice = exam.mode === "practice";
+  const isTypePractice = exam.mode === "type";
+  // 주제별·유형별 연습은 둘 다 원하는 문항만 골라 풀고 음성 분석도 함께 본다.
+  const isPractice = isTopicPractice || isTypePractice;
+  const fixedPracticeSets = isTopicPractice ? topicById.get(exam.focusTopicId ?? "")?.fixedPracticeSets : undefined;
   const isFixedPractice = !!fixedPracticeSets;
   const [index, setIndex] = useState(0);
   const exposureAttemptRef = useRef(exam.id);
@@ -250,7 +253,7 @@ export default function ExamRunner({
 
   const item = exam.items[index];
   const slot = item.slot;
-  const isSurprisePractice = isPractice && item.question.source === "provided";
+  const isSurprisePractice = isTopicPractice && item.question.source === "provided";
   const answer = answers[slot] ?? "";
   /** 질문이 나오는 동안에는 답변 시간을 세지 않는다. 음성이 끝나면 0:00 부터 다시 센다. */
   const elapsed = phase === "playing" ? 0 : times[slot] ?? 0;
@@ -263,6 +266,7 @@ export default function ExamRunner({
   recordingsRef.current = recordings;
 
   const exit = useMemo(() => examExitLink(exam.mode), [exam.mode]);
+  const typeGroup = useMemo(() => parsePracticeTypeGroup(exam.typeGroupId), [exam.typeGroupId]);
   /** 답변은 결과 화면에 닿아야 저장된다. 그 전에 나가면 말한 내용이 사라진다. */
   const unsaved = !submitted && exam.items.some((entry) => hasAnswerText(answers[entry.slot]) || recordings[entry.slot]);
 
@@ -894,8 +898,9 @@ export default function ExamRunner({
   const hints = item.question.hints ?? [];
   const replayIconVisible = phase === "answering";
   const modeLabel = exam.mode === "practice" ? "주제별 연습"
-    : exam.mode === "set" || exam.mode === "single" ? randomPracticeLink(exam.mode, exam.randomScope).label
-      : "실전 모의고사";
+    : isTypePractice && typeGroup ? typePracticeTitle(typeGroup, exam.randomScope)
+      : exam.mode === "set" || exam.mode === "single" ? randomPracticeLink(exam.mode, exam.randomScope).label
+        : "실전 모의고사";
 
   return (
     <main className={`mx-auto w-full ${isFixedPractice ? "max-w-6xl" : "max-w-5xl"} px-4 pb-28 pt-6 sm:px-6`}>
@@ -907,7 +912,7 @@ export default function ExamRunner({
         >{exit.label}</Link>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-fg-subtle">{modeLabel}</span>
-          <QuestionContextReveal key={slot} item={item} showSet={exam.mode === "set"} />
+          <QuestionContextReveal key={slot} item={item} showSet={exam.mode === "set" || isTypePractice} />
         </div>
       </div>
 
@@ -1014,7 +1019,7 @@ export default function ExamRunner({
               </div>}
 
               {isPractice && (
-                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{fixedPracticeSets ? `${fixedPracticeSets.map((set) => set.label).join(" / ")} 순서입니다. 좁은 화면에서는 각 줄의 문항 번호를 가로로 스크롤할 수 있습니다.` : isSurprisePractice ? "제공 자료의 번호와 순서대로 연습합니다. 번호는 실제 시험 번호가 아닌 자료의 문항 번호입니다." : "2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
+                <p className="mt-4 text-xs leading-relaxed text-exam-ink-muted">{fixedPracticeSets ? `${fixedPracticeSets.map((set) => set.label).join(" / ")} 순서입니다. 좁은 화면에서는 각 줄의 문항 번호를 가로로 스크롤할 수 있습니다.` : isSurprisePractice ? "제공 자료의 번호와 순서대로 연습합니다. 번호는 실제 시험 번호가 아닌 자료의 문항 번호입니다." : isTypePractice ? `${typeGroup?.label ?? "고른 유형"} 유형만 모았습니다. 번호는 실제 시험 번호가 아닌 연습 순서입니다.` : "2~15번은 선택한 주제의 문제입니다."} 이전·다음이나 번호로 이동하고, 원하는 문항만 답변한 뒤 결과를 볼 수 있습니다.</p>
               )}
 
               {index === 0 && (

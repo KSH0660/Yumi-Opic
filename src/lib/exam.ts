@@ -443,3 +443,159 @@ export function buildRandomPractice(mode: "single" | "set", scope: RandomScope =
   const exam = mode === "single" ? buildSingleQuestion(topics, rng) : buildTopicSet(topics, rng);
   return { ...exam, randomScope: scope };
 }
+
+/**
+ * 유형별 연습에서 고르는 묶음. 번호는 실제 시험에서 그 유형이 자주 나오는 자리이며,
+ * 시험마다 그대로 맞아떨어지지는 않는다. 유형이 하나인 묶음은 주제를 바꿔 가며 한
+ * 문항씩 뽑고, 유형이 여럿인 롤플레이·비교·이슈는 한 주제에서 이어지는 세트로 뽑는다.
+ */
+export interface PracticeTypeGroup {
+  id: string;
+  label: string;
+  /** 실제 시험에서 이 유형이 자주 나오는 번호. */
+  slots: string;
+  types: readonly QuestionType[];
+  note: string;
+}
+
+export const PRACTICE_TYPE_GROUPS: readonly PracticeTypeGroup[] = [
+  { id: "description", label: "묘사", slots: "2·5·8번", types: ["description"],
+    note: "장소나 사람의 특징을 현재 시제로 안정적으로 설명합니다." },
+  { id: "routine", label: "습관", slots: "3번", types: ["routine"],
+    note: "평소 언제, 누구와, 무엇을 하는지 자연스럽게 이어서 말합니다." },
+  { id: "experience", label: "경험", slots: "4·6·9번", types: ["experience"],
+    note: "최근이나 처음 있었던 일을 과거 시제로 시간 순서대로 풀어냅니다." },
+  { id: "memorable", label: "기억에 남는 경험", slots: "7·10번", types: ["memorable"],
+    note: "배경 → 사건 → 행동 → 결과와 감정 순서로 이야기합니다." },
+  { id: "roleplay", label: "롤플레이", slots: "11~13번", types: ROLEPLAY_TYPES,
+    note: "한 주제에서 질문하기 → 문제 해결 → 관련 경험으로 이어지는 세 문항을 함께 풉니다." },
+  { id: "advanced", label: "비교·이슈", slots: "14~15번", types: ADVANCED_TYPES,
+    note: "한 주제에서 변화·비교와 이슈 두 문항을 이어서 풉니다." },
+];
+
+export const practiceTypeGroupById = new Map(PRACTICE_TYPE_GROUPS.map((group) => [group.id, group]));
+
+/** 주소의 type 값. 모르는 값이면 유형을 다시 고르게 한다. */
+export function parsePracticeTypeGroup(value: string | null | undefined): PracticeTypeGroup | undefined {
+  return value ? practiceTypeGroupById.get(value) : undefined;
+}
+
+/** 이어지는 세트로 내는 묶음인지. 롤플레이와 비교·이슈만 한 번에 여러 문항이 나온다. */
+export function isTypePracticeSet(group: PracticeTypeGroup): boolean {
+  return group.types.length > 1;
+}
+
+/** 한 번에 고를 수 있는 추첨 횟수. 세트 묶음은 한 번에 2~3문항이 나와 적게 둔다. */
+export function typePracticeDrawChoices(group: PracticeTypeGroup): readonly number[] {
+  return isTypePracticeSet(group) ? [1, 2, 3] : [3, 5, 10];
+}
+
+export function defaultTypePracticeDraws(group: PracticeTypeGroup): number {
+  return isTypePracticeSet(group) ? 2 : 5;
+}
+
+/** 주소의 draws 값. 고를 수 있는 값이 아니면 기본값으로 둔다. */
+export function parseTypePracticeDraws(group: PracticeTypeGroup, value: string | null | undefined): number {
+  const draws = Number(value);
+  return typePracticeDrawChoices(group).includes(draws) ? draws : defaultTypePracticeDraws(group);
+}
+
+/** 저장된 유형별 연습이 몇 번 뽑은 회차였는지. 기록에서 같은 크기로 다시 뽑을 때 쓴다. */
+export function typePracticeDraws(group: PracticeTypeGroup, itemCount: number): number {
+  return Math.max(1, Math.ceil(itemCount / group.types.length));
+}
+
+/** 유형 하나만 뽑는 연습의 후보. 앞 질문을 전제로 하는 문항은 홀로 낼 수 없어 뺀다. */
+function typeDrillQuestions(topic: Topic, type: QuestionType): Question[] {
+  return topic.questions.filter((question) => question.type === type && !question.dependsOn?.length);
+}
+
+export interface TypePracticeSupply {
+  /** 이 유형을 낼 수 있는 주제 수. */
+  topics: number;
+  /** 뽑을 수 있는 최대 추첨 횟수. 유형이 하나면 문항 수, 세트 묶음이면 주제 수다. */
+  draws: number;
+  /** 그 추첨을 모두 채웠을 때의 문항 수. */
+  questions: number;
+}
+
+/** 지금 범위에서 이 유형으로 낼 수 있는 양. 화면의 안내와 추첨 횟수 선택지에 쓴다. */
+export function typePracticeSupply(group: PracticeTypeGroup, scope: RandomScope = "all"): TypePracticeSupply {
+  const topics = RANDOM_SCOPE_TOPICS[scope];
+  if (!isTypePracticeSet(group)) {
+    const counts = topics.map((topic) => typeDrillQuestions(topic, group.types[0]).length).filter((count) => count > 0);
+    const questions = counts.reduce((sum, count) => sum + count, 0);
+    return { topics: counts.length, draws: questions, questions };
+  }
+  const usable = topics.filter((topic) => questionSetsOfTypes(topic, group.types).length > 0).length;
+  return { topics: usable, draws: usable, questions: usable * group.types.length };
+}
+
+interface TypePick { topic: Topic; questions: Question[] }
+
+/** 주제를 돌아가며 한 문항씩 가져와 한 주제에 몰리지 않게 한다. */
+function drawTypeQuestions(topics: readonly Topic[], type: QuestionType, draws: number, rng: RandomSource): TypePick[] {
+  const pools = shuffle(topics.flatMap((topic) => {
+    const questions = typeDrillQuestions(topic, type);
+    return questions.length ? [{ topic, questions: shuffle(questions, rng) }] : [];
+  }), rng);
+  const picks: TypePick[] = [];
+  for (let round = 0; picks.length < draws; round++) {
+    const before = picks.length;
+    for (const pool of pools) {
+      if (picks.length >= draws) break;
+      const question = pool.questions[round];
+      if (question) picks.push({ topic: pool.topic, questions: [question] });
+    }
+    // 모든 주제의 문항을 다 쓴 회차다. 가진 만큼만 내고 멈춘다.
+    if (picks.length === before) break;
+  }
+  return picks;
+}
+
+/** 이어지는 세트는 주제마다 하나씩 뽑아 같은 주제가 두 번 나오지 않게 한다. */
+function drawTypeSets(topics: readonly Topic[], types: readonly QuestionType[], draws: number, rng: RandomSource): TypePick[] {
+  const candidates = shuffle(topics.flatMap((topic) => {
+    const sets = questionSetsOfTypes(topic, types);
+    return sets.length ? [{ topic, sets }] : [];
+  }), rng);
+  return candidates.slice(0, draws).map(({ topic, sets }) => ({ topic, questions: pickRandom(sets, rng) }));
+}
+
+/**
+ * 유형별 연습. 주제별 연습이 한 주제의 2~15번을 차례로 도는 것과 달리, 약한 유형 하나를
+ * 골라 여러 주제로 반복해서 말해 본다. 묘사·습관·경험·기억에 남는 경험은 주제를 돌아가며
+ * 한 문항씩, 롤플레이와 비교·이슈는 주제마다 이어지는 세트로 낸다. 문항 번호는 실제 시험
+ * 번호가 아니라 연습 순서인 1번부터다.
+ */
+export function buildTypePractice(
+  group: PracticeTypeGroup,
+  scope: RandomScope = "all",
+  draws: number = defaultTypePracticeDraws(group),
+  rng: RandomSource = Math.random,
+): Exam {
+  const topics = RANDOM_SCOPE_TOPICS[scope];
+  const wanted = Math.max(1, Math.floor(draws));
+  const set = isTypePracticeSet(group);
+  const picks = set
+    ? drawTypeSets(topics, group.types, wanted, rng)
+    : drawTypeQuestions(topics, group.types[0], wanted, rng);
+  if (!picks.length) throw new Error(`${group.label} 유형으로 낼 문항이 이 범위에 없습니다. 연습 범위를 바꿔 주세요.`);
+  let slot = 0;
+  const items = picks.flatMap(({ topic, questions }, index) => questions.map((question) => item(
+    ++slot, topic, question,
+    set ? `${group.label} 세트 ${index + 1} · ${group.slots}` : `${group.label} 유형 연습 · ${group.slots}`,
+  )));
+  return {
+    ...base("type"), items, randomScope: scope, typeGroupId: group.id,
+    notices: [
+      `${group.label}(${group.slots}) 유형만 모아 ${items.length}문항을 냅니다. 번호는 실제 시험 번호가 아니라 연습 순서입니다.`,
+      set
+        ? "한 세트는 같은 주제에서 이어지는 문항입니다. 세트마다 주제가 바뀝니다."
+        : "문항마다 주제가 바뀝니다. 같은 유형을 여러 주제로 이어서 말해 보세요.",
+      ...(picks.length < wanted
+        ? [`이 범위에서 낼 수 있는 ${set ? "세트" : "문항"}가 ${picks.length}개뿐이라 요청한 ${wanted}개 중 일부만 냈습니다.`]
+        : []),
+    ],
+  };
+}
