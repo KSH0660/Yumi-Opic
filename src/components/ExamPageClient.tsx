@@ -4,10 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Exam } from "@/lib/types";
 import { surpriseTopics, surveyTopics, topicById } from "@/data";
-import { buildFullExam, buildPracticeExam, buildRandomPractice, EXAM_GROUPS, MIN_FULL_EXAM_SURVEY_TOPICS, DRAW_EXCLUDED_TOPIC_IDS, drawableSurveyTopics, parseRandomScope } from "@/lib/exam";
+import { buildFullExam, buildPracticeExam, buildRandomPractice, buildTypePractice, EXAM_GROUPS, MIN_FULL_EXAM_SURVEY_TOPICS, DRAW_EXCLUDED_TOPIC_IDS, drawableSurveyTopics, parsePracticeTypeGroup, parseRandomScope, parseTypePracticeDraws } from "@/lib/exam";
 import { defaultSettings, loadHistory, loadFullExamExposure, loadSettings, saveEnabledTopics, type HistoryEntry } from "@/lib/storage";
 import { formatHistoryStamp } from "@/lib/history";
-import { examExitLink, randomPracticeLink } from "@/lib/nav";
+import { examExitLink, randomPracticeLink, typePracticeTitle } from "@/lib/nav";
 import { Badge, Card } from "./ui";
 import ExamRunner from "./ExamRunner";
 import ExamResult from "./ExamResult";
@@ -53,6 +53,8 @@ function NewExamPageClient() {
   const params = useSearchParams();
   const mode = params.get("mode") ?? "full";
   const topicId = params.get("topic");
+  const typeId = params.get("type");
+  const drawParam = params.get("draws");
   const scope = parseRandomScope(params.get("scope"));
   const [exam, setExam] = useState<Exam | null>(null);
   const [started, setStarted] = useState(mode !== "full");
@@ -72,6 +74,12 @@ function NewExamPageClient() {
         return;
       }
       if (mode === "single" || mode === "set") { setExam(buildRandomPractice(mode, scope)); return; }
+      if (mode === "type") {
+        const group = parsePracticeTypeGroup(typeId);
+        if (!group) throw new Error("연습할 문제 유형을 찾지 못했습니다. 유형 목록에서 다시 골라 주세요.");
+        setExam(buildTypePractice(group, scope, parseTypePracticeDraws(group, drawParam)));
+        return;
+      }
       if (mode !== "full") throw new Error("지원하지 않는 연습 방식입니다.");
       setExam(buildFullExam({
         enabledSurveyIds: loadSettings().enabledSurveyIds,
@@ -82,7 +90,7 @@ function NewExamPageClient() {
       setExam(null);
       setError(cause instanceof Error ? cause.message : "문제를 만들지 못했습니다.");
     }
-  }, [mode, topicId, scope]);
+  }, [mode, topicId, typeId, drawParam, scope]);
 
   useEffect(() => { setEnabledIds(loadSettings().enabledSurveyIds); }, []);
   useEffect(() => { setStarted(mode !== "full"); build(true); }, [build, mode]);
@@ -145,12 +153,14 @@ function NewExamPageClient() {
     <Footer />
   </main>;
 
-  if (error) return <main className="mx-auto max-w-3xl px-5 pt-16"><p role="alert" className="text-sm text-warn-ink">{error}</p><Link href="/" className="mt-4 inline-block text-sm text-primary-ink">← 홈</Link><Link href="/topics" className="ml-6 text-sm text-primary-ink">주제별 연습 →</Link></main>;
+  if (error) return <main className="mx-auto max-w-3xl px-5 pt-16"><p role="alert" className="text-sm text-warn-ink">{error}</p><Link href="/" className="mt-4 inline-block text-sm text-primary-ink">← 홈</Link><Link href="/topics" className="ml-6 text-sm text-primary-ink">주제별 연습 →</Link><Link href="/types" className="ml-6 text-sm text-primary-ink">유형별 연습 →</Link></main>;
   if (!exam) return <main className="mx-auto max-w-3xl px-5 pt-16 text-sm text-fg-muted">문제를 준비하는 중…</main>;
 
   const topicName = topicById.get(exam.focusTopicId ?? "")?.ko ?? "";
+  const typeGroup = parsePracticeTypeGroup(exam.typeGroupId);
   const title = mode === "practice" ? `주제별 연습 · ${topicName}`
-    : mode === "set" ? `${randomPracticeLink("set", exam.randomScope).label} · ${topicName}`
-      : mode === "single" ? randomPracticeLink("single", exam.randomScope).label : "실전 모의고사";
+    : mode === "type" && typeGroup ? typePracticeTitle(typeGroup, exam.randomScope)
+      : mode === "set" ? `${randomPracticeLink("set", exam.randomScope).label} · ${topicName}`
+        : mode === "single" ? randomPracticeLink("single", exam.randomScope).label : "실전 모의고사";
   return <ExamRunner key={exam.id} exam={exam} title={title} onRegenerate={() => { build(includeIntro); setStarted(mode !== "full"); }} />;
 }

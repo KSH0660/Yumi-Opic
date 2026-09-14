@@ -435,7 +435,7 @@ export default function ExamResult({
         <details className="mt-2 border-t border-line pt-1">
           <summary className="cursor-pointer select-none py-3 text-sm font-semibold text-fg-muted">저장·분석 안내</summary>
           <p className="mt-3 text-xs leading-relaxed text-fg-muted">문항별 질문, 받아쓰기 결과, 녹음본을 확인해 보세요. AI 코칭은 아래에서 한 번에 받거나 문항마다 따로 받을 수 있습니다.</p>
-          {persisted && <p className="mt-2 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>}
+          {persisted && <p className="mt-2 text-xs leading-relaxed text-fg-muted">질문·답변·AI 피드백은 이 브라우저에 최근 20회까지 저장됩니다. 주제별 연습·유형별 연습·실전 모의고사 화면 아래의 연습 기록에서 다시 볼 수 있습니다. 녹음본은 현재 화면에서만 재생되므로 필요하면 다운로드해 주세요.</p>}
           {rewrittenCount > 0 && <p className="mt-2 text-xs leading-relaxed text-fg-muted">AI 분석에 녹음본을 보낸 {rewrittenCount}문항은 OpenAI 가 다시 받아쓴 텍스트를 답변으로 씁니다. 위 통계도 그 텍스트 기준이며, 문항을 펼치면 원래 브라우저 받아쓰기를 보거나 되돌릴 수 있습니다.</p>}
           <p className="mt-2 text-xs leading-relaxed text-fg-muted">
             AI 코칭은 문법 채점보다 <strong className="font-semibold text-fg">{FEEDBACK_CRITERIA.map(({ label }) => label).join(" → ")}</strong> 흐름과 전달력을 우선합니다. 답변 첫 몇 문장 안에 질문에 대한 답이 나오는 <strong className="font-semibold text-fg">두괄식</strong>인지도 함께 봅니다. 꼭 첫 문장일 필요는 없습니다. 롤플레이 11~13번은 전화 대화에 가까워 두괄식을 요구하지 않고, 요청·문제가 일찍 드러나는지만 봅니다. 생각과 생각을 자연스럽게 잇는 <strong className="font-semibold text-fg">연결 표현</strong>도 짚어 줍니다. 문법은 의미 전달을 크게 방해하는 경우만 지적하도록 설정했습니다.

@@ -19,7 +19,8 @@ export default function TopicsView() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [category, setCategory] = useState<"survey" | "surprise">("survey");
   const { history, error, remove, removeAll, removeSelected } = usePracticeHistory();
-  const entries = useMemo(() => history.filter((entry) => entry.mode !== "full"), [history]);
+  // 유형별 연습 기록은 그 화면의 목록에서 본다. 여기에는 주제를 고른 연습만 남긴다.
+  const entries = useMemo(() => history.filter((entry) => entry.mode !== "full" && entry.mode !== "type"), [history]);
   const counts = useMemo(() => topicPracticeCounts(history, allTopics), [history]);
   const topics = category === "survey" ? surveyTopics : visibleSurpriseTopics;
 
@@ -33,6 +34,7 @@ export default function TopicsView() {
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">주제별 연습</h1>
         <div className="flex flex-wrap gap-4">
+          <Link href="/types" className="text-xs text-primary-ink">유형별 연습 →</Link>
           {(["single", "set"] as const).map((mode) => {
             const link = randomPracticeLink(mode);
             return <Link key={mode} href={link.href} className="text-xs text-primary-ink">{link.label} →</Link>;

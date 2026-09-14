@@ -119,7 +119,7 @@ export interface SavedResult {
 }
 
 /** 저장된 기록에서 받아들이는 연습 방식. 모르는 값이 적힌 기록은 버린다. */
-const EXAM_MODES: readonly string[] = ["full", "practice", "single", "set"] satisfies Exam["mode"][];
+const EXAM_MODES: readonly string[] = ["full", "practice", "single", "set", "type"] satisfies Exam["mode"][];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);

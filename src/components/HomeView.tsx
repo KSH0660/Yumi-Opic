@@ -17,6 +17,7 @@ import { Card } from "./ui";
 const MODE_LABELS: Record<string, string> = {
   full: "실전 모의고사",
   practice: "주제별 연습",
+  type: "유형별 연습",
   single: "1문제 랜덤 연습",
   set: "1토픽 랜덤 연습",
 };
@@ -81,7 +82,9 @@ export default function HomeView() {
 
     <section className="mt-4 grid gap-4 sm:grid-cols-2">
       <ModeButton href="/topics" title="주제별 연습" desc="서베이 11개·돌발 7개 주제를 골라 연습합니다." disabled={!canContinue} />
-      <ModeButton href="/exam?mode=full" title="실전 모의고사" desc="고른 주제와 돌발 주제를 섞어 실제 시험과 같은 1~15번을 봅니다." primary disabled={!canContinue} />
+      {/* 유형별 연습은 랜덤 연습처럼 배경 설문과 상관없이 전체 문제은행에서 뽑는다. */}
+      <ModeButton href="/types" title="유형별 연습" desc="묘사·경험·롤플레이처럼 유형 하나만 골라 여러 주제로 반복합니다." />
+      <ModeButton href="/exam?mode=full" title="실전 모의고사" desc="고른 주제와 돌발 주제를 섞어 실제 시험과 같은 1~15번을 봅니다." primary disabled={!canContinue} className="sm:col-span-2" />
     </section>
 
     <section className="mt-4 rounded-xl border border-line px-5 py-4">
@@ -128,8 +131,8 @@ export default function HomeView() {
   </main>;
 }
 
-function ModeButton({ href, title, desc, primary = false, disabled = false }: { href: string; title: string; desc: string; primary?: boolean; disabled?: boolean }) {
-  const className = `flex min-h-36 flex-col rounded-2xl border p-6 shadow-card transition ${primary ? "border-primary/40 bg-primary-tint hover:bg-primary-tint-strong" : "border-line bg-surface hover:border-line-strong hover:bg-surface-2"}`;
+function ModeButton({ href, title, desc, primary = false, disabled = false, className: extra = "" }: { href: string; title: string; desc: string; primary?: boolean; disabled?: boolean; className?: string }) {
+  const className = `flex min-h-36 flex-col rounded-2xl border p-6 shadow-card transition ${primary ? "border-primary/40 bg-primary-tint hover:bg-primary-tint-strong" : "border-line bg-surface hover:border-line-strong hover:bg-surface-2"} ${extra}`;
 
   if (disabled) return <div className={`${className} cursor-not-allowed opacity-45`} aria-disabled="true">
     <span className="text-xl font-semibold tracking-tight">{title}</span>
