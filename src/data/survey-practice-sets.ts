@@ -981,4 +981,84 @@ export const surveyPracticeSets: Partial<Record<string, readonly FixedPracticeSe
       { slot: 14, displayNumber: "15", questionId: "weather-advanced1-q15" },
     ] },
   ],
+  "restaurant-delivery": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "restaurant-delivery-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "restaurant-delivery-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "restaurant-delivery-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "2", questionId: "restaurant-delivery-combo2-q2" },
+      { slot: 5, displayNumber: "3", questionId: "restaurant-delivery-combo2-q3" },
+      { slot: 6, displayNumber: "4", questionId: "restaurant-delivery-combo2-q4" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "2", questionId: "restaurant-delivery-combo3-q2" },
+      { slot: 8, displayNumber: "3", questionId: "restaurant-delivery-combo3-q3" },
+      { slot: 9, displayNumber: "4", questionId: "restaurant-delivery-combo3-q4" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "5", questionId: "restaurant-delivery-combo4-q5" },
+      { slot: 11, displayNumber: "6", questionId: "restaurant-delivery-combo4-q6" },
+      { slot: 12, displayNumber: "7", questionId: "restaurant-delivery-combo4-q7" },
+    ] },
+    { label: "COMBO 5", items: [
+      { slot: 13, displayNumber: "8", questionId: "restaurant-delivery-combo5-q8" },
+      { slot: 14, displayNumber: "9", questionId: "restaurant-delivery-combo5-q9" },
+      { slot: 15, displayNumber: "10", questionId: "restaurant-delivery-combo5-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 16, displayNumber: "11", questionId: "restaurant-delivery-roleplay1-q11" },
+      { slot: 17, displayNumber: "12", questionId: "restaurant-delivery-roleplay1-q12" },
+      { slot: 18, displayNumber: "13", questionId: "restaurant-delivery-roleplay1-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 19, displayNumber: "14", questionId: "restaurant-delivery-advanced1-q14" },
+      { slot: 20, displayNumber: "15", questionId: "restaurant-delivery-advanced1-q15" },
+    ] },
+    { label: "ADVANCED COMBO 2", items: [
+      { slot: 21, displayNumber: "14", questionId: "restaurant-delivery-advanced2-q14" },
+      { slot: 22, displayNumber: "15", questionId: "restaurant-delivery-advanced2-q15" },
+    ] },
+    { label: "ADVANCED COMBO 3", items: [
+      { slot: 23, displayNumber: "14", questionId: "restaurant-delivery-advanced3-q14" },
+      { slot: 24, displayNumber: "15", questionId: "restaurant-delivery-advanced3-q15" },
+    ] },
+  ],
+  "healthy-food": [
+    { label: "COMBO 1", items: [
+      { slot: 1, displayNumber: "2", questionId: "healthy-food-combo1-q2" },
+      { slot: 2, displayNumber: "3", questionId: "healthy-food-combo1-q3" },
+      { slot: 3, displayNumber: "4", questionId: "healthy-food-combo1-q4" },
+    ] },
+    { label: "COMBO 2", items: [
+      { slot: 4, displayNumber: "2", questionId: "healthy-food-combo2-q2" },
+      { slot: 5, displayNumber: "3", questionId: "healthy-food-combo2-q3" },
+      { slot: 6, displayNumber: "4", questionId: "healthy-food-combo2-q4" },
+    ] },
+    { label: "COMBO 3", items: [
+      { slot: 7, displayNumber: "5", questionId: "healthy-food-combo3-q5" },
+      { slot: 8, displayNumber: "6", questionId: "healthy-food-combo3-q6" },
+      { slot: 9, displayNumber: "7", questionId: "healthy-food-combo3-q7" },
+    ] },
+    { label: "COMBO 4", items: [
+      { slot: 10, displayNumber: "8", questionId: "healthy-food-combo4-q8" },
+      { slot: 11, displayNumber: "9", questionId: "healthy-food-combo4-q9" },
+      { slot: 12, displayNumber: "10", questionId: "healthy-food-combo4-q10" },
+    ] },
+    { label: "ROLE-PLAY COMBO 1", items: [
+      { slot: 13, displayNumber: "11", questionId: "healthy-food-roleplay1-q11" },
+      { slot: 14, displayNumber: "12", questionId: "healthy-food-roleplay1-q12" },
+      { slot: 15, displayNumber: "13", questionId: "healthy-food-roleplay1-q13" },
+    ] },
+    { label: "ROLE-PLAY COMBO 2", items: [
+      { slot: 16, displayNumber: "11", questionId: "healthy-food-roleplay2-q11" },
+      { slot: 17, displayNumber: "12", questionId: "healthy-food-roleplay2-q12" },
+      { slot: 18, displayNumber: "13", questionId: "healthy-food-roleplay2-q13" },
+    ] },
+    { label: "ADVANCED COMBO 1", items: [
+      { slot: 19, displayNumber: "14", questionId: "healthy-food-advanced1-q14" },
+      { slot: 20, displayNumber: "15", questionId: "healthy-food-advanced1-q15" },
+    ] },
+  ],
 };

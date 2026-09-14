@@ -3278,6 +3278,378 @@ export const surpriseTopics: Topic[] = [
         "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
       }
     ]
+  },
+  {
+    "id": "restaurant-delivery",
+    "category": "surprise",
+    "ko": "음식점 & 포장배달",
+    "en": "Restaurants & Take-Out Delivery",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["restaurant-delivery"],
+    "questions": [
+      {
+        "id": "restaurant-delivery-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "I would like to know about restaurants in your country. What do typical restaurants look like? What kinds of food do they commonly offer?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about what you usually do when you eat at a restaurant. What do you do first, second, etc?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When was the last time you ate at a restaurant with an international menu? Where was it? Who were you with? What did you eat? Tell me the entire story of that visit to that restaurant?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Tell me about a restaurant near where you live. What kind of food does it serve? How are the prices? How often do you go there? Give me as much detail as you can about one of your favorite local places to eat.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo2-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Describe your favorite restaurant that has an ethnic or menu. Tell me everything about that place in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo2-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When was the last time you ate at a restaurant with an international menu? Where was it? Who were you with? What did you eat? Tell me the entire story of that visit to that restaurant?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo3-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "How do busy working people usually get their meals on weekdays? Do they order food or go to restaurants? What do they usually do?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo3-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me about what you usually do when you eat at a restaurant. What do you do first, second, etc?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo3-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Describe for me a restaurant that you remember from your childhood. What was the restaurant like? Was it different from the restaurants you visit today?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo4-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Talk about your favorite take-out or delivery food restaurant. What is that place like? What kinds of food do they commonly offer?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo4-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about the last time you used a take-out or delivery food service. What did you get and where was it? What do you remember about that experience?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo4-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you used a take-out or a number of people. What was the occasion? What did you have to do to use the service? Tell me about that experience in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo5-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Talk about your favorite take-out or delivery food restaurant. What is that place like? What kinds of food do they commonly offer?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo5-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Talk about the last time you used a take-out or delivery food service. What did you get and where was it? What do you remember about that experience?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-combo5-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Talk about a time when you used a take-out or a number of people. What was the occasion? What did you have to do to use the service? Tell me about that experience in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I’d like to give you a situation and ask you to act it out. Your friend’s family member has opened a new restaurant. Call your friend and ask three or four questions to find out whether you want to order food from that place.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I’m sorry, but there is a problem that I need you to resolve. You have ordered lunch for a lunch meeting at your office. However, the delivery person has brought you someone else’s lunch box. Call the manager of the restaurant, explain the situation and give two to three solutions to the problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That’s the end of the situation. Talk about a recent time you went out to eat with your friends or family. Where did you go and who did you go with? What did you eat? Tell me everything about that experience.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "What kinds of changes in restaurants or eating out have you noticed over the last few years? How was eating out different in the past? What has brought about these changes?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "When your friends or family discuss restaurants they like or dislike, what are some of the characteristics they discuss the most?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced2-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "Many restaurants are changing their menus to suit customers who are more health-conscious. Talk about the changes you notice about restaurants in your country related to this trend.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced2-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Chain restaurants such as McDonald's have a set menu you can expect. On the other hand, small local restaurants have their own menus and you may not know what to expect. Talk about your experience of going to a chain restaurant and a local restaurant. What was the biggest difference?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced3-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "What are the latest trends people are talking about related to take-out or delivery food options? Perhaps it has to do with ordering online or an app. Or it has to do with some new kinds of menus. Discuss the changes that you have observed recently regarding take-out or delivery food options.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "restaurant-delivery-advanced3-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "Many fast-food, take-out or delivery restaurants are now offering healthy choices. Why do you think this change has come about in recent years? Was it a result of consumer pressure, market forces or something else?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
+  },
+  {
+    "id": "healthy-food",
+    "category": "surprise",
+    "ko": "건강식 & 음식",
+    "en": "Healthy Food & Food",
+    "emoji": "",
+    "fixedPracticeSets": surveyPracticeSets["healthy-food"],
+    "questions": [
+      {
+        "id": "healthy-food-combo1-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "Many people try to eat healthy these days. What kinds of foods are healthy and why are they healthy for us?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo1-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "How do you shop for healthy food? What kinds of things do you have to do to cook healthy food?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo1-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me how you found out about eating healthy. Did your family eat healthy when you were growing up? Did you friend become healthier by eating healthy food? Describe in detail how you started to eat healthy.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo2-q2",
+        "number": "2",
+        "type": "description",
+        "source": "provided",
+        "en": "What are some of the popular dishes in your country? Tell me about a particular dish. What is special about it? Please describe in detail.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo2-q3",
+        "number": "3",
+        "type": "experience",
+        "source": "provided",
+        "en": "What do you eat on a regular day? Tell me everything that you eat in detail.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo2-q4",
+        "number": "4",
+        "type": "memorable",
+        "source": "provided",
+        "en": "Tell me about a memorable experience you had while eating something. It could have been something good or bad. What happened? Why was it so memorable or special? Tell me everything in as much detail as possible.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo3-q5",
+        "number": "5",
+        "type": "description",
+        "source": "provided",
+        "en": "Many people try to eat healthy these days. What kinds of foods are healthy and why are they healthy for us?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo3-q6",
+        "number": "6",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me how you found out about eating healthy. Did your family eat healthy when you were growing up? Did you friend become healthier by eating healthy food? Describe in detail how you started to eat healthy.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo3-q7",
+        "number": "7",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When was the last time you had some healthy food? Who was it with and how did you feel? What was special about that experience?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo4-q8",
+        "number": "8",
+        "type": "description",
+        "source": "provided",
+        "en": "Many people try to eat healthy these days. What kinds of foods are healthy and why are they healthy for us?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo4-q9",
+        "number": "9",
+        "type": "experience",
+        "source": "provided",
+        "en": "Tell me how you found out about eating healthy. Did your family eat healthy when you were growing up? Did you friend become healthier by eating healthy food? Describe in detail how you started to eat healthy.",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-combo4-q10",
+        "number": "10",
+        "type": "memorable",
+        "source": "provided",
+        "en": "When was the last time you had some healthy food? Who was it with and how did you feel? What was special about that experience?",
+        "ko": "제시된 질문에 구체적으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay1-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "You read about a professional nutritionist that helps people improve their diets. Call the nutritionist's office and ask 3 or 4 questions to get more information.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay1-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "You have an appointment to meet with a nutritionist to help you make your diet healthier. However, on the day of the meeting, your boss asks you to work late. Call the nutritionist, explain the situation and offer 2 to 3 alternatives.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay1-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "Describe the time when you made a significant change to your diet or exercise routine. What led this change to happen? How did it work out eventually? Describe what happened in detail from beginning to end.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay2-q11",
+        "number": "11",
+        "type": "roleplay_ask",
+        "source": "provided",
+        "en": "I’d like to give you a situation and ask you to act it out. Your friend’s family member has opened a new restaurant. Call your friend and ask three or four questions to find out whether you want to order food from that place.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay2-q12",
+        "number": "12",
+        "type": "roleplay_problem",
+        "source": "provided",
+        "en": "I’m sorry, but there is a problem that I need you to resolve. You have ordered lunch for a lunch meeting at your office. However, the delivery person has brought you someone else’s lunch box. Call the manager of the restaurant, explain the situation and give two to three solutions to the problem.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-roleplay2-q13",
+        "number": "13",
+        "type": "roleplay_experience",
+        "source": "provided",
+        "en": "That’s the end of the situation. Talk about a recent time you went out to eat with your friends or family. Where did you go and who did you go with? What did you eat? Tell me everything about that experience.",
+        "ko": "제시된 상황에 맞게 역할극으로 답해 주세요."
+      },
+      {
+        "id": "healthy-food-advanced1-q14",
+        "number": "14",
+        "type": "comparison",
+        "source": "provided",
+        "en": "How has food shopping in your country changed compared to 20 years ago? Where did people buy food in the past, and where do they buy it now?",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      },
+      {
+        "id": "healthy-food-advanced1-q15",
+        "number": "15",
+        "type": "issue",
+        "source": "provided",
+        "en": "There are sometimes news reports on food. Food can get contaminated or be affected by dangerous bacteria. Talk about a news report you watched regarding food scare incident.",
+        "ko": "제시된 주제를 비교하거나 쟁점을 자세히 설명해 주세요."
+      }
+    ]
   }
 ];
 
