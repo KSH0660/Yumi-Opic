@@ -11,8 +11,10 @@ import {
   speak,
   startDictation,
   stopSpeaking,
+  type DictationActivity,
   type DictationHandle,
 } from "@/lib/speech";
+import { requestScreenWakeLock, type WakeLockHandle } from "@/lib/wakeLock";
 import {
   createMicProbe,
   isDesktopAgent,
@@ -131,10 +133,12 @@ function micMessage(code: string): string {
   if (code === "network")
     return "음성 인식 서버에 연결하지 못했습니다. 네트워크를 확인하고 다시 녹음해 주세요.";
   if (code === "start-blocked")
-    return "이 브라우저는 버튼을 누른 직후에만 받아쓰기를 켤 수 있습니다. 아래 다시 녹음하기를 눌러 주세요.";
+    return "이 브라우저는 버튼을 누른 직후에만 받아쓰기를 켤 수 있습니다. 마이크 아래 받아쓰기 다시 켜기를 눌러 주세요.";
+  if (code === "mic-silent")
+    return "받아쓰기가 마이크를 열지 못했습니다. 통화·녹음처럼 마이크를 쓰는 다른 앱을 닫고, 마이크 아래 받아쓰기 다시 켜기를 눌러 주세요.";
   if (code === "restart-limit")
-    return "음성 인식이 한 글자도 받지 못한 채 계속 끊깁니다. 다시 녹음하기를 누르거나 직접 입력으로 바꿔 주세요.";
-  return "음성 인식이 잠시 멈췄습니다. 다시 녹음하기를 누르거나 직접 입력으로 바꿔 주세요.";
+    return "음성 인식이 한 글자도 받지 못한 채 계속 끊깁니다. 받아쓰기 다시 켜기를 누르거나 직접 입력으로 바꿔 주세요.";
+  return "음성 인식이 잠시 멈췄습니다. 받아쓰기 다시 켜기를 누르거나 직접 입력으로 바꿔 주세요.";
 }
 
 function PlayIcon() {
@@ -216,6 +220,13 @@ export default function ExamRunner({
   const [micNotice, setMicNotice] = useState<string | null>(null);
   /** 이 기기에서 받아쓰기와 녹음이 마이크를 함께 쓸 수 있는지. */
   const [micMode, setMicMode] = useState<MicMode>("share");
+  /**
+   * 받아쓰기가 실제로 돌고 있는지. `listening` 은 녹음만 켜진 경우에도 참이라
+   * 「말하면 글자가 남는가」를 가리지 못한다.
+   */
+  const [dictating, setDictating] = useState(false);
+  /** 인식기가 지금 무엇을 하고 있는지. 입력 레벨을 못 재는 휴대폰의 유일한 단서다. */
+  const [micActivity, setMicActivity] = useState<DictationActivity | null>(null);
   const [typing, setTyping] = useState(false);
 
   const [reveal, setReveal] = useState<Reveal | null>(null);
@@ -235,6 +246,7 @@ export default function ExamRunner({
   const recordingsRef = useRef<Record<number, AnswerRecording>>({});
   /** 낭독을 시작한 시각. 길이가 뒤늦게 와도 진행 막대의 기준점은 여기로 고정한다. */
   const playStartedAtRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockHandle | null>(null);
 
   const item = exam.items[index];
   const slot = item.slot;
@@ -392,6 +404,8 @@ export default function ExamRunner({
     const handle = dictationRef.current;
     dictationRef.current = null;
     setListening(false);
+    setDictating(false);
+    setMicActivity(null);
     setInterim("");
     if (!handle) return;
     if (mode === "discard") {
@@ -474,10 +488,18 @@ export default function ExamRunner({
         }));
         setInterim(pending);
       },
+      onActivity: (next) => {
+        if (dictationSessionRef.current !== session) return;
+        setMicActivity(next);
+        // 마이크가 열렸다면 앞서 알린 「마이크를 열지 못했다」는 지난 이야기다.
+        if (next === "listening" || next === "speaking") setMicError(null);
+      },
       onError: (code) => setMicError(micMessage(code)),
       onEnd: () => {
         if (dictationSessionRef.current !== session) return;
         setListening(false);
+        setDictating(false);
+        setMicActivity(null);
         setInterim("");
         finishVoiceAnalysis(targetSlot);
       },
@@ -491,10 +513,14 @@ export default function ExamRunner({
         setAnalyzingSlot(null);
       }
       setMicError(micMessage("start-blocked"));
+      setDictating(false);
+      setMicActivity(null);
       return false;
     }
     dictationRef.current = handle;
     setListening(true);
+    setDictating(true);
+    setMicActivity("starting");
     return true;
   }, [finishVoiceAnalysis, isPractice]);
 
@@ -644,13 +670,15 @@ export default function ExamRunner({
     stopAnswerCapture("discard");
     setMicError(null);
 
-    const dictating = isSpeechRecognitionSupported();
-    const dictationOn = dictating ? startDictationFor(targetSlot) : false;
-    if (!dictating) baseRef.current = answersRef.current[targetSlot] ?? "";
+    // 위의 `dictating` 상태와 다르다. 저쪽은 지금 돌고 있는지, 이쪽은 이 브라우저가
+    // 받아쓰기를 할 수 있는지다.
+    const canDictate = isSpeechRecognitionSupported();
+    const dictationOn = canDictate ? startDictationFor(targetSlot) : false;
+    if (!canDictate) baseRef.current = answersRef.current[targetSlot] ?? "";
 
     // 마이크를 한 곳에서만 쓸 수 있는 기기에서는 녹음을 열지 않는다. 열면 받아쓰기가
     // 소리를 못 받는다. 받아쓰기가 아예 없는 브라우저라면 녹음이라도 남긴다.
-    const recordingOn = !dictating || micModeRef.current === "share";
+    const recordingOn = !canDictate || micModeRef.current === "share";
     if (recordingOn) void beginAudioCapture(targetSlot);
     setListening(dictationOn || recordingOn);
   }, [beginAudioCapture, startDictationFor, stopAnswerCapture]);
@@ -707,8 +735,24 @@ export default function ExamRunner({
     dictationRef.current?.abort();
     stopAudioCapture(false);
     stopSpeaking();
+    wakeLockRef.current?.release();
+    wakeLockRef.current = null;
     Object.values(recordingsRef.current).forEach((recording) => URL.revokeObjectURL(recording.url));
   }, [stopAudioCapture]);
+
+  /*
+   * 휴대폰은 손을 대지 않으면 화면을 끄고, 화면이 꺼지면 페이지가 멈춰 받아쓰기가
+   * 끊긴다. 한 문항이 1~2분인데 그동안 화면을 만질 일이 없으니 답변 도중에 꺼진다.
+   * 그래서 질문을 한 번 듣기 시작하면 결과 화면에 닿을 때까지 화면을 깨워 둔다.
+   */
+  useEffect(() => {
+    if (submitted || phase === "ready") {
+      wakeLockRef.current?.release();
+      wakeLockRef.current = null;
+      return;
+    }
+    wakeLockRef.current ??= requestScreenWakeLock();
+  }, [phase, submitted]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -826,6 +870,27 @@ export default function ExamRunner({
     : micLevelBlind
       ? "받아쓰기 중 · 이 기기는 입력 레벨을 함께 볼 수 없습니다"
       : `마이크 입력 ${Math.round(micLevel * 100)}%`;
+  /*
+   * 휴대폰은 받아쓰기가 마이크를 혼자 써서 입력 레벨을 잴 수 없다. 화면에 아무
+   * 표시가 없으면 인식기가 도는지 멈췄는지 알 길이 없어, 1분을 말하고 나서야 한
+   * 글자도 안 남은 것을 본다. 그래서 인식기가 알려 주는 상태를 그대로 적어 둔다.
+   * 답변 텍스트는 여기 적지 않는다. 실전에는 없는 것이라 `연습 도구` 쪽에 남긴다.
+   * 질문이 나오는 동안에는 받아쓰기가 꺼져 있는 것이 정상이라 아무 말도 하지 않는다.
+   */
+  const dictationLabel = !micAvailable || typing || phase !== "answering"
+    ? null
+    : !dictating
+      ? "받아쓰기 꺼짐"
+      : micActivity === "paused"
+        ? "화면이 꺼져 멈췄습니다 · 돌아오면 다시 켜집니다"
+        : micActivity === "starting"
+          ? "마이크 여는 중…"
+          : words > 0
+            ? `받아쓰는 중 · ${words}단어`
+            : micActivity === "speaking"
+              ? "받아쓰는 중…"
+              : "듣는 중 · 영어로 말해 보세요";
+  const dictationStalled = !!dictationLabel && (!dictating || micActivity === "paused");
   const hints = item.question.hints ?? [];
   const replayIconVisible = phase === "answering";
   const modeLabel = exam.mode === "practice" ? "주제별 연습"
@@ -898,6 +963,20 @@ export default function ExamRunner({
               <span title={micStatusLabel} className={listening ? "text-exam-rec" : "text-exam-ink-muted"}>
                 <MicGlyph className={listening ? "h-5 w-5 animate-rec-pulse" : "h-5 w-5"} />
               </span>
+              {dictationLabel && (
+                <div className="flex w-full max-w-[13rem] flex-col items-center gap-2 lg:max-w-[9rem]">
+                  <p aria-live="polite" className={`text-center text-[11px] font-semibold leading-snug ${dictationStalled ? "text-exam-rec" : "text-exam-ink-muted"}`}>
+                    {dictationLabel}
+                  </p>
+                  {!dictating && (
+                    <button
+                      type="button"
+                      onClick={() => beginAnswerCapture(slot)}
+                      className="min-h-11 w-full rounded border border-exam-accent px-2 text-[11px] font-bold text-exam-accent transition hover:bg-exam-accent hover:text-exam-accent-fg"
+                    >받아쓰기 다시 켜기</button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="min-w-0">
@@ -946,6 +1025,36 @@ export default function ExamRunner({
               )}
             </div>
           </div>
+
+          {/*
+            * 마이크 안내는 `연습 도구` 안에 두지 않는다. 그 서랍은 접힌 채로 시작해서,
+            * 받아쓰기가 멈춘 것을 알리는 문구와 다시 켜는 버튼이 함께 숨어 버렸다.
+            * 휴대폰에서 아무 반응이 없던 까닭의 큰 몫이 이것이다.
+            */}
+          {(micError || micNotice) && (
+            <div className="mt-5 border border-exam-line bg-exam-frame-2 px-4 py-3">
+              {micError && <p role="alert" className="text-xs leading-relaxed text-exam-rec">{micError}</p>}
+              {micNotice && <p role="status" className={`text-xs leading-relaxed text-exam-ink-muted${micError ? " mt-2" : ""}`}>{micNotice}</p>}
+              {micError && !typing && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => beginAnswerCapture(slot)}
+                    className="min-h-11 rounded border border-exam-accent px-3 text-xs font-bold text-exam-accent transition hover:bg-exam-accent hover:text-exam-accent-fg"
+                  >받아쓰기 다시 켜기</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stopAnswerCapture("save");
+                      setTyping(true);
+                      setTools(true);
+                    }}
+                    className="min-h-11 rounded border border-exam-line px-3 text-xs text-exam-ink-muted transition hover:text-exam-ink"
+                  >직접 입력으로 바꾸기</button>
+                </div>
+              )}
+            </div>
+          )}
 
           {tools && (
             <div className="mt-6 space-y-4 border-t border-dashed border-exam-line pt-4">
@@ -1005,8 +1114,6 @@ export default function ExamRunner({
                 </div>
               </div>
 
-              {micError && <p role="alert" className="mt-2 text-xs leading-relaxed text-exam-rec">{micError}</p>}
-              {micNotice && <p role="status" className="mt-2 text-xs leading-relaxed text-exam-ink-muted">{micNotice}</p>}
               {micAvailable && recordingAvailable && micMode === "dictation-only" && (
                 <p className="mt-2 text-xs leading-relaxed text-exam-ink-muted">
                   이 기기는 마이크를 한 번에 한 곳에서만 쓸 수 있어 받아쓰기만 켭니다. 화면에 적히는 텍스트가 곧 답변이 되고, 녹음본이 없어 나중에 바로잡을 수 없습니다. 잘못 적힌 곳은 <strong className="font-semibold text-exam-ink">직접 입력·고쳐 쓰기</strong>로 다듬으세요. 녹음본과 발음 비교가 필요하면 노트북에서 연습하는 편이 낫습니다.{" "}
