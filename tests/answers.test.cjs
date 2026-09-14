@@ -45,6 +45,8 @@ test('답변한 문항만 보기는 빈 답변을 걸러 내고 전체 보기는
   assert.deepEqual(filterItemsByAnswer(items, answers, 'answered'), [{ slot: 1 }, { slot: 4 }]);
   assert.deepEqual(filterItemsByAnswer(items, answers, 'all'), items);
   assert.deepEqual(filterItemsByAnswer(items, {}, 'answered'), []);
+  // 녹음본만 있는 문항도 남긴다. 숨기면 다시 글로 옮길 버튼까지 함께 숨는다.
+  assert.deepEqual(filterItemsByAnswer(items, answers, 'answered', new Set([2])), [{ slot: 1 }, { slot: 2 }, { slot: 4 }]);
 });
 
 test('바꿔 쓴 답변만 덮고 빈 텍스트는 답변을 지우지 않는다', () => {

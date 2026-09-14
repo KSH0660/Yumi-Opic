@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MIN_PRACTICE_TOPICS, allTopics } from "@/data";
 import { formatHistoryStamp } from "@/lib/history";
-import { loadMicMode } from "@/lib/micShare";
+import { loadMicMode, resolveMicMode, type MicMode } from "@/lib/micShare";
+import { isSpeechRecognitionSupported } from "@/lib/speech";
+import { probeTranscription } from "@/lib/transcribeClient";
 import { RANDOM_SCOPE_LABELS, RANDOM_SCOPES, randomPracticeLink, repeatPracticeLink } from "@/lib/nav";
 import { defaultSettings, hasSavedSettings, loadSettings } from "@/lib/storage";
 import Footer from "./Footer";
@@ -30,16 +32,37 @@ export default function HomeView() {
   const router = useRouter();
   const [enabledIds, setEnabledIds] = useState<string[]>(defaultSettings.enabledSurveyIds);
   const [ready, setReady] = useState(false);
-  /** 마이크를 한 곳에서만 쓰는 기기(휴대폰·태블릿). 여기서는 녹음본이 남지 않는다. */
-  const [dictationOnly, setDictationOnly] = useState(false);
+  /** 이 기기에서 답변을 어떻게 받는지. 휴대폰은 녹음이 기본이고, 전사를 못 쓰면 받아쓰기로 내려간다. */
+  const [micMode, setMicMode] = useState<MicMode>("share");
   const { history } = usePracticeHistory();
 
   useEffect(() => {
     if (!hasSavedSettings()) { router.replace("/survey"); return; }
     setEnabledIds(loadSettings().enabledSurveyIds);
-    setDictationOnly(loadMicMode() === "dictation-only");
     setReady(true);
   }, [router]);
+
+  /*
+   * 연습을 고르기 전에 이 기기가 어떻게 답변을 받을지 알려 준다. 휴대폰은 녹음으로
+   * 받지만, 서버가 녹음본을 글로 옮길 수 없으면 받아쓰기로 내려간다. 그때는 답변
+   * 텍스트 하나에 모든 것이 걸리므로 무엇이 약해지는지 미리 밝힌다.
+   */
+  useEffect(() => {
+    const requested = loadMicMode();
+    if (requested === "share") return;
+    const caps = {
+      dictation: isSpeechRecognitionSupported(),
+      recording: !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined",
+      transcription: false,
+    };
+    setMicMode(resolveMicMode(requested, caps).mode);
+    let alive = true;
+    void probeTranscription().then((available) => {
+      if (!alive || !available) return;
+      setMicMode(resolveMicMode(requested, { ...caps, transcription: true }).mode);
+    });
+    return () => { alive = false; };
+  }, []);
 
   const last = history[0];
   const repeat = useMemo(() => last && repeatPracticeLink(last, allTopics), [last]);
@@ -60,13 +83,20 @@ export default function HomeView() {
     <p className="mt-2 text-sm leading-relaxed text-fg-muted">서베이 주제와 돌발 주제를 골라 질문을 듣고 답변하는 연습을 합니다.</p>
 
     {/*
-      휴대폰에서도 연습은 되지만 받아쓰기 텍스트 하나에 모든 게 걸린다. 그 텍스트가
-      틀리면 AI 피드백도 틀린 문장을 고쳐 주므로, 연습을 고르기 전에 미리 알린다.
+      휴대폰은 녹음으로 연습한다. 답변은 녹음본을 서버에서 글로 옮겨 만들므로 무엇이
+      서버로 나가는지 밝히고, 그 길이 막혀 받아쓰기로 내려갔을 때는 무엇이 약해지는지
+      연습을 고르기 전에 미리 알린다.
     */}
-    {dictationOnly && (
+    {micMode === "recording-only" && (
       <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
-        <strong className="font-semibold text-fg">노트북에서 연습하시길 권합니다.</strong> 휴대폰은 마이크를 한 곳에서만 쓸 수 있어 받아쓰기만
-        켜지고 녹음본이 남지 않습니다. 받아쓰기가 잘못 적어도 바로잡을 길이 없어 AI 피드백까지 그 텍스트를 그대로 믿습니다.
+        <strong className="font-semibold text-fg">이 기기는 녹음으로 연습합니다.</strong> 마이크를 한 곳에서만 쓸 수 있어 받아쓰기 대신 녹음을
+        켜고, 문항을 마칠 때마다 녹음본을 서버로 보내 글로 옮깁니다. 브라우저 받아쓰기보다 정확하고 녹음본도 함께 남습니다.
+      </p>
+    )}
+    {micMode === "dictation-only" && (
+      <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
+        <strong className="font-semibold text-fg">지금은 받아쓰기로만 연습합니다.</strong> 녹음본을 글로 옮길 수 없어(서버 키 없음 또는 연결 끊김)
+        브라우저 받아쓰기가 답변이 됩니다. 잘못 적어도 바로잡을 길이 없어 AI 피드백까지 그 텍스트를 그대로 믿으니, 가능하면 노트북에서 연습하세요.
       </p>
     )}
 

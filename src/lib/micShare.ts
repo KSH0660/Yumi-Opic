@@ -1,23 +1,41 @@
 "use client";
 
 /**
- * 받아쓰기와 녹음이 마이크를 함께 쓸 수 있는 기기인지 정한다.
+ * 이 기기에서 답변을 어떻게 받을지 정한다.
  *
  * 노트북 크롬은 SpeechRecognition 과 getUserMedia 를 동시에 연다. 휴대폰
- * (안드로이드 크롬·iOS 사파리)은 마이크를 한 곳에서만 쓰고, 나중에 연 쪽이
- * 마이크를 가져간다. 답변을 받을 때 받아쓰기를 먼저 켜고 녹음을 그다음에 열기
- * 때문에 휴대폰에서는 늘 녹음이 이긴다. 그래서 음량 레벨은 잘 움직이는데
- * 받아쓰기는 한 글자도 오지 않는다.
+ * (안드로이드 크롬·iOS 사파리)은 마이크를 한 곳에서만 쓰고, 나중에 연 쪽이 마이크를
+ * 가져간다. 그래서 휴대폰은 둘 중 하나를 골라야 한다.
  *
- * 답변 텍스트가 비면 채점도 AI 피드백도 막히므로, 마이크를 하나만 쓸 수 있는
- * 기기에서는 받아쓰기를 살리고 녹음을 접는다. 그 대신 녹음본 발음 비교는 쓸 수
- * 없다.
+ * 예전에는 받아쓰기를 골랐다. 답변이 빈 채로 남는 것보다는 나았지만, 브라우저
+ * 받아쓰기는 발음이 조금만 흐려도 다른 낱말을 적는데(`gym` → `dreams`) 녹음본이 없어
+ * 바로잡을 길이 없었다. 지금은 **녹음을 고르고 답변은 서버 전사로 글이 되게 한다.**
+ * 안드로이드는 발화마다 인식기를 다시 켜는 사이에 말이 새지 않고, iOS 는 버튼을 누른
+ * 직후에만 인식기가 켜지는 제약을 피한다. 텍스트도 전사 쪽이 더 정확하다.
+ *
+ * 대신 녹음만 켜는 모드는 **서버 전사가 살아 있어야 답변이 글로 남는다.** 키가 없거나
+ * 연결이 끊긴 기기에서 그대로 두면 소리만 남고 기록이 통째로 비므로, `resolveMicMode`
+ * 가 그럴 때 받아쓰기로 되돌린다. 이것이 이 파일이 있는 까닭이다.
  */
 
-/** `share` 는 받아쓰기와 녹음을 함께, `dictation-only` 는 받아쓰기만 켠다. */
-export type MicMode = "share" | "dictation-only";
+/**
+ * - `share`: 받아쓰기와 녹음을 함께 켠다(노트북).
+ * - `recording-only`: 녹음만 켜고 답변은 서버 전사로 만든다(휴대폰 기본).
+ * - `dictation-only`: 받아쓰기만 켠다. 전사를 쓸 수 없을 때의 안전망이다.
+ */
+export type MicMode = "share" | "recording-only" | "dictation-only";
 
-const MIC_MODE_KEY = "yumi-opic:mic-mode";
+/**
+ * 모드를 남기는 자리.
+ *
+ * 예전 키(`yumi-opic:mic-mode`)는 읽지 않는다. 그 값의 `dictation-only` 는 "이 기기는
+ * 마이크를 한 곳에서만 쓴다"를 겪어 보고 남긴 것인데, 그것은 녹음 기반을 피할 까닭이
+ * 아니라 오히려 그 전제다. 그대로 따르면 예전에 한 번 연습해 본 휴대폰만 새 방식으로
+ * 넘어오지 못한다.
+ */
+const MIC_MODE_KEY = "yumi-opic:mic-mode-2";
+
+const MIC_MODES: readonly MicMode[] = ["share", "recording-only", "dictation-only"];
 
 interface AgentLike {
   userAgent?: string;
@@ -26,19 +44,19 @@ interface AgentLike {
 }
 
 /**
- * 처음 보는 기기의 첫 판단. 휴대폰·태블릿으로 보이면 겪어 보기 전에 받아쓰기만
- * 켠다. 한 번 겪어 보고 정한 값(`loadMicMode`)이 있으면 그쪽이 먼저다. 다만
+ * 처음 보는 기기의 첫 판단. 휴대폰·태블릿으로 보이면 겪어 보기 전에 녹음만 켠다.
+ * 한 번 겪어 보고 정한 값(`loadMicMode`)이 있으면 그쪽이 먼저다. 다만
  * 데스크톱(`isDesktopAgent`)은 그 값과 상관없이 늘 함께 켠다.
  *
  * iPadOS 사파리는 스스로를 `Macintosh` 라고 적으므로 손가락 입력 개수로 가린다.
  */
 export function guessMicMode(agent: AgentLike | undefined): MicMode {
   if (!agent) return "share";
-  if (agent.userAgentData?.mobile === true) return "dictation-only";
+  if (agent.userAgentData?.mobile === true) return "recording-only";
   const ua = agent.userAgent ?? "";
-  if (/Android|iPhone|iPod|iPad|Mobile|Silk|Kindle|Opera Mini/i.test(ua)) return "dictation-only";
+  if (/Android|iPhone|iPod|iPad|Mobile|Silk|Kindle|Opera Mini/i.test(ua)) return "recording-only";
   // 데스크톱 사파리를 자처하는 아이패드
-  if (/Macintosh/i.test(ua) && (agent.maxTouchPoints ?? 0) > 1) return "dictation-only";
+  if (/Macintosh/i.test(ua) && (agent.maxTouchPoints ?? 0) > 1) return "recording-only";
   return "share";
 }
 
@@ -67,7 +85,7 @@ export function loadMicMode(): MicMode {
   if (isDesktopAgent(window.navigator)) return "share";
   try {
     const saved = window.localStorage.getItem(MIC_MODE_KEY);
-    if (saved === "share" || saved === "dictation-only") return saved;
+    if (MIC_MODES.includes(saved as MicMode)) return saved as MicMode;
   } catch {
     /* 저장소를 막아 둔 브라우저 */
   }
@@ -84,11 +102,79 @@ export function saveMicMode(mode: MicMode): void {
 }
 
 /* ------------------------------------------------------------------ */
+/* 안전망: 이 기기에서 실제로 할 수 있는 것                               */
+/* ------------------------------------------------------------------ */
+
+export interface MicCapabilities {
+  /** 브라우저에 SpeechRecognition 이 있는지. */
+  dictation: boolean;
+  /** getUserMedia 와 MediaRecorder 가 있는지. */
+  recording: boolean;
+  /** 서버가 녹음본을 글로 옮길 수 있는지. 키가 없거나 연결이 끊기면 false. */
+  transcription: boolean;
+}
+
+/**
+ * 고른 모드를 실제로 쓸 수 없어 다른 모드로 내려온 까닭.
+ * 화면은 이것으로 무엇이 왜 달라졌는지 한 줄로 알린다.
+ */
+export type MicFallback = "no-transcription" | "no-recording" | "no-dictation";
+
+export interface ResolvedMicMode {
+  mode: MicMode;
+  /** 고른 그대로면 null. */
+  fallback: MicFallback | null;
+}
+
+/**
+ * 고른 모드를 이 기기에서 쓸 수 있는 모드로 바꾼다.
+ *
+ * 핵심은 하나다. **녹음만 켜는 모드는 전사가 없으면 답변이 글로 남지 않는다.** 받아쓰기를
+ * 쓸 수 있다면 그쪽으로 되돌리는 편이 낫다. 소리만 남기고 기록을 통째로 잃느니, 덜 정확해도
+ * 글이 남는 쪽이 연습이 된다.
+ */
+export function resolveMicMode(requested: MicMode, caps: MicCapabilities): ResolvedMicMode {
+  if (requested === "recording-only") {
+    if (!caps.recording) return { mode: "dictation-only", fallback: "no-recording" };
+    // 전사를 쓸 수 없다. 받아쓰기가 있으면 그쪽이 답변을 남긴다.
+    if (!caps.transcription) {
+      return caps.dictation
+        ? { mode: "dictation-only", fallback: "no-transcription" }
+        : { mode: "recording-only", fallback: "no-transcription" };
+    }
+    return { mode: "recording-only", fallback: null };
+  }
+
+  if (requested === "dictation-only") {
+    if (caps.dictation) return { mode: "dictation-only", fallback: null };
+    return caps.recording && caps.transcription
+      ? { mode: "recording-only", fallback: "no-dictation" }
+      : { mode: "dictation-only", fallback: "no-dictation" };
+  }
+
+  if (caps.recording && caps.dictation) return { mode: "share", fallback: null };
+  if (caps.dictation) return { mode: "dictation-only", fallback: "no-recording" };
+  return caps.recording && caps.transcription
+    ? { mode: "recording-only", fallback: "no-dictation" }
+    : { mode: "dictation-only", fallback: "no-dictation" };
+}
+
+/** 이 모드에서 받아쓰기를 켜는지. */
+export function usesDictation(mode: MicMode): boolean {
+  return mode !== "recording-only";
+}
+
+/** 이 모드에서 녹음을 켜는지. */
+export function usesRecording(mode: MicMode): boolean {
+  return mode !== "dictation-only";
+}
+
+/* ------------------------------------------------------------------ */
 /* 겪어 보고 알아내기                                                    */
 /* ------------------------------------------------------------------ */
 
 /**
- * UA 만으로는 다 가릴 수 없다. 그래서 함께 켜 본 뒤 실제로 어떻게 되는지 본다.
+ * UA 만으로는 다 가릴 수 없다. 그래서 둘을 함께 켜 본 뒤 실제로 어떻게 되는지 본다.
  * 사람 목소리 크기의 입력이 한참 들어오는데 받아쓰기가 한 글자도 못 내놓으면
  * 녹음이 마이크를 쥐고 있는 것이다. 데스크톱(`isDesktopAgent`)에서는 쓰지 않는다.
  */

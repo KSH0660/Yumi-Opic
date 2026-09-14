@@ -28,6 +28,8 @@ import { itemNumber } from "@/lib/exam";
 import { formatHistoryStamp } from "@/lib/history";
 import { savedReadPractices, type ReadPractice } from "@/lib/speakingActivity";
 import { recordingExtension, recordingFileName, recordingToMp3 } from "@/lib/mp3";
+import { transcribeRecording, TranscribeError } from "@/lib/transcribeClient";
+import type { VoiceAnalysis } from "@/lib/voiceAnalysis";
 import { examExitLink, nextPracticeLink } from "@/lib/nav";
 import { pushHistory, updateHistoryResult, type HistoryEntry, type SavedResult } from "@/lib/storage";
 import type { ExpressionDraft } from "@/lib/expressions";
@@ -44,18 +46,6 @@ function formatTime(sec: number): string {
 export interface AnswerRecording {
   url: string;
   mimeType: string;
-}
-
-export interface VoiceAnalysis {
-  speakingTimeSec: number;
-  wordsPerMinute: number;
-  pace: string;
-  longPauseCount: number;
-  chunking: string;
-  stressDelivery: string;
-  energy: string;
-  fillers: string;
-  spontaneity: string;
 }
 
 const FEEDBACK_ERROR = "AI 피드백을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
@@ -186,6 +176,16 @@ export default function ExamResult({
   const answerBySlot = useMemo(() => applyAnswerRewrites(answers, rewrites.texts), [answers, rewrites.texts]);
   const { answeredSlots, answeredCount, skippedCount, totalWords, averageWords, totalSentences,
     uniqueWords, totalTime, totalHints, totalReplays } = summarizeAnswers(exam.items, answerBySlot, times, hintUse, replays);
+  /**
+   * AI 피드백을 보낼 수 있는 문항.
+   *
+   * 답변 텍스트가 있으면 보낼 수 있고, 글로 옮기지 못한 녹음본만 있어도 보낼 수 있다.
+   * 녹음만 하는 기기에서 전사가 실패한 문항이 그렇다. 서버가 녹음본을 받아써 분석하고,
+   * 그 텍스트가 곧 이 문항의 답변이 된다.
+   */
+  const analyzableSlots = exam.items
+    .map((item) => item.slot)
+    .filter((slot) => hasAnswerText(answerBySlot[slot]) || !!recordings[slot]);
   const [feedbackBySlot, setFeedbackBySlot] = useState<Record<number, OpicFeedback>>(historyEntry?.result?.feedback ?? {});
   // 고친 답변을 끝까지 따라 읽은 횟수. 답변·피드백과 같은 회차에 함께 쌓인다.
   const [readCounts, setReadCounts] = useState<Record<number, number>>(historyEntry?.result?.readCounts ?? {});
@@ -197,6 +197,9 @@ export default function ExamResult({
   const inFlight = useRef(new Set<number>());
   const [pendingSlots, setPendingSlots] = useState<ReadonlySet<number>>(() => new Set());
   const [feedbackErrors, setFeedbackErrors] = useState<Record<number, string>>({});
+  /** 녹음본을 글로 옮기는 중인 문항. 응시 화면에서 옮기지 못하고 넘어온 것들이다. */
+  const [transcribingSlots, setTranscribingSlots] = useState<ReadonlySet<number>>(() => new Set());
+  const [transcribeErrors, setTranscribeErrors] = useState<Record<number, string>>({});
   const [batch, setBatch] = useState<FeedbackBatch | null>(null);
   const batchStop = useRef(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -268,10 +271,53 @@ export default function ExamResult({
       if (sameSpokenText(transcript, shown)) return current;
       return {
         texts: { ...current.texts, [slot]: transcript },
-        // 다시 분석해도 맨 처음 브라우저 받아쓰기를 원본으로 지킨다.
-        browser: current.browser[slot] === undefined ? { ...current.browser, [slot]: shown } : current.browser,
+        // 다시 분석해도 맨 처음 브라우저 받아쓰기를 원본으로 지킨다. 녹음만 한 문항은
+        // 되돌릴 받아쓰기가 애초에 없으므로 빈 값을 원본으로 남기지 않는다.
+        browser: current.browser[slot] === undefined && hasAnswerText(shown)
+          ? { ...current.browser, [slot]: shown }
+          : current.browser,
       };
     });
+  }
+
+  /**
+   * 녹음본을 글로 옮겨 답변으로 삼는다.
+   *
+   * 녹음만 하는 기기는 응시 화면에서 문항마다 이 일을 이미 한 번 한다. 여기 버튼이 남아
+   * 있는 것은 그때 실패한 문항을 위해서다. AI 피드백까지 받을 필요 없이 텍스트만 되찾을
+   * 때가 많아, 전사만 하는 싼 길을 따로 둔다.
+   */
+  async function transcribeAnswer(slot: number) {
+    const recording = recordings[slot];
+    if (!recording || transcribingSlots.has(slot)) return;
+    setTranscribingSlots((current) => new Set(current).add(slot));
+    setTranscribeErrors((current) => {
+      if (!(slot in current)) return current;
+      const next = { ...current };
+      delete next[slot];
+      return next;
+    });
+    try {
+      const text = await transcribeRecording(recording, slot);
+      if (!text) {
+        setTranscribeErrors((current) => ({ ...current, [slot]: "녹음본에서 말소리를 찾지 못했습니다." }));
+        return;
+      }
+      readOnly.current = false;
+      setRewrites((current) => ({ ...current, texts: { ...current.texts, [slot]: text } }));
+    } catch (error) {
+      const message = error instanceof TranscribeError
+        ? error.message
+        : "녹음본을 글로 옮기지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+      setTranscribeErrors((current) => ({ ...current, [slot]: message }));
+    } finally {
+      setTranscribingSlots((current) => {
+        if (!current.has(slot)) return current;
+        const next = new Set(current);
+        next.delete(slot);
+        return next;
+      });
+    }
   }
 
   /** 다시 받아쓴 답변을 물리고 브라우저 받아쓰기로 돌아간다. */
@@ -293,7 +339,8 @@ export default function ExamResult({
   async function requestFeedback(item: ExamItem): Promise<FeedbackOutcome> {
     const slot = item.slot;
     const answer = latestResult.current.answers[slot] ?? "";
-    if (!hasAnswerText(answer) || inFlight.current.has(slot)) return { status: "skipped" };
+    // 글로 옮기지 못한 녹음본만 있어도 보낼 수 있다. 서버가 그 녹음을 받아써 분석한다.
+    if ((!hasAnswerText(answer) && !recordings[slot]) || inFlight.current.has(slot)) return { status: "skipped" };
     inFlight.current.add(slot);
     setPendingSlots(new Set(inFlight.current));
     setFeedbackErrors((current) => {
@@ -338,7 +385,7 @@ export default function ExamResult({
    */
   async function requestAllFeedback() {
     if (batch?.running) return;
-    const targets = slotsAwaitingFeedback(answeredSlots, feedbackRef.current, inFlight.current);
+    const targets = slotsAwaitingFeedback(analyzableSlots, feedbackRef.current, inFlight.current);
     if (targets.length === 0) return;
     const itemBySlot = new Map(exam.items.map((item) => [item.slot, item]));
     let fatalMessage: string | undefined;
@@ -386,9 +433,13 @@ export default function ExamResult({
   const recordingCount = answeredSlots.filter((slot) => recordings[slot]).length;
   // 미답변 문항이 목록을 채우면 실제로 말한 답변을 다시 보기 어렵다. 기본은 답변한 문항만 보여 준다.
   const [filter, setFilter] = useState<ResultFilter>(() => defaultResultFilter(answeredCount, exam.items.length));
-  const visibleItems = filterItemsByAnswer(exam.items, answerBySlot, filter);
+  // 글로 옮기지 못한 녹음본이 있는 문항은 답변한 문항만 볼 때도 남긴다. 숨기면 다시
+  // 옮길 버튼까지 숨어 버린다.
+  const recordedSlots = new Set(exam.items.map((item) => item.slot).filter((slot) => !!recordings[slot]));
+  const visibleItems = filterItemsByAnswer(exam.items, answerBySlot, filter, recordedSlots);
+  const hiddenCount = exam.items.length - visibleItems.length;
   const rewrittenCount = Object.keys(rewrites.browser).length;
-  const waitingSlots = slotsAwaitingFeedback(answeredSlots, feedbackBySlot, pendingSlots);
+  const waitingSlots = slotsAwaitingFeedback(analyzableSlots, feedbackBySlot, pendingSlots);
   const feedbackCount = answeredSlots.filter((slot) => feedbackBySlot[slot]).length;
   const feedbackCounts = summarizeFeedback(answeredSlots, feedbackBySlot);
   const exit = examExitLink(exam.mode);
@@ -464,8 +515,8 @@ export default function ExamResult({
           </div>
         )}
       </div>
-      {filter === "answered" && skippedCount > 0 && (
-        <p className="mt-2 text-xs leading-relaxed text-fg-subtle">답변 없는 {skippedCount}문항은 숨겼습니다. <strong className="font-medium text-fg-muted">전체</strong>를 누르면 다시 볼 수 있습니다.</p>
+      {filter === "answered" && hiddenCount > 0 && (
+        <p className="mt-2 text-xs leading-relaxed text-fg-subtle">답변 없는 {hiddenCount}문항은 숨겼습니다. <strong className="font-medium text-fg-muted">전체</strong>를 누르면 다시 볼 수 있습니다.</p>
       )}
       <div className="mt-4 space-y-4">
         {visibleItems.map((item) => (
@@ -483,6 +534,9 @@ export default function ExamResult({
             feedback={feedbackBySlot[item.slot]}
             feedbackLoading={pendingSlots.has(item.slot)}
             feedbackError={feedbackErrors[item.slot] ?? null}
+            transcribing={transcribingSlots.has(item.slot)}
+            transcribeError={transcribeErrors[item.slot] ?? null}
+            onTranscribe={() => void transcribeAnswer(item.slot)}
             onRequestFeedback={() => requestItemFeedback(item)}
             onRevertAnswer={() => revertAnswer(item.slot)}
             reads={readCounts[item.slot] ?? 0}
@@ -661,6 +715,9 @@ function ItemResult({
   feedback,
   feedbackLoading,
   feedbackError,
+  transcribing,
+  transcribeError,
+  onTranscribe,
   onRequestFeedback,
   onRevertAnswer,
   reads,
@@ -685,6 +742,10 @@ function ItemResult({
   /** 이 문항을 지금 분석 중인지. 개별 버튼과 한 번에 받기 어느 쪽에서 보냈든 같다. */
   feedbackLoading: boolean;
   feedbackError: string | null;
+  /** 이 문항의 녹음본을 지금 글로 옮기고 있는지. */
+  transcribing: boolean;
+  transcribeError: string | null;
+  onTranscribe: () => void;
   onRequestFeedback: () => void;
   onRevertAnswer: () => void;
   /** 고친 답변을 끝까지 따라 읽은 횟수. */
@@ -760,8 +821,8 @@ function ItemResult({
             <p className="mt-5 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg-muted">
               이 문항에는 녹음본이 없습니다. 아래 답변은 <strong className="font-semibold text-fg">브라우저 받아쓰기 그대로</strong>이고,
               녹음본이 없어 OpenAI 재전사로 바로잡을 수 없습니다. 브라우저 받아쓰기는 발음이 조금만 흐려도 다른 단어를 적으므로
-              (<span className="whitespace-nowrap">gym → dreams</span>) 실제로 말한 것과 다를 수 있습니다. 녹음본과 발음 비교가 필요하면
-              노트북(크롬·엣지)에서 연습하세요.
+              (<span className="whitespace-nowrap">gym → dreams</span>) 실제로 말한 것과 다를 수 있습니다. 응시 화면에서
+              <strong className="font-semibold text-fg"> 녹음으로 바꾸면</strong> 녹음본을 글로 옮겨 더 정확한 답변을 남길 수 있습니다.
             </p>
           )}
 
@@ -844,6 +905,36 @@ function ItemResult({
                 )}
               </div>
             </>
+          ) : recording ? (
+            /*
+             * 말은 했는데 글이 없는 문항이다. 녹음본이 남아 있으므로 여기서 되살릴 수 있다.
+             * 전사만 하면 답변과 통계가 돌아오고, AI 피드백은 그 위에 얹으면 된다.
+             */
+            <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4">
+              <p className="text-sm leading-relaxed text-fg-muted">
+                녹음본은 있는데 <strong className="font-semibold text-fg">아직 글로 옮기지 못한 문항</strong>입니다. 옮기면 답변 텍스트와 단어 수 통계가 살아나고, AI 피드백도 받을 수 있습니다.
+              </p>
+              {transcribeError && (
+                <p role="alert" className="mt-3 rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-relaxed text-fg-muted">{transcribeError}</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onTranscribe}
+                  disabled={transcribing}
+                  className="min-h-11 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-wait disabled:opacity-60"
+                >{transcribing ? "옮기는 중…" : "녹음본 글로 옮기기"}</button>
+                <button
+                  type="button"
+                  onClick={onRequestFeedback}
+                  disabled={feedbackLoading || transcribing}
+                  className="min-h-11 rounded-lg border border-line px-3.5 py-2 text-xs font-medium text-fg-muted transition hover:text-fg disabled:cursor-wait disabled:opacity-60"
+                >{feedbackLoading ? "분석 중…" : "옮기고 AI 피드백까지"}</button>
+              </div>
+              {feedbackError && (
+                <p role="alert" className="mt-3 rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-relaxed text-fg-muted">{feedbackError}</p>
+              )}
+            </div>
           ) : (
             <div className="mt-4 rounded-xl border border-line bg-surface-2 p-4">
               <p className="text-sm text-fg-muted">답변 텍스트가 없어 통계와 AI 분석에서 제외한 문항입니다.</p>

@@ -97,12 +97,19 @@ export function defaultResultFilter(answeredCount: number, totalCount: number): 
   return answeredCount > 0 && answeredCount < totalCount ? "answered" : "all";
 }
 
-/** 결과 화면에 보여 줄 문항. "answered"는 답변 텍스트가 있는 문항만 남긴다. */
+/**
+ * 결과 화면에 보여 줄 문항. "answered"는 답변 텍스트가 있는 문항만 남긴다.
+ *
+ * `alsoKeep` 은 텍스트가 없어도 남길 문항이다. 녹음본은 있는데 아직 글로 옮기지 못한
+ * 문항이 여기 든다. 숨겨 버리면 다시 옮길 버튼까지 함께 숨어, 되살릴 수 있다는 것을
+ * 알 길이 없어진다.
+ */
 export function filterItemsByAnswer<T extends { slot: number }>(
   items: readonly T[],
   answers: Record<number, string>,
   filter: ResultFilter,
+  alsoKeep: ReadonlySet<number> = new Set(),
 ): T[] {
   if (filter === "all") return [...items];
-  return items.filter((item) => hasAnswerText(answers[item.slot]));
+  return items.filter((item) => hasAnswerText(answers[item.slot]) || alsoKeep.has(item.slot));
 }

@@ -8,6 +8,13 @@ test('녹음 파일 확장자는 mime 을 따라간다', () => {
   assert.equal(mp3.recordingExtension(''), 'webm');
 });
 
+test('사파리가 만드는 mp4 녹음은 m4a 로 부른다', () => {
+  // 확장자로 형식을 가리는 곳(OpenAI 전사)에 `.webm` 으로 보내면 거절당한다.
+  assert.equal(mp3.recordingExtension('audio/mp4'), 'm4a');
+  assert.equal(mp3.recordingExtension('audio/mp4;codecs=mp4a.40.2'), 'm4a');
+  assert.equal(mp3.recordingExtension('audio/aac'), 'm4a');
+});
+
 test('내려받는 파일 이름에는 문항 번호와 확장자가 들어간다', () => {
   assert.equal(mp3.recordingFileName(3, 'mp3'), 'yumi-opic-question-3.mp3');
   assert.equal(mp3.recordingFileName(11, 'webm'), 'yumi-opic-question-11.webm');
