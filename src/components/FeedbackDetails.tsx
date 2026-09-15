@@ -154,7 +154,9 @@ export default function FeedbackDetails({ feedback, answer, expressions, reading
         <p>
           {feedback.pronunciationBasis === "audio_compare"
             ? "발음 항목은 녹음본을 별도로 재전사해 브라우저 받아쓰기와 비교한 점검 신호입니다. 두 음성인식 모두 틀릴 수 있으므로 확정 판정으로 보지는 마세요."
-            : "별도 녹음 재전사가 없으면 텍스트만 보고 발음 오류를 추정하지 않습니다."}
+            : feedback.pronunciationBasis === "audio_only"
+              ? "이 답변은 녹음본을 전사한 텍스트 하나로 분석했습니다. 견줄 두 번째 인식 결과가 없어 발음은 더 조심해서 봅니다."
+              : "별도 녹음 재전사가 없으면 텍스트만 보고 발음 오류를 추정하지 않습니다."}
         </p>
         {expressions && <p>☆ 저장을 누른 조언은 같은 문항이나 같은 주제를 다시 풀 때 연습 도구에 나옵니다.</p>}
       </div>

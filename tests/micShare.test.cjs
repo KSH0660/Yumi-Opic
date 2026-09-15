@@ -4,6 +4,9 @@ const {
   guessMicMode,
   isDesktopAgent,
   loadMicMode,
+  resolveMicMode,
+  usesDictation,
+  usesRecording,
   createMicProbe,
   observeMicLevel,
   observeMicResult,
@@ -21,15 +24,15 @@ test('노트북 브라우저는 받아쓰기와 녹음을 함께 켠다', () => 
   assert.equal(guessMicMode({ userAgent: MAC_SAFARI, maxTouchPoints: 0 }), 'share');
 });
 
-test('휴대폰은 겪어 보기 전에 받아쓰기만 켠다', () => {
-  assert.equal(guessMicMode({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }), 'dictation-only');
-  assert.equal(guessMicMode({ userAgent: IPHONE_SAFARI, maxTouchPoints: 5 }), 'dictation-only');
+test('휴대폰은 겪어 보기 전에 녹음만 켠다', () => {
+  assert.equal(guessMicMode({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }), 'recording-only');
+  assert.equal(guessMicMode({ userAgent: IPHONE_SAFARI, maxTouchPoints: 5 }), 'recording-only');
   // UA 문자열을 감추는 브라우저는 userAgentData 로 알린다
-  assert.equal(guessMicMode({ userAgent: DESKTOP_CHROME, userAgentData: { mobile: true } }), 'dictation-only');
+  assert.equal(guessMicMode({ userAgent: DESKTOP_CHROME, userAgentData: { mobile: true } }), 'recording-only');
 });
 
 test('데스크톱 사파리를 자처하는 아이패드도 가려낸다', () => {
-  assert.equal(guessMicMode({ userAgent: MAC_SAFARI, maxTouchPoints: 5 }), 'dictation-only');
+  assert.equal(guessMicMode({ userAgent: MAC_SAFARI, maxTouchPoints: 5 }), 'recording-only');
 });
 
 const WINDOWS_EDGE = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0';
@@ -58,7 +61,7 @@ test('휴대폰·태블릿과 데스크톱 UA 를 흉내 낼 수 있는 리눅�
 
 function withBrowser(navigator, saved, run) {
   const previous = global.window;
-  const data = new Map(saved ? [['yumi-opic:mic-mode', saved]] : []);
+  const data = new Map(saved ? [['yumi-opic:mic-mode-2', saved]] : []);
   global.window = { navigator, localStorage: {
     getItem: (key) => data.get(key) ?? null,
     setItem: (key, value) => data.set(key, value),
@@ -79,18 +82,98 @@ test('윈도 노트북은 예전에 받아쓰기만 켜기로 남긴 값이 있�
   });
 });
 
-test('데스크톱이 아닌 기기는 겪어 보고 남긴 값을 그대로 따른다', () => {
-  // 데스크톱 사이트를 요청한 안드로이드 태블릿: 겪어 보고 받아쓰기만 켜기로 했다
+test('데스크톱이 아닌 기기는 골라 남긴 값을 그대로 따른다', () => {
+  // 데스크톱 사이트를 요청한 안드로이드 태블릿: 받아쓰기로 바꿔 두었다
   withBrowser({ userAgent: LINUX_DESKTOP, maxTouchPoints: 5 }, 'dictation-only', () => {
     assert.equal(loadMicMode(), 'dictation-only');
   });
-  // 휴대폰에서 녹음도 함께 켜보기를 눌렀다
+  // 휴대폰에서 받아쓰기도 함께 켜보기로 했다
   withBrowser({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }, 'share', () => {
     assert.equal(loadMicMode(), 'share');
   });
   withBrowser({ userAgent: ANDROID_CHROME, maxTouchPoints: 5 }, null, () => {
-    assert.equal(loadMicMode(), 'dictation-only');
+    assert.equal(loadMicMode(), 'recording-only');
   });
+});
+
+test('예전 키에 남은 값은 따르지 않는다', () => {
+  // 옛 `dictation-only` 는 "이 기기는 마이크를 한 곳에서만 쓴다"를 겪어 보고 남긴 값이다.
+  // 그것은 녹음 기반을 피할 까닭이 아니라 그 전제라, 그대로 따르면 예전에 한 번 연습해 본
+  // 휴대폰만 새 방식으로 넘어오지 못한다.
+  const previous = global.window;
+  const data = new Map([['yumi-opic:mic-mode', 'dictation-only']]);
+  global.window = { navigator: { userAgent: ANDROID_CHROME, maxTouchPoints: 5 }, localStorage: {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+    removeItem: (key) => data.delete(key),
+  } };
+  try {
+    assert.equal(loadMicMode(), 'recording-only');
+  } finally {
+    if (previous === undefined) delete global.window;
+    else global.window = previous;
+  }
+});
+
+const ALL = { dictation: true, recording: true, transcription: true };
+
+test('모드마다 무엇을 켜는지', () => {
+  assert.equal(usesDictation('share'), true);
+  assert.equal(usesRecording('share'), true);
+  assert.equal(usesDictation('recording-only'), false);
+  assert.equal(usesRecording('recording-only'), true);
+  assert.equal(usesDictation('dictation-only'), true);
+  assert.equal(usesRecording('dictation-only'), false);
+});
+
+test('할 수 있는 것이 다 되면 고른 모드를 그대로 쓴다', () => {
+  for (const mode of ['share', 'recording-only', 'dictation-only']) {
+    assert.deepEqual(resolveMicMode(mode, ALL), { mode, fallback: null });
+  }
+});
+
+test('전사를 쓸 수 없으면 녹음 대신 받아쓰기로 답변을 받는다', () => {
+  // 안전망의 핵심이다. 녹음만 켜 두면 소리는 남지만 답변이 글로 남지 않는다.
+  assert.deepEqual(
+    resolveMicMode('recording-only', { ...ALL, transcription: false }),
+    { mode: 'dictation-only', fallback: 'no-transcription' },
+  );
+});
+
+test('받아쓰기조차 없으면 전사를 못 써도 녹음이라도 남긴다', () => {
+  // 소리까지 잃는 것보다는 낫다. 나중에 전사가 살아나면 그때 글로 옮길 수 있다.
+  assert.deepEqual(
+    resolveMicMode('recording-only', { dictation: false, recording: true, transcription: false }),
+    { mode: 'recording-only', fallback: 'no-transcription' },
+  );
+});
+
+test('녹음을 못 하는 브라우저는 받아쓰기로 받는다', () => {
+  assert.deepEqual(
+    resolveMicMode('recording-only', { ...ALL, recording: false }),
+    { mode: 'dictation-only', fallback: 'no-recording' },
+  );
+  assert.deepEqual(
+    resolveMicMode('share', { ...ALL, recording: false }),
+    { mode: 'dictation-only', fallback: 'no-recording' },
+  );
+});
+
+test('받아쓰기가 없는 브라우저는 녹음과 전사로 답변을 만든다', () => {
+  // 파이어폭스처럼 SpeechRecognition 이 없는 노트북 브라우저가 여기에 든다.
+  assert.deepEqual(
+    resolveMicMode('share', { dictation: false, recording: true, transcription: true }),
+    { mode: 'recording-only', fallback: 'no-dictation' },
+  );
+  assert.deepEqual(
+    resolveMicMode('dictation-only', { dictation: false, recording: true, transcription: true }),
+    { mode: 'recording-only', fallback: 'no-dictation' },
+  );
+  // 전사까지 막혀 있으면 어느 쪽으로도 갈 수 없다. 화면이 직접 입력을 안내한다.
+  assert.deepEqual(
+    resolveMicMode('dictation-only', { dictation: false, recording: true, transcription: false }),
+    { mode: 'dictation-only', fallback: 'no-dictation' },
+  );
 });
 
 /** rAF 한 프레임씩 흘려보낸다. `atMs` 는 계속 이어진다. */

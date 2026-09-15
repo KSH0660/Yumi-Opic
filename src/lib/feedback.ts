@@ -113,10 +113,11 @@ export interface OpicFeedback {
   };
   /**
    * audio_compare: 저장된 녹음본을 별도 STT로 다시 들어 브라우저 받아쓰기와 비교함.
+   * audio_only: 녹음본 전사만 있음. 받아쓰기가 없어 견줄 상대가 없다(녹음만 하는 휴대폰).
    * browser_only: 브라우저 받아쓰기만 있어 발음 추정을 제한함.
    * none: 발음 피드백 근거가 없음.
    */
-  pronunciationBasis: "audio_compare" | "browser_only" | "none";
+  pronunciationBasis: "audio_compare" | "audio_only" | "browser_only" | "none";
   items: OpicFeedbackItem[];
   /**
    * 사용자가 실제로 말한 답변에 이번 피드백만 반영해 고친 버전. 새 모범답안이 아니라
@@ -245,7 +246,7 @@ export function isOpicFeedback(value: unknown): value is OpicFeedback {
     && optionalText(feedback.improvedAnswer) && optionalText(feedback.improvedFrom)
     && statuses.includes(structure.topic) && statuses.includes(structure.detail)
     && statuses.includes(structure.feeling) && typeof structure.note === "string"
-    && ["audio_compare", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
+    && ["audio_compare", "audio_only", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
     && Array.isArray(feedback.items) && feedback.items.every((item) => item
       && categories.includes(item.category) && typeof item.title === "string"
       && typeof item.message === "string" && typeof item.example === "string"

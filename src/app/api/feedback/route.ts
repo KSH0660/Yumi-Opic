@@ -7,11 +7,11 @@ import {
   type FeedbackResponse,
   type OpicFeedback,
 } from "@/lib/feedback";
+import { MAX_AUDIO_BYTES, transcribeAudio } from "@/lib/openaiTranscribe";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const MAX_TRANSCRIPT_CHARS = 12_000;
 
 const FEEDBACK_SCHEMA = {
@@ -31,7 +31,7 @@ const FEEDBACK_SCHEMA = {
     },
     pronunciationBasis: {
       type: "string",
-      enum: ["audio_compare", "browser_only", "none"],
+      enum: ["audio_compare", "audio_only", "browser_only", "none"],
     },
     items: {
       type: "array",
@@ -82,26 +82,6 @@ function extractOutputText(payload: unknown): string {
   return "";
 }
 
-async function transcribeAudio(apiKey: string, audio: File): Promise<string> {
-  const body = new FormData();
-  body.append("model", process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-transcribe");
-  body.append("language", "en");
-  body.append("file", audio, audio.name || "answer.webm");
-
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`transcription_failed:${response.status}`);
-  }
-
-  const payload = (await response.json()) as { text?: unknown };
-  return typeof payload.text === "string" ? payload.text.trim() : "";
-}
-
 function buildPrompt(input: {
   question: string;
   topic: string;
@@ -112,7 +92,10 @@ function buildPrompt(input: {
   audioTranscript: string;
   elapsedSec: number;
 }): string {
-  const words = input.browserTranscript.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)?.length ?? 0;
+  // 속도는 실제로 말한 낱말 수로 잰다. 녹음만 하는 기기에는 브라우저 받아쓰기가 아예
+  // 없어, 그쪽으로 세면 0 WPM 이 되어 "너무 느리다"는 엉뚱한 조언이 나간다.
+  const spoken = input.audioTranscript || input.browserTranscript;
+  const words = spoken.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)?.length ?? 0;
   const wpm = input.elapsedSec > 8 ? Math.round((words / input.elapsedSec) * 60) : null;
   const frontLoaded = requiresFrontLoadedOpening(input.questionType);
 
@@ -171,7 +154,7 @@ function buildPrompt(input: {
     "Stress and energy rule: do not duplicate one observation under both Stress & Delivery and Energy / Monotone. If only amplitude/energy is available and pitch is not reliable, do not claim intonation is wrong or that the speaker is monotone. Use cautious wording such as '전달이 전체적으로 조금 고르게 들립니다' or '핵심 단어에 조금 더 힘을 주면 전달력이 좋아집니다.' Never penalize naturally expressive regional intonation.",
     "Write feedback in concise Korean. Each item's English example should be one short, natural line that is easy to reuse. The full revised answer goes only in improvedAnswer.",
     "If the answer is already strong, return fewer than 5 items rather than manufacturing problems.",
-    "For pronunciationBasis return audio_compare only when an audio transcript is present; browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
+    "For pronunciationBasis return audio_compare when both transcripts are present; audio_only when there is an independent audio transcription but no browser transcript (a phone that recorded instead of dictating, so there is nothing to compare against); browser_only when only the browser transcript is present; none when there is no usable spoken transcript.",
     "",
     "improvedAnswer is the learner's own answer rewritten so it is worth reading out loud. It is a revision of their answer, NOT a new model answer:",
     "- The source answer is the independent audio transcription when available, otherwise the browser transcript.",
@@ -224,8 +207,9 @@ export async function POST(request: Request) {
   const audioEntry = form.get("audio");
   const audio = audioEntry instanceof File && audioEntry.size > 0 ? audioEntry : null;
 
-  if (!question || !browserTranscript) {
-    return Response.json({ error: "질문과 답변 받아쓰기가 필요합니다." }, { status: 400 });
+  // 녹음만 하는 기기는 브라우저 받아쓰기가 없다. 그때는 녹음본이 답변 그 자체다.
+  if (!question || (!browserTranscript && !audio)) {
+    return Response.json({ error: "질문과 함께 답변 받아쓰기나 녹음본이 필요합니다." }, { status: 400 });
   }
 
   if (audio && audio.size > MAX_AUDIO_BYTES) {
@@ -243,6 +227,14 @@ export async function POST(request: Request) {
   }
   // 고친 답변은 이 텍스트를 바탕으로 만들라고 지시한다. 프롬프트의 규칙과 같은 순서다.
   const answerBasis = audioTranscript || browserTranscript;
+  // 녹음본만 보낸 문항인데 전사가 실패했다. 분석할 말이 한 마디도 없으므로 돈을 들여
+  // 모델을 부르지 않고, 녹음본은 그대로 두었다가 다시 시도할 수 있게 알린다.
+  if (!answerBasis) {
+    return Response.json(
+      { error: "녹음본을 글로 옮기지 못했습니다. 잠시 뒤 다시 시도해 주세요." },
+      { status: 502 },
+    );
+  }
 
   // 추론 강도는 배포 환경에서 바꾼다. 출력 상한도 같은 값을 보고 늘어난다.
   const effort = readFeedbackEffort(process.env.OPENAI_FEEDBACK_EFFORT);
