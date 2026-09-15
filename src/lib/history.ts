@@ -42,6 +42,16 @@ export function historyTopicId(entry: HistoryEntry, topics: readonly TopicRef[])
   return name ? topics.find((topic) => topic.ko === name)?.id : undefined;
 }
 
+/** 유형 묶음 ID → 연습 횟수. 유형을 적어 두지 않은 기록은 세지 않는다. */
+export function typePracticeCounts(history: readonly HistoryEntry[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const entry of history) {
+    const id = entry.mode === "type" ? entry.result?.exam.typeGroupId : undefined;
+    if (id) counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** 주제 ID → 연습 횟수. 한 번도 연습하지 않은 주제는 키가 없다. */
 export function topicPracticeCounts(
   history: readonly HistoryEntry[],

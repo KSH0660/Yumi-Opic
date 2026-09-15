@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { allTopics, surveyTopics, surpriseTopics, surpriseQuestionCount } from "@/data";
+import { allTopics, surveyTopics, surpriseTopics } from "@/data";
 import { DRAW_EXCLUDED_TOPIC_IDS, selectPracticeQuestions, TYPE_LABELS } from "@/lib/exam";
 import { topicPracticeCounts } from "@/lib/history";
 import { RANDOM_SCOPE_LABELS, randomPracticeLink } from "@/lib/nav";
@@ -12,14 +12,17 @@ import { Badge, Card, SourceBadge } from "./ui";
 
 /** 모의고사와 랜덤 연습에서 빠지는 주제 이름. 랜덤 링크 옆에 알린다. */
 const excludedNames = surveyTopics.filter((topic) => DRAW_EXCLUDED_TOPIC_IDS.includes(topic.id)).map((topic) => topic.ko).join("·");
+const visibleSurpriseTopics = surpriseTopics.filter((topic) => topic.id !== "job-hunting");
+const visibleSurpriseQuestionCount = visibleSurpriseTopics.reduce((sum, topic) => sum + topic.questions.length, 0);
 
 export default function TopicsView() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [category, setCategory] = useState<"survey" | "surprise">("survey");
   const { history, error, remove, removeAll, removeSelected } = usePracticeHistory();
-  const entries = useMemo(() => history.filter((entry) => entry.mode !== "full"), [history]);
+  // 유형별 연습 기록은 그 화면의 목록에서 본다. 여기에는 주제를 고른 연습만 남긴다.
+  const entries = useMemo(() => history.filter((entry) => entry.mode !== "full" && entry.mode !== "type"), [history]);
   const counts = useMemo(() => topicPracticeCounts(history, allTopics), [history]);
-  const topics = category === "survey" ? surveyTopics : surpriseTopics;
+  const topics = category === "survey" ? surveyTopics : visibleSurpriseTopics;
 
   return <main className="mx-auto w-full max-w-5xl px-5 pb-24 pt-10 sm:px-8">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -31,6 +34,7 @@ export default function TopicsView() {
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">주제별 연습</h1>
         <div className="flex flex-wrap gap-4">
+          <Link href="/types" className="text-xs text-primary-ink">유형별 연습 →</Link>
           {(["single", "set"] as const).map((mode) => {
             const link = randomPracticeLink(mode);
             return <Link key={mode} href={link.href} className="text-xs text-primary-ink">{link.label} →</Link>;
@@ -42,11 +46,11 @@ export default function TopicsView() {
 
     <div role="group" aria-label="주제 분류" className="mt-7 flex flex-wrap gap-2">
       {(["survey", "surprise"] as const).map((value) => <button key={value} type="button" aria-pressed={category === value} onClick={() => { setCategory(value); setOpenId(null); }} className={`min-h-11 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${category === value ? "border-primary/50 bg-primary-tint text-primary-ink" : "border-line text-fg-muted hover:bg-surface-2"}`}>
-        {value === "survey" ? `서베이 주제 ${surveyTopics.length}개` : `돌발 주제 ${surpriseTopics.length}개`}
+        {value === "survey" ? `서베이 주제 ${surveyTopics.length}개` : `돌발 주제 ${visibleSurpriseTopics.length}개`}
       </button>)}
     </div>
     <p className="mt-4 text-sm leading-relaxed text-fg-muted">{category === "surprise"
-      ? `돌발 ${surpriseQuestionCount}문항을 제공 자료의 번호와 순서대로 연습합니다. 5-A·5-B도 각각 선택할 수 있습니다. 질문은 MP3로 들을 수 있으며, 원하는 번호로 이동해 답변할 수 있습니다.`
+      ? `돌발 ${visibleSurpriseQuestionCount}문항을 제공 자료의 번호와 순서대로 연습합니다. 5-A·5-B도 각각 선택할 수 있습니다. 질문은 MP3로 들을 수 있으며, 원하는 번호로 이동해 답변할 수 있습니다.`
       : "선택한 주제의 문제를 2~15번에 유형별로 배정하며 같은 질문이 중복될 수 있습니다. 집에서 보내는 휴가는 지정된 11문항을 순서대로 연습합니다. 원하는 문항만 답변하고 나머지는 건너뛰어도 됩니다."}</p>
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
       <span>{RANDOM_SCOPE_LABELS[category]} 주제에서 랜덤으로{category === "survey" && ` (${excludedNames} 제외)`}</span>

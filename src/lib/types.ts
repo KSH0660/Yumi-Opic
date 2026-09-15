@@ -71,12 +71,17 @@ export type RandomScope = "all" | "survey" | "surprise";
 export interface Exam {
   id: string;
   createdAt: number;
-  /** single 은 1문제 랜덤 연습, set 은 한 주제에서 유형에 따라 2~3문항을 푸는 1토픽 랜덤 연습이다. */
-  mode: "full" | "practice" | "single" | "set";
+  /**
+   * single 은 1문제 랜덤 연습, set 은 한 주제에서 유형에 따라 2~3문항을 푸는 1토픽 랜덤 연습,
+   * type 은 한 유형만 여러 주제에서 모아 푸는 유형별 연습이다.
+   */
+  mode: "full" | "practice" | "single" | "set" | "type";
   items: ExamItem[];
   focusTopicId?: string;
-  /** 랜덤 연습을 뽑은 범위. 기록에서 같은 범위로 다시 뽑을 때 쓴다. 예전 기록에는 없다. */
+  /** 랜덤 연습과 유형별 연습을 뽑은 범위. 기록에서 같은 범위로 다시 뽑을 때 쓴다. 예전 기록에는 없다. */
   randomScope?: RandomScope;
+  /** 유형별 연습에서 고른 유형 묶음. 기록에서 같은 유형으로 다시 뽑을 때 쓴다. */
+  typeGroupId?: string;
   bank?: "textbook" | "legacy";
   bankVersion?: string;
   setIds?: string[];

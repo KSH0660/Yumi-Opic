@@ -25,9 +25,17 @@ const MP3_KBPS = 96;
  */
 const ENCODE_BLOCK = 1152 * 50;
 
-/** 브라우저가 남긴 녹음 파일의 확장자. mp3 로 못 바꿨을 때 원본을 받는 이름에 쓴다. */
+/**
+ * 브라우저가 남긴 녹음 파일의 확장자.
+ *
+ * mp3 로 못 바꿨을 때 원본을 받는 이름이자, 녹음본을 서버로 보낼 때 붙이는 이름이다.
+ * 사파리(iOS·macOS)는 webm 을 만들지 못해 mp4(AAC)로 녹음한다. 그 파일에 `.webm` 을
+ * 붙여 보내면 OpenAI 가 확장자로 형식을 가리다 거절하므로 형식마다 제 이름을 준다.
+ */
 export function recordingExtension(mimeType: string): string {
-  return mimeType.includes("ogg") ? "ogg" : "webm";
+  if (mimeType.includes("mp4") || mimeType.includes("aac") || mimeType.includes("m4a")) return "m4a";
+  if (mimeType.includes("ogg")) return "ogg";
+  return "webm";
 }
 
 /** 문항 번호로 짓는 내려받기 파일 이름. */

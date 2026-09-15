@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const storage = require('../.test-build/lib/storage');
-const { buildSingleQuestion, buildTopicSet } = require('../.test-build/lib/exam');
+const { buildSingleQuestion, buildTopicSet, buildTypePractice, practiceTypeGroupById } = require('../.test-build/lib/exam');
 const { allTopics, DEFAULT_SURVEY_IDS } = require('../.test-build/data');
 const SETTINGS_KEY = 'yumi-opic:settings';
 const KEY = 'yumi-opic:history';
@@ -123,6 +123,18 @@ test('1토픽 랜덤 연습 기록도 상세 결과와 함께 되살린다', () 
     const saved = storage.loadHistory()[0];
     assert.equal(saved.mode, 'set');
     assert.equal(saved.totalItems, count);
+    assert.deepEqual(saved.result.exam, jsonSnapshot(exam));
+  }
+}));
+
+test('유형별 연습 기록도 고른 유형·범위와 함께 되살린다', () => withStorage(() => {
+  for (const group of ['description', 'roleplay']) {
+    const exam = buildTypePractice(practiceTypeGroupById.get(group), 'surprise', 2, () => 0.5);
+    storage.pushHistory({ ...entry(`type-${group}`, exam), label: '유형별 연습', totalItems: exam.items.length });
+    const saved = storage.loadHistory()[0];
+    assert.equal(saved.mode, 'type');
+    assert.equal(saved.result.exam.typeGroupId, group);
+    assert.equal(saved.result.exam.randomScope, 'surprise');
     assert.deepEqual(saved.result.exam, jsonSnapshot(exam));
   }
 }));

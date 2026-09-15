@@ -9,6 +9,29 @@ const home = surveyTopicById.get('home');
 // 고정 세트를 아직 선언하지 않은 주제. 유형별 추첨 경로는 이 주제로 확인한다.
 const plain = surveyTopicById.get('concert');
 
+test('every declared fixed set points at a topic and questions that still exist', () => {
+  // 주제가 사라지거나 이름이 바뀌면 선언만 남는다. 개수를 못박는 대신 이 짝을 확인한다.
+  const { topicById } = require('../.test-build/data');
+  const { surveyPracticeSets } = require('../.test-build/data/survey-practice-sets');
+  const declared = Object.entries(surveyPracticeSets).filter(([, sets]) => sets);
+  assert.ok(declared.length > 0);
+  for (const [topicId, sets] of declared) {
+    const topic = topicById.get(topicId);
+    assert.ok(topic, `선언된 고정 세트의 주제가 없다: ${topicId}`);
+    assert.ok(topic.fixedPracticeSets, `${topicId}: 주제가 고정 세트를 물고 있지 않다`);
+    const slots = new Set();
+    for (const set of sets) {
+      assert.ok(set.items.length > 0, `${topicId} / ${set.label}: 빈 세트`);
+      for (const { slot, questionId } of set.items) {
+        assert.ok(topic.questions.some(q => q.id === questionId),
+          `${topicId} / ${set.label}: 없는 문항 ${questionId}`);
+        assert.ok(!slots.has(slot), `${topicId}: slot ${slot} 이 겹친다`);
+        slots.add(slot);
+      }
+    }
+  }
+});
+
 test('any survey topic can supply set order, arbitrary question IDs and actual slots through data alone', () => {
   // Deliberately use another topic ID, unsorted slots and IDs unrelated to slot numbers.
   const [a, b, c] = home.questions;

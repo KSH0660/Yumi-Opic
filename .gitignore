@@ -13,3 +13,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+
+# Playwright / browser debug artifacts
+.playwright-cli/
+.playwright-mcp/
+playwright-report/
+test-results/
+output/
+
+# Local Claude Code config
+.claude/

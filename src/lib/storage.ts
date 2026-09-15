@@ -7,12 +7,14 @@ import {
   surveyChoiceById,
   topicIdsForChoices,
 } from "../data";
-import type { Exam, ExamItem } from "./types";
+import type { Exam, ExamItem, Question } from "./types";
+import { readExamExposure, recordQuestionExposure, type ExamExposure } from "./examExposure";
 import { emptyFeedbackCounts, FEEDBACK_CRITERIA, isOpicFeedback, type FeedbackCounts, type OpicFeedback } from "./feedback";
 import { mergeDailySpeaking, totalDailySpeaking, type DailySpeaking, type ReadPractice, type SpeakingTotals } from "./speakingActivity";
 const SETTINGS_KEY = "yumi-opic:settings";
 const HISTORY_KEY = "yumi-opic:history";
 const DAILY_SPEAKING_KEY = "yumi-opic:daily-speaking";
+const EXAM_EXPOSURE_KEY = "yumi-opic:exam-exposure";
 export const HISTORY_CHANGED_EVENT = "yumi-opic:history-changed";
 /**
  * surveyChoiceIds 는 배경 설문 화면에서 고른 항목 전부다. 문제은행이 없는 항목도 그대로 남긴다.
@@ -117,7 +119,7 @@ export interface SavedResult {
 }
 
 /** 저장된 기록에서 받아들이는 연습 방식. 모르는 값이 적힌 기록은 버린다. */
-const EXAM_MODES: readonly string[] = ["full", "practice", "single", "set"] satisfies Exam["mode"][];
+const EXAM_MODES: readonly string[] = ["full", "practice", "single", "set", "type"] satisfies Exam["mode"][];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -198,6 +200,42 @@ export function loadHistory(): HistoryEntry[] {
   } catch { return []; }
 }
 
+/** 결과 목록의 20회 제한과 별개로 실제로 접한 모의고사 지문을 기억한다. */
+export function loadFullExamExposure(): ExamExposure {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(EXAM_EXPOSURE_KEY) ?? "null");
+    if (isRecord(stored) && stored.version === 1) {
+      const exposure = readExamExposure(stored.questions);
+      if (exposure) return exposure;
+    }
+  } catch { /* 손상되거나 저장이 차단됐으면 남아 있는 결과 기록을 사용한다. */ }
+  let exposure: ExamExposure = {};
+  // 이전 버전에는 청취 기록이 없다. 답변·시간·힌트 등 접한 증거가 있는 문항만 옮긴다.
+  for (const entry of loadHistory().filter(entry => entry.mode === "full").sort((a, b) => a.finishedAt - b.finishedAt)) {
+    const result = entry.result;
+    if (!result || result.exam.mode !== "full") continue;
+    for (const { slot, question } of result.exam.items) {
+      if (result.answers[slot]?.trim() || result.times[slot] > 0 || result.hintUse[slot] > 0 || result.replays[slot] > 0) {
+        exposure = recordQuestionExposure(exposure, question, entry.id, entry.finishedAt);
+      }
+    }
+  }
+  return exposure;
+}
+
+/** 재생 성공 또는 지문·해석 열기에서만 호출한다. 추첨·미리보기·건너뛰기는 기록하지 않는다. */
+export function recordFullExamQuestion(
+  exam: Pick<Exam, "id" | "mode">, question: Question, attemptId = exam.id, seenAt = Date.now(),
+): void {
+  if (typeof window === "undefined" || exam.mode !== "full") return;
+  const previous = loadFullExamExposure();
+  const questions = recordQuestionExposure(previous, question, attemptId, seenAt);
+  if (questions === previous) return;
+  try { window.localStorage.setItem(EXAM_EXPOSURE_KEY, JSON.stringify({ version: 1, questions })); }
+  catch { /* 출제 이력 저장 실패가 청취·답변을 막지는 않는다. */ }
+}
+
 function readDailySpeaking(): DailySpeaking | null {
   if (typeof window === "undefined") return null;
   try {
@@ -276,6 +314,7 @@ export function clearHistory(): void {
   try {
     window.localStorage.removeItem(HISTORY_KEY);
     window.localStorage.removeItem(DAILY_SPEAKING_KEY);
+    window.localStorage.removeItem(EXAM_EXPOSURE_KEY);
   }
   catch { throw new Error("기록을 삭제하지 못했습니다. 브라우저 저장 권한을 확인해 주세요."); }
   window.dispatchEvent?.(new Event(HISTORY_CHANGED_EVENT));

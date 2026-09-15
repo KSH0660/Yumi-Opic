@@ -113,10 +113,11 @@ export interface OpicFeedback {
   };
   /**
    * audio_compare: 저장된 녹음본을 별도 STT로 다시 들어 브라우저 받아쓰기와 비교함.
+   * audio_only: 녹음본 전사만 있음. 받아쓰기가 없어 견줄 상대가 없다(녹음만 하는 휴대폰).
    * browser_only: 브라우저 받아쓰기만 있어 발음 추정을 제한함.
    * none: 발음 피드백 근거가 없음.
    */
-  pronunciationBasis: "audio_compare" | "browser_only" | "none";
+  pronunciationBasis: "audio_compare" | "audio_only" | "browser_only" | "none";
   items: OpicFeedbackItem[];
   /**
    * 사용자가 실제로 말한 답변에 이번 피드백만 반영해 고친 버전. 새 모범답안이 아니라
@@ -152,9 +153,34 @@ export function feedbackItemQuotes(feedback: OpicFeedback): string[] | undefined
 }
 
 /**
- * 피드백 JSON 에 드는 출력 토큰. 추론 토큰도 여기서 함께 잘린다. 고칠 점마다 고친
- * 답변의 한 조각을 인용하는 `itemQuotes` 가 붙어 1,400 → 1,550 으로 올렸다. 인용문은
- * 맨 뒤에 오므로 여기가 모자라면 인용문만 잘려 나가 등급을 가릴 수 없게 된다.
+ * 추론 강도. `/v1/responses` 의 `reasoning.effort` 에 그대로 들어간다. 올릴수록 답을 더
+ * 오래 따져 보지만 추론 토큰과 응답 시간이 함께 늘어난다. route.ts 와 cost.ts 가 같은
+ * 값을 쓴다.
+ */
+export const FEEDBACK_EFFORTS = ["minimal", "low", "medium", "high"] as const;
+export type FeedbackEffort = (typeof FEEDBACK_EFFORTS)[number];
+
+/**
+ * 환경변수를 주지 않았을 때 쓰는 강도. 피드백의 질이 이 앱의 전부라 기본을 높게 잡는다.
+ * 비용이나 응답 시간이 문제면 배포 환경에서 `OPENAI_FEEDBACK_EFFORT` 로 낮추면 된다.
+ */
+export const DEFAULT_FEEDBACK_EFFORT: FeedbackEffort = "high";
+
+/**
+ * `OPENAI_FEEDBACK_EFFORT` 를 읽는다. 비어 있거나 모르는 값이면 조용히 기본값으로
+ * 돌아간다. 환경변수 오타 하나로 피드백 전체가 죽는 편보다 낫다.
+ */
+export function readFeedbackEffort(value: string | undefined | null): FeedbackEffort {
+  const normalized = value?.trim().toLowerCase();
+  return FEEDBACK_EFFORTS.some((effort) => effort === normalized)
+    ? (normalized as FeedbackEffort)
+    : DEFAULT_FEEDBACK_EFFORT;
+}
+
+/**
+ * 피드백 JSON 에 드는 출력 토큰. 고칠 점마다 고친 답변의 한 조각을 인용하는
+ * `itemQuotes` 가 붙어 1,400 → 1,550 으로 올렸다. 인용문은 맨 뒤에 오므로 여기가
+ * 모자라면 인용문만 잘려 나가 등급을 가릴 수 없게 된다.
  */
 const FEEDBACK_OUTPUT_TOKENS = 1_550;
 /** 영어는 대략 4글자에 1토큰이다. 고친 답변이 원래보다 조금 길어질 수 있어 3글자로 넉넉히 잡는다. */
@@ -162,12 +188,30 @@ const CHARS_PER_OUTPUT_TOKEN = 3;
 const MAX_OUTPUT_TOKENS = 6_000;
 
 /**
- * 한 번 요청에 허용할 출력 토큰. 고친 답변은 원래 답변만큼 길어서 답변 길이에 맞춰 늘린다.
- * 모자라면 JSON 이 중간에 잘려 피드백 전체를 잃는다. route.ts 와 cost.ts 가 함께 쓴다.
+ * 추론에 따로 떼어 두는 몫. `max_output_tokens` 는 추론 토큰까지 함께 세기 때문에,
+ * 강도를 올린 만큼 자리를 넓혀 주지 않으면 답을 따져 보다 예산을 다 써서 JSON 이 한 글자도
+ * 나오지 않고 잘린다. 그러면 전사까지 이미 돈을 들인 요청이 통째로 버려진다. 상한일 뿐
+ * 실제로 다 쓰는 값은 아니라 넉넉하게 잡는다.
  */
-export function feedbackOutputTokenLimit(answerChars: number): number {
+const REASONING_HEADROOM: Record<FeedbackEffort, number> = {
+  minimal: 0,
+  low: 600,
+  medium: 1_800,
+  high: 4_000,
+};
+
+/**
+ * 한 번 요청에 허용할 출력 토큰. 고친 답변은 원래 답변만큼 길어서 답변 길이에 맞춰 늘리고,
+ * 추론 강도만큼 몫을 더 얹는다. 모자라면 JSON 이 중간에 잘려 피드백 전체를 잃는다.
+ * route.ts 와 cost.ts 가 함께 쓴다.
+ */
+export function feedbackOutputTokenLimit(
+  answerChars: number,
+  effort: FeedbackEffort = DEFAULT_FEEDBACK_EFFORT,
+): number {
   const answerTokens = Math.ceil(Math.max(0, answerChars) / CHARS_PER_OUTPUT_TOKEN);
-  return Math.min(MAX_OUTPUT_TOKENS, FEEDBACK_OUTPUT_TOKENS + answerTokens);
+  const visible = Math.min(MAX_OUTPUT_TOKENS, FEEDBACK_OUTPUT_TOKENS + answerTokens);
+  return visible + (REASONING_HEADROOM[effort] ?? REASONING_HEADROOM[DEFAULT_FEEDBACK_EFFORT]);
 }
 
 /** `/api/feedback` 응답. 피드백과 함께 녹음본을 다시 받아쓴 결과를 돌려준다. */
@@ -202,7 +246,7 @@ export function isOpicFeedback(value: unknown): value is OpicFeedback {
     && optionalText(feedback.improvedAnswer) && optionalText(feedback.improvedFrom)
     && statuses.includes(structure.topic) && statuses.includes(structure.detail)
     && statuses.includes(structure.feeling) && typeof structure.note === "string"
-    && ["audio_compare", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
+    && ["audio_compare", "audio_only", "browser_only", "none"].includes(feedback.pronunciationBasis ?? "")
     && Array.isArray(feedback.items) && feedback.items.every((item) => item
       && categories.includes(item.category) && typeof item.title === "string"
       && typeof item.message === "string" && typeof item.example === "string"
